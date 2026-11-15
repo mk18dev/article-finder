@@ -1,0 +1,26 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# build output
+dist/
+*.skill
+
+# fetched papers and any local copy of the source deck
+pdfs/
+*.pdf
+
+# local run artifacts
+results.local.json
+manual.local.json
+s6-checklist.local.md
+pdf-report.local.md
+
+# editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

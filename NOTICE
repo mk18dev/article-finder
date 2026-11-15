@@ -1,0 +1,42 @@
+# NOTICE — third-party material and scope of the license
+
+## The source deck is not distributed here
+
+The workflow, the gate list, the tier rubric and the per-section writing rules in
+`references/` are a **paraphrase and restructuring** of a course slide deck titled
+"Research method and presentation" by **Niloofar Mirzaei Chahardeh**, Islamic Azad
+University (I.A.U.).
+
+That deck is a third-party copyrighted document.
+
+- It is **not** included in this repository, in git history, or in the packaged
+  `article-finder.skill` archive.
+- No scanned pages, screenshots or verbatim bulk text from it are redistributed.
+- Nothing here is affiliated with, sponsored by, or endorsed by the deck's author,
+  the course, or Islamic Azad University.
+
+## What the MIT license covers
+
+`LICENSE` (MIT, © mk18dev) covers the software: everything under `scripts/`,
+`tests/`, `tools/`, plus `SKILL.md` and the README as original workflow text.
+
+It does **not** grant rights in the underlying course material. The documents under
+`references/` are study summaries of that material, written for personal academic
+use with attribution.
+
+## If you redistribute or sell this
+
+Before commercial redistribution of the `references/` documentation, or of any
+derivative of the source deck, obtain permission from the deck's author. Summarising
+someone's course for your own study is ordinary practice; republishing the course as
+a product is a different thing, and the MIT license on the code cannot authorise it.
+
+## Papers, PDFs and identifiers
+
+This repository contains no downloaded papers. `fetch_pdf.py` fetches open-access
+full text at runtime into a directory that `.gitignore` excludes. Bibliographic
+records come from the Crossref, OpenAlex, Unpaywall and Semantic Scholar APIs at
+runtime; only small placeholder fixtures are stored in `examples/`.
+
+Sci-Hub, LibGen and Z-Lib are deliberately not supported. See the "Downloading full
+text" section of the README.

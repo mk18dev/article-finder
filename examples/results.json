@@ -1,0 +1,88 @@
+{
+  "cutoff": "B",
+  "articles": [
+    {
+      "title": "Placeholder Survey on Topic X",
+      "authors": [
+        "Doe, J.",
+        "Roe, A. B."
+      ],
+      "year": 2024,
+      "type": "journal",
+      "venue": "Journal J (Publisher P), 12(3), 1-20",
+      "url": "https://example.org/a",
+      "doi": "10.1000/x",
+      "category": "concept",
+      "tier": "A",
+      "keyword": "Survey + topic X",
+      "steps": {
+        "S1": true,
+        "S2": true,
+        "S3": true,
+        "S4": true,
+        "S5": true,
+        "S6": true,
+        "S7": true,
+        "S8": true,
+        "S10": true,
+        "S11": true
+      },
+      "evidence": {
+        "S6": "Scopus Q1 (SJR 2024)",
+        "S7": "ISSN valid (check_ids.py)"
+      }
+    },
+    {
+      "title": "Placeholder Undergraduate Thesis",
+      "authors": [
+        "Sample, A."
+      ],
+      "year": 2021,
+      "type": "thesis",
+      "venue": "Some University",
+      "category": "concept",
+      "tier": "D",
+      "keyword": "Thesis + topic X",
+      "steps": {
+        "S1": true,
+        "S2": true,
+        "S3": true,
+        "S4": false
+      },
+      "notes": {
+        "en": "Undergraduate thesis",
+        "fa": "پایان‌نامهٔ کارشناسی"
+      }
+    },
+    {
+      "title": "Placeholder Application Paper",
+      "authors": [
+        "Example, B."
+      ],
+      "year": 2024,
+      "type": "journal",
+      "venue": "Journal K (Publisher Q), 8(1), 44-59",
+      "url": "https://example.org/b",
+      "doi": "10.1000/y",
+      "category": "application",
+      "tier": "A",
+      "keyword": "Model + topic X",
+      "steps": {
+        "S1": true,
+        "S2": true,
+        "S3": true,
+        "S4": true,
+        "S5": true,
+        "S6": null,
+        "S7": true,
+        "S8": true,
+        "S10": true,
+        "S11": true
+      },
+      "notes": {
+        "en": "WoS status not verifiable here: check mjl.clarivate.com",
+        "fa": "وضعیت WoS از این سشن قابل تأیید نیست: mjl.clarivate.com را چک کن"
+      }
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+# Changelog
+
+All notable changes to this skill. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning [SemVer](https://semver.org/).
+
+## [1.0.0] — first public release
+
+### Mode 1 — find and vet references
+
+- `verify_source.py` builds `results.json` from DOIs: Crossref for publisher, venue, volume/issue/pages, year and authors; OpenAlex for the abstract and citation count; `check_ids.py` for every ISSN checksum.
+- Settles S3 (course keyword + research keyword), S4, S5, S7, S8 and S9 mechanically; records S1, S2 and S10 as declared; leaves S6 pending and writes `s6-checklist.md` with the exact SCImago, Clarivate, DOAJ, DBLP and Iranian-blacklist link per source.
+- `render_table.py` decides the verdict — approved only when all 11 gates are ✅ — merges duplicate records (DOI, then URL, then normalised title), and emits an APA or IEEE reference list with the pending count.
+- Persian and English output with localised details, numerals and notes.
+
+### Mode 2 — write and check a draft
+
+- `check_draft.py` applies 76 rules across 10 sections: 22 countable, 5 hinted with a number, 49 read by the reviewer and recorded in `manual.json`.
+- Fail-closed: a manual rule without a recorded verdict shows ❓ and its section is never approved.
+- Every rule names the course step and page it comes from; `references/writing-article.md` §12 maps slide lines to rule IDs.
+
+### Full text
+
+- `fetch_pdf.py` resolves open copies through OpenAlex, Unpaywall and Semantic Scholar, follows arXiv ids, and walks HTML→PDF links inside repository pages.
+- A response counts as a PDF only if it starts with `%PDF-` and passes a size floor; a list of candidates is never mistaken for a download.
+- `--draft-emails` writes author request emails for everything still paywalled. `--dry-run` lists candidates without downloading.
+- Sci-Hub, LibGen and Z-Lib are not supported and cannot be enabled by a flag.
+
+### Fixed before release
+
+Four defect classes, each of which had produced a false ✅ or a false download, now covered by tests:
+
+- a table *mention* was counted as a table, so Findings reported tables that did not exist;
+- `(۱۴۰۲)` and `(Smith، ۱۴۰۲)` were invisible to the citation check, so abstracts and conclusions passed with citations in them;
+- the detail column stayed English in `--lang fa` tables, and numerals stayed Latin;
+- an HTML error page served under HTTP 200 was accepted as a PDF.
+
+Also fixed: `Scientia Iranica, 0(0), 0-0` printed for in-press records, and `classify()` in `check_ids.py` was annotated `-> str` while returning a tuple.
+
+### Verified against the source deck
+
+All 60 pages and all 53 numbered steps were read from the deck's own text: 0 pages misattributed between the references, 53/53 steps accounted for. `references/slide-coverage.md` maps each page and step to the file and phase that implements it.
+
+### Tests
+
+121 tests, no network, no third-party dependencies: verdict logic, ISSN/ISBN checksums, Persian parsing, table and figure counters, duplicate merge, bibliography format, PDF detection, and the rule→step map.
