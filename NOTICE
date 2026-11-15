@@ -1,35 +1,34 @@
 # NOTICE — third-party material and scope of the license
 
-## The source deck is not distributed here
+## Permission
 
 The workflow, the gate list, the tier rubric and the per-section writing rules in
-`references/` are a **paraphrase and restructuring** of a course slide deck titled
+`references/` are a paraphrase and restructuring of a course slide deck titled
 "Research method and presentation" by **Niloofar Mirzaei Chahardeh**, Islamic Azad
 University (I.A.U.).
 
-That deck is a third-party copyrighted document.
+**This repository is published with the author's permission**, granted to the
+maintainer of this repository in November 2026. The author retains copyright in the
+original deck. Attribution to her is kept in `SKILL.md` and in every reference file
+that paraphrases her material, and must not be removed.
 
-- It is **not** included in this repository, in git history, or in the packaged
-  `article-finder.skill` archive.
-- No scanned pages, screenshots or verbatim bulk text from it are redistributed.
-- Nothing here is affiliated with, sponsored by, or endorsed by the deck's author,
-  the course, or Islamic Azad University.
+The deck itself is still **not** redistributed: no page images, screenshots or
+verbatim bulk text are included, only summaries written for study, together with the
+software that applies them.
 
-## What the MIT license covers
+Not affiliated with, sponsored by, or endorsed by Islamic Azad University.
 
-`LICENSE` (MIT, © mk18dev) covers the software: everything under `scripts/`,
-`tests/`, `tools/`, plus `SKILL.md` and the README as original workflow text.
+## Licenses
 
-It does **not** grant rights in the underlying course material. The documents under
-`references/` are study summaries of that material, written for personal academic
-use with attribution.
+| Part | License |
+|---|---|
+| `scripts/`, `tests/`, `tools/`, `examples/` | MIT, see `LICENSE` |
+| `SKILL.md`, `README.md`, `CHANGELOG.md` | MIT, see `LICENSE` |
+| `references/*.md` | © Niloofar Mirzaei Chahardeh, paraphrased and used with permission; distributed as part of this repository only, with attribution kept intact |
 
-## If you redistribute or sell this
-
-Before commercial redistribution of the `references/` documentation, or of any
-derivative of the source deck, obtain permission from the deck's author. Summarising
-someone's course for your own study is ordinary practice; republishing the course as
-a product is a different thing, and the MIT license on the code cannot authorise it.
+Third parties may fork and reuse the whole repository. Anyone republishing the
+`references/` material separately, or commercially, needs the author's own consent —
+the MIT grant on the code cannot supply it.
 
 ## Papers, PDFs and identifiers
 

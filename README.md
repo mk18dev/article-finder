@@ -136,6 +136,7 @@ The archive holds `SKILL.md`, `references/`, `scripts/`, `tests/` and `examples/
 
 ## License and attribution
 
-Code is MIT (see [`LICENSE`](LICENSE)). The rule set is paraphrased from a third-party course deck that is **not** included here; read [`NOTICE`](NOTICE) before you redistribute or sell the documentation.
+Code is MIT (see [`LICENSE`](LICENSE)). The rule set paraphrases a course deck by **Niloofar Mirzaei Chahardeh** (I.A.U.); the deck is not redistributed, and the paraphrased documentation is published **with the author's permission** — see [`NOTICE`](NOTICE) for the licence split.
 
 Not affiliated with, or endorsed by, the deck's author or Islamic Azad University.
+
