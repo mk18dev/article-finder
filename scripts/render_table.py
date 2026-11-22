@@ -51,7 +51,7 @@ LABELS: dict[str, dict[str, Any]] = {
         "S1": "Area", "S2": "Subject", "S3": "Keyword", "S4": "Source type",
         "S5": "Publisher/venue", "S6": "Indexing", "S7": "Identifiers",
         "S8": "Specialization & year", "S9": "Tier ≥ cut-off", "S10": "Category",
-        "S11": "Extraction",
+        "S11": "Extraction", "integrity": "Integrity / retraction status",
         "approved": "Approved sources (all steps ticked)",
         "pending": "Pending: needs your verification",
         "rejected": "Rejected",
@@ -72,7 +72,7 @@ LABELS: dict[str, dict[str, Any]] = {
         "S1": "حوزه", "S2": "موضوع", "S3": "کلیدواژه", "S4": "نوع منبع",
         "S5": "ناشر/محل انتشار", "S6": "نمایه‌سازی", "S7": "شناسه‌ها (ISSN/ISBN)",
         "S8": "تخصص و سال", "S9": "رتبه ≥ حد نصاب", "S10": "دسته‌بندی",
-        "S11": "استخراج",
+        "S11": "استخراج", "integrity": "وضعیت اصلاح/پس‌گرفتن",
         "approved": "منابع تأییدشده (همه مراحل تیک‌خورده)",
         "pending": "در انتظار بررسی شما",
         "rejected": "ردشده",
@@ -143,6 +143,7 @@ def dedupe(articles: Iterable[dict[str, Any]]) -> tuple[list[dict[str, Any]], in
         "publisher": ("S5",),
         "venue": ("S5", "S7"),
         "tier": ("S9",),
+        "integrity_status": ("S0",),
     }
     for article in articles:
         key = identity(article)
@@ -189,6 +190,12 @@ def dedupe(articles: Iterable[dict[str, Any]]) -> tuple[list[dict[str, Any]], in
 
 def evaluate(article: dict[str, Any], cutoff: str) -> tuple[dict[str, bool | None], str]:
     steps: dict[str, bool | None] = {s: article.get("steps", {}).get(s) for s in STEPS}
+    integrity_status = str(article.get("integrity_status") or "unknown").lower()
+    steps["S0"] = (
+        False if integrity_status == "retracted"
+        else True if integrity_status == "not_flagged"
+        else None
+    )
     tier = str(article.get("tier", "")).upper()
     steps["S9"] = (
         TIER_RANK[tier] <= TIER_RANK[cutoff]
@@ -216,6 +223,8 @@ def evaluate(article: dict[str, Any], cutoff: str) -> tuple[dict[str, bool | Non
 
 
 def first_step(steps: dict[str, bool | None], wanted: bool | None) -> str:
+    if wanted is not True and steps.get("S0") is wanted:
+        return "integrity"
     for step in STEPS:
         if steps[step] is wanted:
             return step
