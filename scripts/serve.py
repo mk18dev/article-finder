@@ -27,7 +27,7 @@ STATIC_FILES = {
 
 
 class ArticleFinderHandler(APIHandler):
-    server_version = "ArticleFinder/1.2.0"
+    server_version = "ArticleFinder/1.3.0"
     sys_version = ""
 
     def _serve_static(self, head_only: bool = False) -> None:
