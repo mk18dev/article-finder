@@ -11,7 +11,7 @@ from unittest.mock import patch
 from scripts.serve import ArticleFinderHandler
 
 
-class RailwayHTTPServerTests(unittest.TestCase):
+class ArticleFinderHTTPServerTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.server = ThreadingHTTPServer(("127.0.0.1", 0), ArticleFinderHandler)
@@ -64,7 +64,8 @@ class RailwayHTTPServerTests(unittest.TestCase):
         self.assertEqual(response.status, 200)
         self.assertTrue(payload["ok"])
         self.assertEqual(payload["service"], "article-finder")
-        self.assertEqual(payload["version"], "1.2.0")
+        self.assertEqual(payload["version"], "1.3.0")
+        self.assertIn("source-discovery", payload["capabilities"])
 
     def test_draft_api_executes_existing_engine(self):
         payload = json.dumps({
@@ -82,6 +83,34 @@ class RailwayHTTPServerTests(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertEqual(result["mode"], "draft")
         self.assertGreater(result["summary"]["total_checks"], 0)
+
+
+    def test_crossref_discovery_is_exposed_through_http_api(self):
+        crossref_result = {"message": {"items": [{
+            "DOI": "10.1234/http-discovery",
+            "title": ["HTTP Discovery Candidate"],
+            "published-online": {"date-parts": [[2024]]},
+            "type": "journal-article",
+            "publisher": "Example Publisher",
+            "container-title": ["Example Journal"],
+        }]}}
+        payload = json.dumps({
+            "action": "discover_sources",
+            "keyword": "Survey + recommender systems",
+            "category": "concept",
+        }).encode("utf-8")
+        with patch("scripts.web_api.http_util.fetch_json", return_value=crossref_result):
+            response = self.request(
+                "/api",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+            )
+        result = json.loads(response.read())
+        self.assertEqual(response.status, 200)
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["mode"], "discovery")
+        self.assertEqual(result["candidates"][0]["doi"], "10.1234/http-discovery")
+        self.assertEqual(result["plan"][0]["search_evidence"]["query"], "Survey + recommender systems")
 
     def test_unknown_paths_do_not_expose_files(self):
         response = self.request("/../../README.md")
