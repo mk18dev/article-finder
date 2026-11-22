@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
@@ -79,6 +80,39 @@ ENTRY = {
 
 def decide(source: vs.Work | None = None, entry: dict | None = None) -> dict:
     return vs.decide(source or work(), ENTRY if entry is None else entry)
+
+
+
+class IntegritySignalTests(unittest.TestCase):
+    def test_openalex_retraction_flag_is_captured(self) -> None:
+        with patch("verify_source.fetch_json", return_value={
+            "is_retracted": True,
+            "is_paratext": False,
+            "abstract_inverted_index": {},
+            "cited_by_count": 5,
+            "primary_location": {"source": {"display_name": "Journal", "issn_l": "1234-5678"}},
+        }):
+            enriched = vs.enrich(work())
+        self.assertIs(enriched.is_retracted, True)
+        self.assertEqual(vs.integrity_status(enriched), "retracted")
+
+    def test_crossref_retraction_update_is_hard_reject(self) -> None:
+        result = decide(work(is_retracted=False, updates=[{"type": "retraction", "doi": "10.1000/r"}]))
+        self.assertEqual(result["integrity_status"], "retracted")
+        self.assertIn("RETRACTION FLAG", result["notes"]["en"])
+
+    def test_correction_update_requires_human_review(self) -> None:
+        result = decide(work(is_retracted=False, updates=[{"type": "correction", "doi": "10.1000/c"}]))
+        self.assertEqual(result["integrity_status"], "corrected")
+        self.assertIn("CORRECTION FLAG", result["notes"]["en"])
+
+    def test_openalex_negative_flag_is_not_claimed_as_absolute_clearance(self) -> None:
+        self.assertEqual(vs.integrity_status(work(is_retracted=False)), "not_flagged")
+        result = decide(work(is_retracted=False))
+        self.assertIn("not proof", result["notes"]["en"])
+
+    def test_missing_retraction_signal_is_partial(self) -> None:
+        self.assertEqual(vs.integrity_status(work()), "partial")
 
 
 class PublisherTests(unittest.TestCase):
