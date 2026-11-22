@@ -32,7 +32,7 @@ The eight checks on the slide:
 - Number: the total number of the journal within a year. Example: No.48 = 8*6.
 - Issue: specifies the number of issues of a journal within a specific year. Example: Issue = 5.
 
-*(skill)* The example 48 = 8×6 only works if Number counts issues cumulatively (8 volumes × 6 issues of a bimonthly), even though the slide's sentence says "within a year". The consistency check below is built on that example. If the journal's own pages number things differently, trust the journal and write what you saw in the notes. For a journal with P issues per year, Number should fall in `((Volume−1)·P, Volume·P]`, so Vol. 8 of a bimonthly (P = 6) gives 43-48, and Issue 5 gives No. 47. Skip the check when "volume" is just the calendar year.
+*(skill)* The example 48 = 8×6 only works if Number counts issues cumulatively (8 volumes × 6 issues of a bimonthly), even though the slide's sentence says "within a year". The consistency check below is built on that example. The verifier requires `journal_number`, `issues_per_year`, and reviewer-attributed evidence from an official publisher host. Set `calendar_year_volume: true` only when the volume is literally the calendar year. If the journal's own pages number things differently, do not force the formula; keep S7 pending and document the exception for review. For a journal with P issues per year, Number should fall in `((Volume−1)·P, Volume·P]`, so Vol. 8 of a bimonthly (P = 6) gives 43-48, and Issue 5 gives No. 47. Skip the check when "volume" is just the calendar year.
 
 **Identifiers** (page 21): ISSN (International Standard Serial Number) → journal · EISSN (Electronic ISSN) → journal · PISSN (Print ISSN) → journal · ISBN (International Standard Book Number) → book. Validate the checksums with `scripts/check_ids.py`.
 
@@ -149,7 +149,7 @@ Missing or invalid ISSN, publisher not identifiable, Number inconsistent with Vo
 |---|---|---|
 | S4 Source type | script | Crossref `type` mapped to journal / conference / book / thesis |
 | S5 Publisher | script, one-sided | Crossref `publisher`, matched against the slide's publisher list; a publisher outside that list stays ❓, never ❌ |
-| S7 Identifiers | script | ISSN checksums via `check_ids.py`; for a conference, edition + venue + DOI |
+| S7 Identifiers | script, partly | ISSN/ISBN checksums; journal volume-number-issue formula plus reviewer evidence from an official publisher host; conference edition + venue + DOI; thesis/book record IDs |
 | S8 Specialization & year | script, partly | Crossref year against the recency rule; specialization requires a reviewer record and evidence URL |
 | S9 Tier | reviewer + renderer | A-D tier, rubric/basis, reviewer evidence URL; \`render_table.py\` computes pass/fail against the selected cutoff |
 | S10 Category | model/reviewer | category judgement, taken from the plan and reported as declared |
