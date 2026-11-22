@@ -119,10 +119,10 @@ Two judgment notes: the "and" rule (B7) is the slide's own rule, so report it as
 
 Use this mode when the user asks for a systematic or scoping review, reproducible search documentation, screening counts, or a PRISMA-style flow.
 
-1. **Freeze the protocol before screening.** Record the review type, research question, inclusion criteria, exclusion criteria, and any registry and registration ID. Do not invent a registration.
+1. **Freeze the protocol before screening.** Record the review type, research question, inclusion criteria, exclusion criteria, registry/registration ID, reviewer IDs, and whether screening is dual or single. Single-reviewer screening requires an explicit justification.
 2. **Log every database search when it runs.** For each database/platform, save the exact query, ISO date, hit count, and limits. A database count without a corresponding query and date is invalid.
-3. **Deduplicate explicitly.** Run `deduplicate_records()` or use the review ledger's DOI/PMID/URL/title keys. Preserve a link from each duplicate to its canonical record; do not silently discard conflicts.
-4. **Record screening decisions.** Keep title/abstract and full-text stages separate. Full-text exclusions require one explicit reason. AI suggestions are not reviewer decisions and must not silently change protocol criteria.
+3. **Deduplicate explicitly.** Preserve the raw records from `search_databases.py` in the PRISMA ledger; do not pass only its deduplicated `records` list. The ledger deduplicates by DOI/PMID/URL/title and preserves duplicate-to-canonical links.
+4. **Record screening decisions.** Each title/abstract and full-text decision requires reviewer ID and timezone-aware timestamp. Dual screening requires two independent decisions and adjudication when they disagree; single screening requires the protocol justification. Full-text exclusions require one explicit reason. AI suggestions are not reviewer decisions.
 5. **Reconcile counts.** Put the search log and counts in a JSON file following `examples/prisma-review.json`. The tool derives downstream counts and rejects negative or inconsistent arithmetic.
 6. **Generate the report.** Run `python3 scripts/prisma_review.py examples/prisma-review.json --format report`; use `--format flow` for Mermaid or `--format json` for machine-readable counts.
 7. **Synthesize only extracted evidence.** Save reviewer-extracted study fields and claim-to-source excerpts in a JSON bundle, then run `python3 scripts/synthesize_literature.py evidence-bundle.json --format markdown`. Group findings by theme, preserve conflicting and null directions, and leave a claim pending unless every linked study has a reviewed excerpt and locator. Do not infer study findings from titles or abstracts.
