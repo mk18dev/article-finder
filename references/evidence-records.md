@@ -1,6 +1,6 @@
 # Evidence records for Mode 1
 
-Release 1.2.0 uses **fail-closed** gates. Candidate metadata is retrieved from
+Release 1.1.0 uses **fail-closed** gates. Candidate metadata is retrieved from
 Crossref/OpenAlex, but research judgements and browser-only checks must be
 recorded by the agent/reviewer. Missing or malformed evidence means pending
 (`null`), not pass (`true`). An explicit failed check means reject (`false`).
