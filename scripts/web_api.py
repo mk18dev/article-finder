@@ -39,7 +39,7 @@ if os.environ.get("VERCEL") == "1":
 
 _DRAFT_LOCK = RLock()
 
-APP_VERSION = "1.3.0"
+APP_VERSION = "1.1.0"
 MAX_BODY_BYTES = 512 * 1024
 MAX_DRAFT_CHARS = 180_000
 MAX_SOURCE_ENTRIES = 4
@@ -422,7 +422,7 @@ def _json_bytes(value: Any) -> bytes:
 
 
 class handler(BaseHTTPRequestHandler):
-    server_version = "ArticleFinderAPI/1.3.0"
+    server_version = "ArticleFinderAPI/1.1.0"
     sys_version = ""
 
     def log_message(self, format: str, *args: Any) -> None:
