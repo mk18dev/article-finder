@@ -173,6 +173,8 @@ def verify_metadata(citation: dict[str, Any], message: dict[str, Any]) -> dict[s
 def verify_citation(citation: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(citation, dict):
         raise ValueError("each citation must be an object")
+    if len(str(citation.get("title") or "")) > 1000 or len(str(citation.get("first_author") or "")) > 200:
+        raise ValueError("citation title or first_author exceeds its input limit")
     doi = normalize_doi(citation.get("doi"))
     if doi:
         url = "https://api.crossref.org/works/" + urllib.parse.quote(doi, safe="/")
@@ -213,6 +215,8 @@ def verify_all(document: Any) -> list[dict[str, Any]]:
     citations = document.get("citations") if isinstance(document, dict) else document
     if not isinstance(citations, list):
         raise ValueError("input must be a list or an object with a citations list")
+    if not 1 <= len(citations) <= 100:
+        raise ValueError("citations must contain between 1 and 100 records")
     results = []
     for index, citation in enumerate(citations, 1):
         try:
