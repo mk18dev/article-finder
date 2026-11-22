@@ -9,9 +9,9 @@ Use `scripts/verify_source.py` and the Mode 1 workflow.
 
 - Validate DOI syntax and resolver host before metadata requests.
 - Execute S1–S11 in order; do not mark a gate passed until evidence is observed.
-- Store every manual judgment with HTTPS evidence URL, reviewer note, and timestamp.
+- Store every manual judgment with HTTPS evidence URL, reviewer ID, timezone-aware timestamp, page/section locator, and reviewer note.
 - Crossref/OpenAlex metadata can support identity and bibliographic fields; it cannot prove indexing, peer review, or content relevance by itself.
-- Check indexing at the authoritative registry for the claimed year and exact title.
+- Check indexing at the authoritative registry for the claimed year and exact title. S6 accepts evidence URLs only from the official registry host allowlist; host match is not proof that the page content was read.
 - Any unknown gate keeps the source Pending, never Approved.
 - Record corrections, retractions, inaccessible pages, conflicting metadata, and missing full text.
 - Render APA/IEEE output only from verified fields; never fill missing fields from memory.
