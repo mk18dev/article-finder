@@ -20,19 +20,20 @@ Zero approved is a normal, honest result. Read the next section for why.
 | Workflow | Input | Output |
 |---|---|---|
 | Discover sources | Course keyword + research topic | Crossref/OpenAlex CLI results with DOI and query provenance; web UI offers Crossref discovery |
-| Verify sources and citations | DOI + evidence plan + citation records | 11-gate checklist, APA/IEEE references and metadata mismatch/retraction flags |
+| Verify sources | DOI + evidence plan | 11-gate checklist and APA/IEEE references |
+| Verify citations | Bibliography with DOI/title/year/author | Crossref identity comparison and correction/retraction flags |
 | Check a draft | Article draft | Section-by-section report against 76 writing rules |
 | Systematic/scoping review | Protocol + database search log + screening counts | Validated PRISMA-style counts, flow diagram, evidence matrix and thematic synthesis |
 
 Discovery returns candidates, never approvals. Reviewer evidence remains pending until documented. PRISMA counts are derived from the supplied search log and screening ledger; the tool refuses inconsistent arithmetic and never invents screening decisions.
 
-## Three modes
+## Four modes
 
-| | Mode 1 — find and vet | Mode 2 — check a draft | Mode 3 — systematic/scoping review |
-|---|---|---|---|
-| Input | Research topic and DOI candidates | Draft with one heading per section | Protocol, exact searches, and screening ledger |
-| Output | 11-gate source checklist + APA/IEEE bibliography | 76-rule section report + fix list | Search audit, reconciled counts, Mermaid flow |
-| Command | `search_databases.py` → `verify_source.py` → `render_table.py` + `verify_citations.py` | `check_draft.py` | `prisma_review.py` + `synthesize_literature.py` |
+| | Mode 1 — find and vet | Mode 2 — check a draft | Mode 3 — systematic/scoping review | Mode 4 — citation identity audit |
+|---|---|---|---|---|
+| Input | Research topic and DOI candidates | Draft with one heading per section | Protocol, exact searches, and screening ledger | Bibliography with DOI/title/year/author |
+| Output | 11-gate source checklist + APA/IEEE bibliography | 76-rule section report + fix list | Search audit, reconciled counts, Mermaid flow, evidence matrix | Identity match, mismatch, correction/retraction flags |
+| Command | `search_databases.py` → `verify_source.py` → `render_table.py` | `check_draft.py` | `prisma_review.py` + `synthesize_literature.py` | `verify_citations.py` |
 
 ## The 11 gates (Mode 1)
 
@@ -102,7 +103,7 @@ python3 scripts/check_draft.py draft.md --lang fa --manual manual.json
 **Summary:** 0 approved · 1 pending · 0 rejected (Tier cut-off: B)
 ```
 
-Full output examples for both modes live in [`references/output-example.md`](references/output-example.md). Mode 1's fixtures are explicitly placeholders and never demonstrate an approved source.
+Mode 1 and Mode 2 output examples live in [`references/output-example.md`](references/output-example.md). Mode 1's fixtures are explicitly placeholders and never demonstrate an approved source.
 
 ## Downloading full text
 
@@ -142,10 +143,12 @@ The suite is network-free and additionally covers source evidence gates, citatio
 ## Repository layout
 
 ```
-SKILL.md              the workflow an agent follows
+SKILL.md              the main workflow an agent follows
+VERSION               canonical release version
+skills/               nine specialized research and engineering playbooks
 references/           the rule set, gates, rubric, reading rules, verification map
 scripts/              search_databases · verify_source · verify_citations · prisma_review · synthesize_literature · render_table · fetch_pdf · check_draft · check_ids · web_api · http_util
-tests/                regression tests for every script
+tests/                regression tests for every script and package
 examples/             fixtures whose real output the docs show
 tools/pack_skill.py   builds dist/article-finder.skill
 ```
@@ -156,7 +159,7 @@ tools/pack_skill.py   builds dist/article-finder.skill
 python3 tools/pack_skill.py      # -> dist/article-finder.skill
 ```
 
-The archive holds `SKILL.md`, `references/`, `scripts/`, `tests/` and `examples/` — drop it into a skills directory as-is.
+The archive holds `SKILL.md`, `VERSION`, nine specialized `skills/` playbooks, `references/`, `scripts/`, `tests/` and `examples/` — drop it into a skills directory as-is.
 
 ## License and attribution
 
@@ -166,10 +169,7 @@ Not affiliated with, or endorsed by, the deck's author or Islamic Azad Universit
 
 ## Web app and API
 
-**Live application:** [article-finder-peach.vercel.app](https://article-finder-peach.vercel.app/) — Release 1.1.0.
-
-The Persian-first web interface uses the same Python verification and draft-checking
-functions as the CLI; it does not introduce a second rules engine.
+The Persian-first web interface currently exposes source discovery, 11-gate source verification and draft checking through the same Python modules as the CLI. PRISMA, thematic synthesis and citation identity audit are available through the bundled specialist workflows and CLI tools.
 
 - `/` serves the responsive web workspace.
 - `GET /api` reports API health and supported actions.
@@ -209,7 +209,4 @@ python -m scripts.serve
 ```
 
 The local web/API is available at `http://127.0.0.1:8000/` (or the configured
-`PORT`). Vercel deployment configuration is maintained in `vercel.json`.
-GitHub Actions tests Python 3.10–3.13 on pushes to `main`. The live Vercel smoke
-suite is a separate manual workflow dispatch (`run_production_smoke=true`) and
-should be run only after the matching production deployment is ready.
+`PORT`). Vercel deployment configuration is maintained in `vercel.json`, but deployment is intentionally gated. GitHub Actions tests Python 3.10–3.13 on pushes to `main`; the live Vercel smoke suite is a separate manual workflow dispatch (`run_production_smoke=true`) and must not run until the user explicitly authorizes a release.
