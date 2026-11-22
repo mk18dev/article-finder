@@ -30,9 +30,9 @@ RECENCY_YEARS = 5
 
 TRUSTED_PUBLISHERS: tuple[str, ...] = (
     "ieee", "institute of electrical and electronics engineers", "ieee computer society",
-    "springer", "springer nature", "springer science and business media",
+    "springer", "springer nature", "springer nature switzerland", "springer nature america", "springer science and business media",
     "acm", "association for computing machinery", "elsevier",
-    "taylor francis", "taylor and francis", "john wiley", "john wiley sons", "wiley",
+    "taylor francis", "taylor francis group", "taylor and francis", "john wiley", "john wiley sons", "wiley", "wiley blackwell",
 )
 
 INDEX_DOMAINS: dict[str, tuple[str, ...]] = {
