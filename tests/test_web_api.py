@@ -138,6 +138,12 @@ class SourceDiscoveryTests(unittest.TestCase):
             result = api.run_source_discovery({"keyword": "Survey + recommender systems"})
         self.assertEqual([item["title"] for item in result["candidates"]], ["First"])
 
+    def test_discovery_rejects_malformed_crossref_payload(self):
+        with patch.object(api.http_util, "fetch_json", return_value={"unexpected": []}):
+            with self.assertRaises(api.RequestError) as caught:
+                api.run_source_discovery({"keyword": "Survey + recommender systems"})
+        self.assertEqual(caught.exception.status, 502)
+
     def test_discovery_reports_upstream_failure_as_bad_gateway(self):
         with patch.object(api.http_util, "fetch_json", side_effect=OSError("offline")):
             with self.assertRaises(api.RequestError) as caught:
