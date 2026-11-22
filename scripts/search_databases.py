@@ -162,7 +162,7 @@ def discover(query: str, limit: int = DEFAULT_LIMIT,
     for index, record in enumerate(records, 1):
         record.setdefault(
             "record_id",
-            f"{str(record.get('source_provider') or 'source').lower()}-{index}",
+            f"{str(record.get('source_provider') or 'source').lower()}-{index:06d}",
         )
     for index, record in enumerate(records, 1):
         provider = str(record.get("source_provider") or "source").strip().lower()
