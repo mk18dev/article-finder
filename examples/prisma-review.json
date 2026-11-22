@@ -18,6 +18,7 @@
       "platform": "REST API",
       "query": "REPLACE WITH THE EXACT QUERY THAT WAS EXECUTED",
       "date_run": "2026-11-23",
+      "search_url": "https://api.crossref.org/works?query=REPLACE",
       "hits": 0,
       "limits": "REPLACE WITH THE ACTUAL LIMITS"
     }
