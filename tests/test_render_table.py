@@ -24,6 +24,7 @@ def article(**overrides) -> dict:
         "category": "concept",
         "tier": "A",
         "tier_verified": True,
+        "integrity_status": "not_flagged",
         "steps": {f"S{i}": True for i in range(1, 12) if i != 9},
     }
     base.update(overrides)
@@ -43,6 +44,26 @@ class VerdictTests(unittest.TestCase):
     def test_false_is_rejected(self) -> None:
         broken = article(steps={**article()["steps"], "S4": False})
         self.assertEqual(rt.evaluate(broken, "B")[1], "REJECTED")
+
+
+    def test_retracted_source_is_rejected_even_when_all_eleven_gates_pass(self) -> None:
+        steps, verdict = rt.evaluate(article(integrity_status="retracted"), "B")
+        self.assertIs(steps["S0"], False)
+        self.assertEqual(verdict, "REJECTED")
+        self.assertEqual(rt.first_step(steps, False), "integrity")
+
+    def test_corrected_source_remains_pending_for_human_review(self) -> None:
+        steps, verdict = rt.evaluate(article(integrity_status="corrected"), "B")
+        self.assertIsNone(steps["S0"])
+        self.assertEqual(verdict, "PENDING")
+        self.assertEqual(rt.first_step(steps, None), "integrity")
+
+    def test_missing_integrity_status_fails_closed(self) -> None:
+        item = article()
+        item.pop("integrity_status")
+        steps, verdict = rt.evaluate(item, "B")
+        self.assertIsNone(steps["S0"])
+        self.assertEqual(verdict, "PENDING")
 
     def test_false_beats_null(self) -> None:
         broken = article(steps={**article()["steps"], "S4": False, "S6": None})
