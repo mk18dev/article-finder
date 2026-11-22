@@ -441,8 +441,12 @@ def decide(work: Work, entry: dict[str, Any]) -> dict[str, Any]:
         notes_en.append("S8 pending: specialization must be explicitly reviewed; missing data is not a pass.")
         notes_fa.append("S8 در انتظار است: تخصصی‌بودن باید صریح بررسی شود؛ داده مفقود تأیید محسوب نمی‌شود.")
     if s11 is None:
-        notes_en.append("S11 pending: attach the reading record required for the source category and type.")
-        notes_fa.append("S11 در انتظار است: سابقه مطالعه متناسب با دسته و نوع منبع را ثبت کن.")
+        if category == "methodology":
+            notes_en.append("S11 pending: full text is required for Methodology; attach the full-text reading record.")
+            notes_fa.append("S11 در انتظار است: برای دسته روش‌شناسی مطالعه متن کامل لازم است؛ مدرک مطالعه متن کامل را ثبت کن.")
+        else:
+            notes_en.append("S11 pending: attach the reading record required for the source category and type.")
+            notes_fa.append("S11 در انتظار است: سابقه مطالعه متناسب با دسته و نوع منبع را ثبت کن.")
     if s5 is None:
         notes_en.append(f"Publisher/venue requires confirmation: {work.publisher or 'not recorded'}.")
         notes_fa.append(f"ناشر/محل انتشار نیاز به تأیید دارد: {work.publisher or 'ثبت نشده'}.")
