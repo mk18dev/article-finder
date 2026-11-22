@@ -466,7 +466,13 @@
       });
       const data = await response.json();
       if (!response.ok || !data?.ok) throw new Error("API health check failed");
-      setOnline(true, "موتور API متصل است");
+      if (data.auth_mode === "misconfigured") {
+        setOnline(false, "کلید API در محیط production تنظیم نشده است");
+      } else if (data.auth_mode === "key_required") {
+        setOnline(true, "API آماده است؛ کلید دسترسی لازم است");
+      } else {
+        setOnline(true, "موتور API متصل است");
+      }
     } catch {
       setOnline(false, "API پس از استقرار فعال می‌شود");
     }
