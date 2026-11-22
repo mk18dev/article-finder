@@ -36,7 +36,7 @@ class SkillPackageTests(unittest.TestCase):
             "ci-cd-release",
         }
         packaged = {
-            name.split("/")[1]
+            name.split("/")[2]
             for name in names
             if name.startswith("article-finder/skills/") and name.endswith("/SKILL.md")
         }
