@@ -136,7 +136,7 @@ def verify_metadata(citation: dict[str, Any], message: dict[str, Any]) -> dict[s
         mismatches.append(f"title similarity {similarity:.3f} is below {TITLE_MATCH_THRESHOLD:.2f}")
     if expected_year is not None and actual_year is not None and int(expected_year) != actual_year:
         mismatches.append(f"publication year mismatch: expected {expected_year}, Crossref reports {actual_year}")
-    if expected_author and actual_author and expected_author != actual_author:
+    if expected_author and actual_author and not (expected_author == actual_author or expected_author.endswith(" " + actual_author) or expected_author.startswith(actual_author + " ")):
         mismatches.append("first-author family name mismatch")
 
     if status_update == "retracted":
@@ -145,7 +145,7 @@ def verify_metadata(citation: dict[str, Any], message: dict[str, Any]) -> dict[s
         status = "corrected"
     elif mismatches:
         status = "mismatch"
-    elif not expected_title or not actual_title or actual_year is None:
+    elif not expected_doi or not actual_doi or not expected_title or not actual_title or actual_year is None:
         status = "pending"
     elif expected_author and not actual_author:
         status = "pending"
