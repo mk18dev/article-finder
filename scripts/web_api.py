@@ -189,7 +189,11 @@ def run_source_discovery(payload: Any) -> dict[str, Any]:
         response = http_util.fetch_json(search_url, headers={"Accept": "application/json"})
     except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, ValueError) as exc:
         raise RequestError("جست‌وجو در Crossref انجام نشد؛ سرویس فراداده در دسترس نیست.", 502) from exc
-    items = ((response.get("message") or {}).get("items") or [])
+    if not isinstance(response, dict) or not isinstance(response.get("message"), dict):
+        raise RequestError("پاسخ Crossref ساختار معتبری ندارد.", 502)
+    items = response["message"].get("items") or []
+    if not isinstance(items, list):
+        raise RequestError("فهرست نتایج Crossref معتبر نیست.", 502)
     searched_at = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
     candidates = []
     seen = set()
