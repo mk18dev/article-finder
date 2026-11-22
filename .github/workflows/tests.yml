@@ -65,9 +65,12 @@ jobs:
           BASE_URL: https://article-finder-peach.vercel.app
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error "$BASE_URL/" | grep -q 'v1.3.0'
-          curl --fail --silent --show-error "$BASE_URL/app.js" | grep -q 'discoverSources'
-          curl --fail --silent --show-error "$BASE_URL/styles.css" | grep -q 'discovery-box'
+          curl --fail --silent --show-error "$BASE_URL/" -o /tmp/index.html
+          curl --fail --silent --show-error "$BASE_URL/app.js" -o /tmp/app.js
+          curl --fail --silent --show-error "$BASE_URL/styles.css" -o /tmp/styles.css
+          grep -q 'v1.3.0' /tmp/index.html
+          grep -q 'discoverSources' /tmp/app.js
+          grep -q 'discovery-box' /tmp/styles.css
       - name: Exercise real production Crossref discovery
         env:
           BASE_URL: https://article-finder-peach.vercel.app
