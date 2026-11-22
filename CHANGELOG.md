@@ -9,7 +9,7 @@
 - Captures exact query, Crossref result URL, matched DOI and UTC search timestamp in each candidate plan.
 - Allows up to four selected candidates to flow directly into the existing 11-gate verifier; discovery never grants approval or fabricates reviewer evidence.
 - Added unit and HTTP integration tests for discovery validation, malformed/duplicate records, upstream failures and evidence provenance.
-
+- Removed unused Railway deployment configuration and platform-specific instructions; retained the hosting-neutral HTTP server and Vercel adapter.\n- Added a production smoke-test job after the Python matrix: waits for Vercel health, checks static assets, performs real Crossref discovery, and exercises all 76 draft rules against the live API.\n- Released and verified the Vercel production build at `article-finder-peach.vercel.app`.\n
 
 All notable changes to this skill and web app. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning [SemVer](https://semver.org/).
 
