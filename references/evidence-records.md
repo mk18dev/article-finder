@@ -16,12 +16,15 @@ A reviewer-controlled item has this shape:
 ```json
 {
   "reviewed": true,
+  "reviewer_id": "reviewer-1",
+  "reviewed_at": "2026-11-23T10:00:00Z",
   "url": "https://example.org/replace-with-real-source",
+  "locator": "Results section, page 4",
   "note": "Describe exactly what was checked"
 }
 ```
 
-The note must be at least eight non-whitespace characters. The URL must be
+The note must be at least eight non-whitespace characters. Every manual evidence item requires a non-empty reviewer ID, a timezone-aware ISO-8601 `reviewed_at`, and a page/section/record `locator`. The URL must be
 HTTPS. Specialization and degree evidence also require a source URL and reviewer
 note. The one documented exception is the legacy official blacklist host
 `http://impactfactor.ir/`, which the CLI permits only on the S6 blacklist
@@ -48,7 +51,7 @@ Every entry starts with:
 - `degree_evidence`: thesis degree confirmation with a reviewer URL and note;
   an accepted degree label alone cannot pass S4.
 - `judgements`: S1, S2 and S10 use `ok`, `reviewed: true`,
-  `evidence_url`, and `note`. Books and theses also need a reviewed S5
+  `evidence_url`, `reviewer_id`, `reviewed_at`, `locator`, and `note`. Books and theses also need a reviewed S5
   judgement because their publisher/venue is not auto-approved from a simple
   Crossref publisher-name match.
 
