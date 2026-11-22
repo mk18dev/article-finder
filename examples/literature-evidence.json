@@ -1,0 +1,64 @@
+{
+  "review_title": "PLACEHOLDER — Evidence map for topic X",
+  "studies": [
+    {
+      "study_id": "S1",
+      "title": "PLACEHOLDER Study One",
+      "doi": "10.1000/example-one",
+      "year": 2024,
+      "theme": "PLACEHOLDER Theme A",
+      "study_design": "experiment",
+      "population": "PLACEHOLDER population",
+      "method": "PLACEHOLDER method",
+      "outcome": "PLACEHOLDER outcome",
+      "direction": "positive",
+      "finding_summary": "PLACEHOLDER reviewer-extracted finding",
+      "limitations": ["PLACEHOLDER limitation"],
+      "review_status": "full_text",
+      "extraction_evidence": {
+        "reviewed": true,
+        "url": "https://example.org/placeholder-paper",
+        "note": "PLACEHOLDER excerpt reviewed by a human",
+        "locator": "Results, p. 4"
+      },
+      "quality_appraisal": {
+        "rating": "unclear",
+        "evidence": {
+          "reviewed": true,
+          "url": "https://example.org/placeholder-paper",
+          "note": "PLACEHOLDER quality appraisal evidence",
+          "locator": "Methods, p. 3"
+        }
+      }
+    },
+    {
+      "study_id": "S2",
+      "title": "PLACEHOLDER Study Two",
+      "year": 2023,
+      "theme": "PLACEHOLDER Theme A",
+      "study_design": "observational",
+      "population": "PLACEHOLDER population",
+      "method": "PLACEHOLDER method",
+      "outcome": "PLACEHOLDER outcome",
+      "direction": "mixed",
+      "finding_summary": "PLACEHOLDER reviewer-extracted finding",
+      "limitations": ["PLACEHOLDER limitation"],
+      "review_status": "abstract_only"
+    }
+  ],
+  "claims": [
+    {
+      "claim_text": "PLACEHOLDER claim to be checked against the included studies.",
+      "study_ids": ["S1", "S2"],
+      "source_evidence": [
+        {
+          "study_id": "S1",
+          "reviewed": true,
+          "url": "https://example.org/placeholder-paper",
+          "quote": "PLACEHOLDER excerpt, not a real quotation.",
+          "locator": "Results, p. 4"
+        }
+      ]
+    }
+  ]
+}
