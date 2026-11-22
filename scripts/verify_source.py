@@ -16,7 +16,7 @@ import urllib.error
 import re
 import urllib.parse
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -29,8 +29,23 @@ from http_util import fetch_json
 RECENCY_YEARS = 5
 
 TRUSTED_PUBLISHERS: tuple[str, ...] = (
-    "IEEE", "Springer", "ACM", "Association for Computing Machinery", "Elsevier",
-    "Taylor & Francis", "John Wiley", "Wiley",
+    "ieee", "institute of electrical and electronics engineers", "ieee computer society",
+    "springer", "springer nature", "springer science and business media",
+    "acm", "association for computing machinery", "elsevier",
+    "taylor francis", "taylor and francis", "john wiley", "john wiley sons", "wiley",
+)
+
+INDEX_DOMAINS: dict[str, tuple[str, ...]] = {
+    "scopus": ("scopus.com",),
+    "web of science": ("mjl.clarivate.com", "webofscience.com"),
+    "wos": ("mjl.clarivate.com", "webofscience.com"),
+    "isc": ("isc.gov.ir",),
+    "dblp": ("dblp.org",),
+}
+SEARCH_DOMAINS: tuple[str, ...] = (
+    "crossref.org", "openalex.org", "scholar.google.com", "pubmed.ncbi.nlm.nih.gov",
+    "semanticscholar.org", "arxiv.org", "ieeexplore.ieee.org", "dl.acm.org",
+    "dblp.org", "scopus.com", "mjl.clarivate.com",
 )
 COURSE_KEYWORDS: tuple[str, ...] = (
     "tutorial", "survey", "overview", "an introduction", "bibliography", "references",
@@ -149,8 +164,35 @@ def enrich(work: Work) -> Work:
 
 
 def publisher_trusted(publisher: str) -> bool:
-    lowered = publisher.lower()
-    return any(name.lower() in lowered for name in TRUSTED_PUBLISHERS)
+    normalized = re.sub(r"[^a-z0-9]+", " ", publisher.casefold()).strip()
+    tokens = normalized.split()
+    legal_suffixes = {"bv", "inc", "ltd", "llc", "ag", "gmbh", "plc", "sa", "limited", "company"}
+    while tokens and tokens[-1] in legal_suffixes:
+        tokens.pop()
+    normalized = " ".join(tokens)
+    return normalized in TRUSTED_PUBLISHERS
+
+
+def host_matches(url: str, domains: tuple[str, ...]) -> bool:
+    try:
+        parsed = urllib.parse.urlsplit(url)
+        host = (parsed.hostname or "").lower().rstrip(".")
+        return (
+            parsed.scheme.lower() == "https"
+            and parsed.username is None and parsed.password is None
+            and parsed.port in (None, 443)
+            and any(host == domain or host.endswith("." + domain) for domain in domains)
+        )
+    except ValueError:
+        return False
+
+
+def _valid_search_timestamp(value: str) -> bool:
+    try:
+        datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+        return True
+    except ValueError:
+        return False
 
 
 def venue_text(work: Work) -> str:
@@ -270,12 +312,16 @@ def identifiers_ok(work: Work, entry: dict[str, Any]) -> bool | None:
 
 
 def s6_gate(work: Work, entry: dict[str, Any]) -> bool | None:
-    def verified_record(item: Any) -> bool:
-        return isinstance(item, dict) and evidence_item_ok({
-            "reviewed": item.get("verified"),
-            "url": item.get("url"),
-            "note": item.get("note"),
-        })
+    def verified_record(item: Any, domains: tuple[str, ...]) -> bool:
+        return (
+            isinstance(item, dict)
+            and evidence_item_ok({
+                "reviewed": item.get("verified"),
+                "url": item.get("url"),
+                "note": item.get("note"),
+            })
+            and host_matches(str(item.get("url") or ""), domains)
+        )
 
     if work.kind in {"journal", "conference"}:
         if work.kind == "journal":
@@ -283,17 +329,18 @@ def s6_gate(work: Work, entry: dict[str, Any]) -> bool | None:
             if blacklist in {"listed", "blacklisted"}:
                 return False
             blacklist_evidence = entry.get("blacklist_evidence")
-            if blacklist != "clear" or not isinstance(blacklist_evidence, dict) or not evidence_item_ok({
-                **blacklist_evidence,
-                "allow_legacy_blacklist_http": True,
-            }):
+            if (
+                blacklist != "clear" or not isinstance(blacklist_evidence, dict)
+                or not evidence_item_ok({**blacklist_evidence, "allow_legacy_blacklist_http": True})
+                or not host_matches(str(blacklist_evidence.get("url") or ""), ("impactfactor.ir",))
+            ):
                 return None
-        accepted = {"scopus", "web of science", "wos", "isc", "dblp"}
         for item in entry.get("indexing_evidence", []) or []:
             if not isinstance(item, dict):
                 continue
             name = str(item.get("index", "")).strip().lower()
-            if name in accepted and verified_record(item):
+            domains = INDEX_DOMAINS.get(name)
+            if domains and verified_record(item, domains):
                 return True
         return None
 
@@ -302,8 +349,14 @@ def s6_gate(work: Work, entry: dict[str, Any]) -> bool | None:
         if not isinstance(item, dict):
             return None
         repository = str(item.get("repository", item.get("index", ""))).strip().lower()
-        accepted = {"irandoc", "university repository", "institutional repository"}
-        return True if repository in accepted and verified_record(item) else None
+        if repository == "irandoc":
+            return True if verified_record(item, ("irandoc.ac.ir",)) else None
+        if repository in {"university repository", "institutional repository"}:
+            institution_domain = str(item.get("institution_domain") or "").strip().lower()
+            if not institution_domain or "." not in institution_domain:
+                return None
+            return True if verified_record(item, (institution_domain,)) else None
+        return None
 
     if work.kind == "book":
         item = entry.get("book_s6_evidence")
@@ -316,10 +369,15 @@ def s6_gate(work: Work, entry: dict[str, Any]) -> bool | None:
             and citation_count >= 0
         )
         publisher_verified = item.get("publisher_verified") is True
-        accepted = {"google books", "amazon"}
+        if source == "google books":
+            domains = ("books.google.com",)
+        elif source == "amazon":
+            domains = ("amazon.com", "amazon.co.uk", "amazon.de", "amazon.fr",
+                       "amazon.ca", "amazon.in", "amazon.co.jp", "amazon.com.au")
+        else:
+            return None
         return True if (
-            source in accepted and citation_count_valid and publisher_verified
-            and verified_record(item)
+            citation_count_valid and publisher_verified and verified_record(item, domains)
         ) else None
 
     return False
@@ -391,8 +449,8 @@ def decide(work: Work, entry: dict[str, Any]) -> dict[str, Any]:
         and isinstance(search, dict)
         and str(search.get("query", "")).strip() == keyword
         and str(search.get("doi", "")).strip().lower() == work.doi.lower()
-        and str(search.get("url", "")).startswith("https://")
-        and bool(str(search.get("searched_at", "")).strip())
+        and host_matches(str(search.get("url", "")), SEARCH_DOMAINS)
+        and _valid_search_timestamp(str(search.get("searched_at", "")))
     )
     recency = recency_ok(work, category)
     specialized = entry.get("specialized")
