@@ -7,13 +7,13 @@ description: Freeze systematic-review protocols, manage duplicate and screening 
 
 Use `scripts/prisma_review.py` and `examples/prisma-review.json`.
 
-1. Freeze review type, question, eligibility criteria, databases, date range, language, reviewers, and registration before screening.
+1. Freeze review type, question, eligibility criteria, databases, date range, language, reviewer IDs, dual/single screening policy, and registration before screening. A single-reviewer protocol requires a written justification.
 2. Save each executed query and HTTPS result URL, ISO date, actual retrieved count, and limits.
-3. Preserve raw records. Deduplicate using DOI, PMID, normalized URL, then normalized title; keep duplicate-to-canonical links and metadata conflicts.
-4. Keep records screened, title/abstract exclusions, reports sought, reports not retrieved, reports assessed, full-text exclusions, and included studies distinct.
+3. Preserve raw provider records (not only the deduplicated result set). The ledger deduplicates using DOI, PMID, normalized URL, then normalized title; keep duplicate-to-canonical links and metadata conflicts.
+4. Record each title/abstract and full-text decision with reviewer ID and timezone-aware timestamp. Dual screening requires two independent reviewers and an adjudication record when they disagree.
 5. Every full-text exclusion needs one controlled reason and a record ID.
 6. AI suggestions are not reviewer decisions. Reviewer decisions, identity, and timestamps must be explicit.
-7. Derive counts from the ledger; do not manually type arithmetic totals when records can be counted.
+7. Derive counts directly from raw records and screening decisions; manually supplied totals are only accepted as assertions and must match the derived values.
 8. Generate the PRISMA-style flow and report; reconcile every branch before calling it complete.
 9. Record protocol deviations and missing reports. A diagram alone does not prove PRISMA compliance.
 
