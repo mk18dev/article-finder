@@ -118,7 +118,11 @@ def valid_review():
             "limits": "2018-2026; English",
             "status": "ok",
         }],
+        "other_methods_log": [],
         "counts": {
+            "records_identified_from_databases": 10,
+            "records_identified_from_registers": 0,
+            "records_identified_from_other_methods": 0,
             "records_identified": 10,
             "duplicates_removed": 2,
             "records_removed_automation": 0,
@@ -176,6 +180,9 @@ class PrismaReviewTests(unittest.TestCase):
 
     def test_counts_derive_from_raw_screening_ledger(self):
         counts = derive_counts(valid_review())
+        self.assertEqual(counts["records_identified_from_databases"], 10)
+        self.assertEqual(counts["records_identified_from_registers"], 0)
+        self.assertEqual(counts["records_identified_from_other_methods"], 0)
         self.assertEqual(counts["records_identified"], 10)
         self.assertEqual(counts["duplicates_removed"], 2)
         self.assertEqual(counts["records_screened"], 8)
@@ -228,9 +235,76 @@ class PrismaReviewTests(unittest.TestCase):
         self.assertEqual(counts["studies_included"], 1)
         self.assertEqual(counts["reports_of_included_studies"], 2)
 
+    def test_registers_are_counted_separately_from_databases(self):
+        review = valid_review()
+        review["search_log"][0]["source_type"] = "register"
+        for record in review["records"]:
+            record["source_type"] = "register"
+        review["counts"]["records_identified_from_databases"] = 0
+        review["counts"]["records_identified_from_registers"] = 10
+        counts = derive_counts(review)
+        self.assertEqual(counts["records_identified_from_databases"], 0)
+        self.assertEqual(counts["records_identified_from_registers"], 10)
+
+    def test_other_methods_are_included_in_prisma_counts(self):
+        review = valid_review()
+        review["other_methods_log"] = [{
+            "method": "backward citation searching",
+            "date_run": "2026-11-23",
+            "search_url": "https://example.org/citation-search",
+            "hits": 1,
+            "limits": "One included review",
+            "status": "ok",
+        }]
+        review["records"].append({
+            "record_id": "r11",
+            "title": "Other Methods Record",
+            "source_type": "other_method",
+            "automation_excluded": False,
+            "title_abstract_review": stage_review("exclude"),
+            "title_abstract_exclusion_reason": "wrong population",
+            "full_text_status": "not_sought",
+        })
+        review["counts"].update({
+            "records_identified_from_other_methods": 1,
+            "records_identified": 11,
+            "records_screened": 9,
+            "records_excluded_title_abstract": 4,
+        })
+        counts = derive_counts(review)
+        self.assertEqual(counts["records_identified_from_other_methods"], 1)
+        self.assertEqual(counts["records_identified"], 11)
+        self.assertEqual(counts["records_screened"], 9)
+        self.assertEqual(validate_review(review), [])
+
+    def test_other_methods_hits_must_match_raw_records(self):
+        review = valid_review()
+        review["other_methods_log"] = [{
+            "method": "citation searching",
+            "date_run": "2026-11-23",
+            "search_url": "https://example.org/search",
+            "hits": 1,
+            "limits": "none",
+            "status": "ok",
+        }]
+        self.assertTrue(any("raw record count" in error for error in validate_review(review)))
+
+    def test_other_methods_search_url_requires_https(self):
+        review = valid_review()
+        review["other_methods_log"] = [{
+            "method": "citation searching",
+            "date_run": "2026-11-23",
+            "search_url": "http://example.org/search",
+            "hits": 0,
+            "limits": "none",
+            "status": "ok",
+        }]
+        self.assertTrue(any("must use HTTPS" in error for error in validate_review(review)))
+
     def test_mermaid_flow_uses_derived_counts(self):
         flow = render_prisma_flow(derive_counts(valid_review()))
         self.assertIn("Records identified from databases (n=10)", flow)
+        self.assertIn("Records identified from other methods (n=0)", flow)
         self.assertIn("Studies included (n=2)", flow)
         self.assertIn("Reports of included studies (n=2)", flow)
         self.assertIn("flowchart TD", flow)
