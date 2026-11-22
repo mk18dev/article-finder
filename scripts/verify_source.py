@@ -184,6 +184,8 @@ def integrity_status(work: Work) -> str:
         return "retracted"
     if any("correct" in kind or "errat" in kind for kind in update_types):
         return "corrected"
+    if work.is_paratext is True:
+        return "paratext"
     if work.is_retracted is False:
         return "not_flagged"
     return "partial"
@@ -635,6 +637,9 @@ def decide(work: Work, entry: dict[str, Any]) -> dict[str, Any]:
     elif integrity["status"] == "partial":
         notes_en.append("Retraction status is incomplete: OpenAlex did not provide an is_retracted value.")
         notes_fa.append("وضعیت پس‌گرفتن کامل نیست: OpenAlex مقدار is_retracted ارائه نکرد.")
+    elif integrity["status"] == "paratext":
+        notes_en.append("OpenAlex classifies this work as paratext; confirm that it is eligible for the review.")
+        notes_fa.append("OpenAlex این اثر را paratext طبقه‌بندی کرده؛ واجد شرایط بودن آن برای مرور را بررسی کن.")
     else:
         notes_en.append("No retraction flag recorded by OpenAlex/Crossref; this is not proof that no notice exists.")
         notes_fa.append("در OpenAlex/Crossref نشانه پس‌گرفتن ثبت نشده؛ این اثبات نبود اطلاعیه نیست.")
