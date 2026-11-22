@@ -113,9 +113,14 @@ def validate_protocol(review: dict[str, Any]) -> list[str]:
         if not isinstance(item, dict):
             errors.append(f"{prefix} must be an object")
             continue
-        for field in ("database", "platform", "query", "date_run"):
+        for field in ("database", "platform", "query", "date_run", "search_url"):
             if not _nonempty(item.get(field)):
                 errors.append(f"{prefix}.{field} is required")
+        if item.get("status") == "error":
+            errors.append(f"{prefix} is marked failed and cannot count as a completed search")
+        search_url = str(item.get("search_url") or "")
+        if search_url and not search_url.startswith("https://"):
+            errors.append(f"{prefix}.search_url must use HTTPS")
         try:
             date.fromisoformat(str(item.get("date_run", "")))
         except ValueError:
