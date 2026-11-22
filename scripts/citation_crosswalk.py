@@ -6,7 +6,7 @@ import argparse
 import json
 import re
 import sys
-from collections import Counter, defaultdict
+from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
