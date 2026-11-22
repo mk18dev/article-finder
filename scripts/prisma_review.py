@@ -11,7 +11,7 @@ import json
 import re
 import sys
 import unicodedata
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -104,6 +104,18 @@ def validate_protocol(review: dict[str, Any]) -> list[str]:
     if isinstance(registration, dict):
         if not _nonempty(registration.get("registry")) or not _nonempty(registration.get("id")):
             errors.append("protocol.registration requires registry and id")
+    reviewers = protocol.get("reviewers")
+    if not isinstance(reviewers, list) or not reviewers or not all(_nonempty(v) for v in reviewers):
+        errors.append("protocol.reviewers must list reviewer IDs")
+    elif len(set(reviewers)) != len(reviewers):
+        errors.append("protocol.reviewers must be unique")
+    dual = protocol.get("dual_screening")
+    if not isinstance(dual, bool):
+        errors.append("protocol.dual_screening must be explicitly true or false")
+    elif dual and isinstance(reviewers, list) and len(reviewers) < 2:
+        errors.append("dual screening requires at least two reviewer IDs")
+    elif dual is False and not _nonempty(protocol.get("single_reviewer_justification")):
+        errors.append("single_reviewer_justification is required when dual_screening is false")
     searches = review.get("search_log")
     if not isinstance(searches, list) or not searches:
         errors.append("search_log must contain at least one database search")
@@ -133,58 +145,128 @@ def validate_protocol(review: dict[str, Any]) -> list[str]:
     return errors
 
 
+def _valid_timestamp(value: Any) -> bool:
+    if not _nonempty(value):
+        return False
+    try:
+        parsed = datetime.fromisoformat(str(value).strip().replace("Z", "+00:00"))
+        return parsed.tzinfo is not None and parsed.utcoffset() is not None
+    except ValueError:
+        return False
+
+
+def _validate_stage_review(review: Any, protocol: dict[str, Any], prefix: str) -> list[str]:
+    errors: list[str] = []
+    if not isinstance(review, dict):
+        return [f"{prefix} review record is required"]
+    reviewers = protocol.get("reviewers") or []
+    dual = protocol.get("dual_screening") is True
+
+    def check_one(item: Any, label: str) -> tuple[str, str]:
+        if not isinstance(item, dict):
+            errors.append(f"{prefix}.{label} must be an object")
+            return "", ""
+        reviewer_id = str(item.get("reviewer_id") or "").strip()
+        decision = str(item.get("decision") or "").lower()
+        if reviewer_id not in reviewers:
+            errors.append(f"{prefix}.{label}.reviewer_id must be declared in protocol.reviewers")
+        if decision not in {"include", "exclude"}:
+            errors.append(f"{prefix}.{label}.decision must be include or exclude")
+        if not _valid_timestamp(item.get("reviewed_at")):
+            errors.append(f"{prefix}.{label}.reviewed_at must be timezone-aware ISO-8601")
+        return reviewer_id, decision
+
+    primary_id, primary_decision = check_one(review, "primary")
+    final_decision = str(review.get("decision") or "").lower()
+    if not dual:
+        if final_decision != primary_decision:
+            errors.append(f"{prefix}.decision must match the primary reviewer decision")
+        return errors
+
+    second = review.get("second_review")
+    second_id, second_decision = check_one(second, "second_review")
+    if second_id and second_id == primary_id:
+        errors.append(f"{prefix} reviewers must be independent")
+    if second_id and second_id not in reviewers:
+        errors.append(f"{prefix}.second_review reviewer must be declared in protocol.reviewers")
+    if primary_decision and second_decision and primary_decision == second_decision:
+        if final_decision != primary_decision:
+            errors.append(f"{prefix}.decision must match the agreeing reviewers")
+        if review.get("adjudication") is not None:
+            errors.append(f"{prefix}.adjudication is unnecessary when reviewers agree")
+    elif primary_decision and second_decision and primary_decision != second_decision:
+        adjudication = review.get("adjudication")
+        if not isinstance(adjudication, dict):
+            errors.append(f"{prefix} disagreement requires an adjudication record")
+        else:
+            if str(adjudication.get("decision") or "").lower() not in {"include", "exclude"}:
+                errors.append(f"{prefix}.adjudication.decision must be include or exclude")
+            if not _nonempty(adjudication.get("reviewer_id")):
+                errors.append(f"{prefix}.adjudication.reviewer_id is required")
+            if not _valid_timestamp(adjudication.get("reviewed_at")):
+                errors.append(f"{prefix}.adjudication.reviewed_at must be timezone-aware ISO-8601")
+            if not _nonempty(adjudication.get("note")):
+                errors.append(f"{prefix}.adjudication.note is required")
+            if final_decision != str(adjudication.get("decision") or "").lower():
+                errors.append(f"{prefix}.decision must match the adjudication")
+    return errors
+
+
+def _screened_records(review: dict[str, Any]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    records = review.get("records") or []
+    return deduplicate_records(records)
+
+
 def derive_counts(review: dict[str, Any]) -> dict[str, int]:
     searches = review.get("search_log") or []
-    counts = review.get("counts")
-    if not isinstance(counts, dict):
-        raise ValueError("counts must be an object")
-    for field in REQUIRED_COUNTS:
-        value = counts.get(field)
-        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
-            raise ValueError(f"counts.{field} must be a non-negative integer")
+    raw_records = review.get("records")
+    if not isinstance(raw_records, list):
+        raise ValueError("records must be a list of raw records from every completed search")
     identified = sum(item["hits"] for item in searches)
-    screened = identified - counts["duplicates_removed"] - counts["records_removed_automation"]
-    sought = screened - counts["records_excluded_title_abstract"]
-    assessed = sought - counts["reports_not_retrieved"]
-    full_text_excluded_by_reason = counts.get("full_text_exclusions")
-    if not isinstance(full_text_excluded_by_reason, dict):
-        raise ValueError("counts.full_text_exclusions must be an object mapping reasons to counts")
-    if not full_text_excluded_by_reason:
-        full_text_excluded = 0
-    else:
-        full_text_excluded = 0
-        for reason, value in full_text_excluded_by_reason.items():
-            if not _nonempty(reason) or isinstance(value, bool) or not isinstance(value, int) or value < 0:
-                raise ValueError("full_text_exclusions requires non-empty reasons and non-negative integer counts")
-            full_text_excluded += value
-    included = assessed - full_text_excluded
-    derived = {
+    if len(raw_records) != identified:
+        raise ValueError(
+            f"raw record count ({len(raw_records)}) must equal retrieved search hits ({identified}); "
+            "do not pass only deduplicated records"
+        )
+    unique, duplicates = _screened_records(review)
+    automation_removed = sum(1 for item in unique if item.get("automation_excluded") is True)
+    screened_records = [item for item in unique if item.get("automation_excluded") is not True]
+    title_reviews = [item["title_abstract_review"] for item in screened_records]
+    title_excluded = sum(1 for item in title_reviews if str(item.get("decision")).lower() == "exclude")
+    reports_sought = sum(1 for item in title_reviews if str(item.get("decision")).lower() == "include")
+    not_retrieved = sum(1 for item in screened_records if item.get("full_text_status") == "not_retrieved")
+    assessed_records = [item for item in screened_records if item.get("full_text_status") == "retrieved"]
+    full_reviews = [item["full_text_review"] for item in assessed_records]
+    full_excluded = sum(1 for item in full_reviews if str(item.get("decision")).lower() == "exclude")
+    included = sum(1 for item in full_reviews if str(item.get("decision")).lower() == "include")
+    return {
         "records_identified": identified,
-        "duplicates_removed": counts["duplicates_removed"],
-        "records_removed_automation": counts["records_removed_automation"],
-        "records_screened": screened,
-        "records_excluded_title_abstract": counts["records_excluded_title_abstract"],
-        "reports_sought": sought,
-        "reports_not_retrieved": counts["reports_not_retrieved"],
-        "reports_assessed": assessed,
-        "reports_excluded_full_text": full_text_excluded,
+        "duplicates_removed": len(duplicates),
+        "records_removed_automation": automation_removed,
+        "records_screened": len(screened_records),
+        "records_excluded_title_abstract": title_excluded,
+        "reports_sought": reports_sought,
+        "reports_not_retrieved": not_retrieved,
+        "reports_assessed": len(assessed_records),
+        "reports_excluded_full_text": full_excluded,
         "studies_included": included,
     }
-    if any(value < 0 for value in derived.values()):
-        raise ValueError("PRISMA counts are inconsistent: a downstream count became negative")
-    return derived
 
 
 def validate_counts(review: dict[str, Any]) -> list[str]:
     try:
-        counts = derive_counts(review)
+        derived = derive_counts(review)
     except (KeyError, TypeError, ValueError) as exc:
         return [str(exc)]
-    supplied = review.get("counts") or {}
-    errors: list[str] = []
-    for key, value in counts.items():
+    supplied = review.get("counts")
+    if supplied is None:
+        return []
+    if not isinstance(supplied, dict):
+        return ["counts must be an object when supplied"]
+    errors = []
+    for key, value in derived.items():
         if key in supplied and supplied[key] != value:
-            errors.append(f"counts.{key} is derived as {value}, not {supplied[key]}")
+            errors.append(f"counts.{key} is derived from the record ledger as {value}, not {supplied[key]}")
     return errors
 
 
@@ -193,26 +275,57 @@ def validate_review(review: dict[str, Any]) -> list[str]:
         return ["review document must be a JSON object"]
     errors = validate_protocol(review)
     errors.extend(validate_counts(review))
-    records = review.get("records", [])
+    records = review.get("records")
     if not isinstance(records, list):
-        errors.append("records must be a list")
-    else:
-        for index, record in enumerate(records, 1):
-            if not isinstance(record, dict):
-                errors.append(f"records[{index}] must be an object")
-                continue
-            if not _nonempty(record.get("title")):
-                errors.append(f"records[{index}].title is required")
-            decision = str(record.get("decision") or "pending").lower()
-            if decision not in DECISIONS:
-                errors.append(f"records[{index}].decision must be include, exclude, or pending")
-            stage = str(record.get("stage") or "title_abstract").lower()
-            if stage not in {"title_abstract", "full_text"}:
-                errors.append(f"records[{index}].stage must be title_abstract or full_text")
-            if stage == "full_text" and decision == "exclude" and not _nonempty(record.get("exclusion_reason")):
-                errors.append(f"records[{index}] full-text exclusion requires exclusion_reason")
-    return errors
+        return errors + ["records must be a list of raw records from every completed search"]
+    if errors:
+        return errors
+    protocol = review["protocol"]
+    unique, duplicates = _screened_records(review)
+    raw_ids = [str(item.get("record_id") or "").strip() for item in records if isinstance(item, dict)]
+    if any(not value for value in raw_ids):
+        errors.append("every raw record requires record_id")
+    if len(raw_ids) != len(set(raw_ids)):
+        errors.append("raw record_id values must be unique")
+    for index, record in enumerate(records, 1):
+        if not isinstance(record, dict):
+            errors.append(f"records[{index}] must be an object")
+        elif not _nonempty(record.get("title")):
+            errors.append(f"records[{index}].title is required")
 
+    for record in unique:
+        record_id = str(record.get("record_id") or "unknown")
+        if record.get("automation_excluded") is True:
+            if not _nonempty(record.get("automation_exclusion_reason")) or not _nonempty(record.get("automation_tool")):
+                errors.append(f"{record_id} automation exclusion requires tool and reason")
+            if record.get("full_text_status", "not_sought") != "not_sought":
+                errors.append(f"{record_id} automation-excluded record must be not_sought")
+            continue
+        if record.get("automation_excluded", False) is not False:
+            errors.append(f"{record_id}.automation_excluded must be boolean")
+        title_review = record.get("title_abstract_review")
+        errors.extend(_validate_stage_review(title_review, protocol, f"{record_id}.title_abstract_review"))
+        decision = str((title_review or {}).get("decision") or "").lower() if isinstance(title_review, dict) else ""
+        full_status = str(record.get("full_text_status") or "").lower()
+        if decision == "exclude":
+            if full_status != "not_sought":
+                errors.append(f"{record_id} title/abstract-excluded record must be not_sought")
+            if record.get("full_text_review") is not None:
+                errors.append(f"{record_id} must not have a full-text review when excluded at title/abstract")
+        elif decision == "include":
+            if full_status not in {"not_retrieved", "retrieved"}:
+                errors.append(f"{record_id} included record must be not_retrieved or retrieved")
+            if full_status == "not_retrieved" and record.get("full_text_review") is not None:
+                errors.append(f"{record_id} not-retrieved report cannot have a full-text review")
+            if full_status == "retrieved":
+                full_review = record.get("full_text_review")
+                errors.extend(_validate_stage_review(full_review, protocol, f"{record_id}.full_text_review"))
+                full_decision = str((full_review or {}).get("decision") or "").lower() if isinstance(full_review, dict) else ""
+                if full_decision == "exclude" and not _nonempty((full_review or {}).get("exclusion_reason")):
+                    errors.append(f"{record_id} full-text exclusion requires exclusion_reason")
+        elif decision:
+            errors.append(f"{record_id} title/abstract decision is unresolved")
+    return errors
 
 def render_prisma_flow(counts: dict[str, int]) -> str:
     """Render a Mermaid PRISMA-style flow from validated, derived counts."""
