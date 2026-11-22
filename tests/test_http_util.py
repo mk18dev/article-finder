@@ -93,7 +93,6 @@ class HttpSecurityTests(unittest.TestCase):
             connection.close()
 
     def test_pinned_connection_falls_back_only_to_validated_addresses(self):
-        first = Mock()
         second = Mock()
         context = Mock()
         context.wrap_socket.return_value = second
