@@ -34,12 +34,13 @@ def _resolve_public_addresses(host: str) -> tuple[str, ...]:
         infos = socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
     except OSError as exc:
         raise ValueError(f"unable to resolve destination host: {host}") from exc
-    addresses = tuple(dict.fromkeys(
+    raw_addresses = tuple(dict.fromkeys(
         item[4][0].split("%", 1)[0] for item in infos
     ))
-    if not addresses:
+    if not raw_addresses:
         raise ValueError("destination host has no addresses")
-    for raw_address in addresses:
+    validated = []
+    for raw_address in raw_addresses:
         try:
             address = ipaddress.ip_address(raw_address)
         except ValueError as exc:
@@ -48,7 +49,8 @@ def _resolve_public_addresses(host: str) -> tuple[str, ...]:
             address = address.ipv4_mapped
         if not address.is_global:
             raise ValueError(f"non-public destination IP is blocked: {address}")
-    return addresses
+        validated.append(str(address))
+    return tuple(dict.fromkeys(validated))
 
 
 def validate_remote_url(url: str) -> str:
