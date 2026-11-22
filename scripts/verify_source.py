@@ -191,8 +191,8 @@ def host_matches(url: str, domains: tuple[str, ...], allow_legacy_http: bool = F
 
 def _valid_search_timestamp(value: str) -> bool:
     try:
-        datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
-        return True
+        parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+        return parsed.tzinfo is not None and parsed.utcoffset() is not None
     except ValueError:
         return False
 
