@@ -65,8 +65,20 @@ ENTRY = {
         "S2": {"ok": True, **evidence("Relevance directly assessed"), "evidence_url": "https://evidence.example/subject"},
         "S10": {"ok": True, **evidence("Source fits application category"), "evidence_url": "https://evidence.example/category"},
     },
-    "blacklist_status": "clear",
-    "blacklist_evidence": {**evidence("Iranian blacklist checked on official source"), "url": "https://impactfactor.ir/"},
+    "blacklist_checks": [
+        {
+            "authority": "msrt", "status": "clear", "query_type": "ISSN",
+            "query_value": "0924-1868", "list_version": "2026-11-23",
+            **evidence("ISSN checked in the MSRT journal portal"),
+            "url": "https://journals.msrt.ir/", "locator": "ISSN 0924-1868 search result",
+        },
+        {
+            "authority": "iau", "status": "clear", "query_type": "ISSN",
+            "query_value": "0924-1868", "list_version": "1405",
+            **evidence("ISSN checked in the IAU invalid-journals/evaluation portal"),
+            "url": "https://eval.journals.iau.ir/", "locator": "1405 journal record",
+        },
+    ],
     "indexing_evidence": [{
         "index": "Scopus", "verified": True,
         "reviewer_id": "reviewer-1", "reviewed_at": "2026-11-23T10:00:00Z", "locator": "source profile",
@@ -332,12 +344,44 @@ class BlacklistTests(unittest.TestCase):
     def test_verified_index_with_clear_blacklist_passes(self) -> None:
         self.assertIs(decide()["steps"]["S6"], True)
 
-    def test_blacklist_hit_hard_rejects(self) -> None:
-        self.assertIs(decide(entry={**ENTRY, "blacklist_status": "listed"})["steps"]["S6"], False)
+    def test_blacklist_hit_hard_rejects_even_when_tier_is_high(self) -> None:
+        checks = [dict(item) for item in ENTRY["blacklist_checks"]]
+        checks[1]["status"] = "listed"
+        result = decide(entry={**ENTRY, "tier": "A", "blacklist_checks": checks})
+        self.assertIs(result["steps"]["S6"], False)
 
-    def test_missing_blacklist_status_is_pending(self) -> None:
-        entry = {k: v for k, v in ENTRY.items() if k != "blacklist_status"}
+    def test_missing_blacklist_checks_is_pending(self) -> None:
+        entry = {k: v for k, v in ENTRY.items() if k != "blacklist_checks"}
         self.assertIsNone(decide(entry=entry)["steps"]["S6"])
+
+    def test_each_authority_must_be_checked(self) -> None:
+        entry = {**ENTRY, "blacklist_checks": ENTRY["blacklist_checks"][:1]}
+        self.assertIsNone(decide(entry=entry)["steps"]["S6"])
+
+    def test_blacklist_query_must_match_record_issn(self) -> None:
+        checks = [dict(item) for item in ENTRY["blacklist_checks"]]
+        checks[0]["query_value"] = "1111-1111"
+        self.assertIsNone(decide(entry={**ENTRY, "blacklist_checks": checks})["steps"]["S6"])
+
+    def test_blacklist_check_requires_list_version(self) -> None:
+        checks = [dict(item) for item in ENTRY["blacklist_checks"]]
+        checks[0]["list_version"] = ""
+        self.assertIsNone(decide(entry={**ENTRY, "blacklist_checks": checks})["steps"]["S6"])
+
+    def test_blacklist_check_requires_official_authority_host(self) -> None:
+        checks = [dict(item) for item in ENTRY["blacklist_checks"]]
+        checks[0]["url"] = "https://msrt.ir.attacker.example/"
+        self.assertIsNone(decide(entry={**ENTRY, "blacklist_checks": checks})["steps"]["S6"])
+
+    def test_duplicate_blacklist_authority_is_pending(self) -> None:
+        checks = ENTRY["blacklist_checks"] + [dict(ENTRY["blacklist_checks"][0])]
+        self.assertIsNone(decide(entry={**ENTRY, "blacklist_checks": checks})["steps"]["S6"])
+
+    def test_unverified_blacklist_hit_is_pending_not_rejected(self) -> None:
+        checks = [dict(item) for item in ENTRY["blacklist_checks"]]
+        checks[1]["status"] = "listed"
+        checks[1]["url"] = "https://attacker.example/fake-list"
+        self.assertIsNone(decide(entry={**ENTRY, "blacklist_checks": checks})["steps"]["S6"])
 
     def test_clear_blacklist_without_indexing_is_pending(self) -> None:
         self.assertIsNone(decide(entry={**ENTRY, "indexing_evidence": []})["steps"]["S6"])
@@ -346,14 +390,18 @@ class BlacklistTests(unittest.TestCase):
         entry = {k: v for k, v in ENTRY.items() if k != "blacklist_evidence"}
         self.assertIsNone(decide(entry=entry)["steps"]["S6"])
 
-    def test_legacy_http_blacklist_domain_is_allowed_only_for_s6(self) -> None:
-        legacy = {
-            "reviewed": True, "reviewer_id": "reviewer-1", "reviewed_at": "2026-11-23T10:00:00Z", "locator": "blacklist result",
-            "url": "http://impactfactor.ir/",
-            "note": "Checked the official blacklist record",
+    def test_legacy_http_impactfactor_evidence_does_not_pass_s6(self) -> None:
+        entry = {
+            **ENTRY,
+            "blacklist_checks": [],
+            "blacklist_status": "clear",
+            "blacklist_evidence": {
+                "reviewed": True, "reviewer_id": "reviewer-1",
+                "reviewed_at": "2026-11-23T10:00:00Z", "locator": "legacy record",
+                "url": "http://impactfactor.ir/", "note": "Legacy third-party evidence",
+            },
         }
-        entry = {**ENTRY, "blacklist_evidence": legacy}
-        self.assertIs(decide(entry=entry)["steps"]["S6"], True)
+        self.assertIsNone(decide(entry=entry)["steps"]["S6"])
         self.assertIsNone(vs.judgement({
             "judgements": {"S1": {
                 "ok": True, "reviewed": True, "evidence_url": "http://impactfactor.ir/",
@@ -373,11 +421,9 @@ class BlacklistTests(unittest.TestCase):
         self.assertIsNone(decide(entry={**ENTRY, "indexing_evidence": bad})["steps"]["S6"])
 
     def test_fake_blacklist_domain_does_not_pass_s6(self) -> None:
-        entry = {**ENTRY, "blacklist_evidence": {
-            "reviewed": True, "url": "https://impactfactor.ir.attacker.example/",
-            "note": "Claimed to be official blacklist evidence",
-        }}
-        self.assertIsNone(decide(entry=entry)["steps"]["S6"])
+        checks = [dict(item) for item in ENTRY["blacklist_checks"]]
+        checks[0]["url"] = "https://journals.msrt.ir.attacker.example/"
+        self.assertIsNone(decide(entry={**ENTRY, "blacklist_checks": checks})["steps"]["S6"])
 
     def test_fake_search_domain_does_not_pass_s3(self) -> None:
         entry = {**ENTRY, "search_evidence": {
@@ -391,8 +437,10 @@ class BlacklistTests(unittest.TestCase):
         }}
         self.assertIsNone(decide(entry=entry)["steps"]["S3"])
 
-    def test_checklist_starts_with_blacklist_link(self) -> None:
-        self.assertIn("impactfactor.ir", vs.s6_links(work())[0])
+    def test_checklist_starts_with_official_blacklist_portals(self) -> None:
+        links = " ".join(vs.s6_links(work()))
+        self.assertIn("journals.msrt.ir", links)
+        self.assertIn("eval.journals.iau.ir", links)
 
     def test_conference_checklist_keeps_dblp_without_journal_blacklist_link(self) -> None:
         links = " ".join(vs.s6_links(work(kind="conference", issns=[])))
@@ -402,7 +450,7 @@ class BlacklistTests(unittest.TestCase):
     def test_checklist_explains_evidence_fields(self) -> None:
         source = work()
         content = vs.checklist([decide(source)], [source])
-        self.assertIn("blacklist_status", content)
+        self.assertIn("blacklist_checks", content)
         self.assertIn("indexing_evidence", content)
 
 
