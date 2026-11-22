@@ -81,22 +81,21 @@ def _string(
 def normalize_doi(value: Any) -> str:
     raw = _string(value, "DOI", 255, required=True)
     lowered = raw.lower()
-    for prefix in DOI_PREFIXES:
-        if lowered.startswith(prefix):
-            try:
-                parsed = urllib.parse.urlsplit(raw)
-                port = parsed.port
-            except ValueError as exc:
-                raise RequestError("نشانی DOI معتبر نیست.") from exc
-            if (parsed.scheme != "https"
-                    or (parsed.hostname or "").lower() not in {"doi.org", "dx.doi.org"}
-                    or port not in (None, 443)
-                    or parsed.username is not None or parsed.password is not None):
-                raise RequestError("نشانی DOI باید HTTPS و از دامنه رسمی doi.org باشد.")
-            if parsed.query or parsed.fragment:
-                raise RequestError("نشانی DOI نباید query یا fragment داشته باشد.")
-            raw = urllib.parse.unquote(parsed.path.lstrip("/"))
-            break
+    matched_prefix = next((prefix for prefix in DOI_PREFIXES if lowered.startswith(prefix)), None)
+    if matched_prefix is not None:
+        try:
+            parsed = urllib.parse.urlsplit(raw)
+            port = parsed.port
+        except ValueError as exc:
+            raise RequestError("نشانی DOI معتبر نیست.") from exc
+        if (parsed.scheme != "https"
+                or (parsed.hostname or "").lower() not in {"doi.org", "dx.doi.org"}
+                or port not in (None, 443)
+                or parsed.username is not None or parsed.password is not None):
+            raise RequestError("نشانی DOI باید HTTPS و از دامنه رسمی doi.org باشد.")
+        if parsed.query or parsed.fragment:
+            raise RequestError("نشانی DOI نباید query یا fragment داشته باشد.")
+        raw = urllib.parse.unquote(parsed.path.lstrip("/"))
     elif lowered.startswith("doi:"):
         raw = raw[4:].strip()
     if "?" in raw or "#" in raw or not DOI_RE.fullmatch(raw) or len(raw) > 200:
