@@ -369,11 +369,12 @@ def render_prisma_flow(counts: dict[str, int]) -> str:
         f'    H["Reports assessed for eligibility (n={counts["reports_assessed"]})"]',
         f'    I["Reports excluded (n={counts["reports_excluded_full_text"]})"]',
         f'    J["Studies included (n={counts["studies_included"]})"]',
+        f'    K["Reports of included studies (n={counts[\"reports_of_included_studies\"]})"]',
         "    A --> B --> C --> D",
         "    D --> E",
         "    D --> F --> G",
         "    F --> H --> I",
-        "    H --> J",
+        "    H --> J --> K",
     ])
 
 
