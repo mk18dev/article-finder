@@ -75,6 +75,40 @@ class CitationVerificationTests(unittest.TestCase):
         self.assertEqual(result["status"], "pending")
         self.assertIn("metadata lookup failed", result["reason"])
 
+    def test_rejects_non_doi_resolver_urls(self):
+        with self.assertRaises(ValueError):
+            normalize_doi("https://evil.example/10.1234/example")
+
+    def test_full_first_author_name_matches_crossref_family(self):
+        citation = dict(self.citation, first_author="Jane Smith")
+        result = verify_metadata(citation, self.message)
+        self.assertEqual(result["status"], "verified")
+
+    def test_withdrawal_is_treated_as_retracted(self):
+        message = dict(self.message, **{"update-to": [{"type": "withdrawal", "DOI": "10.1234/withdrawal"}]})
+        result = verify_metadata(self.citation, message)
+        self.assertEqual(result["status"], "retracted")
+
+    def test_relation_correction_is_flagged(self):
+        message = dict(self.message, relation={"is-corrected-by": [{"id": "10.1234/correction"}]})
+        result = verify_metadata(self.citation, message)
+        self.assertEqual(result["status"], "corrected")
+
+    def test_missing_returned_doi_stays_pending(self):
+        message = dict(self.message)
+        message.pop("DOI")
+        result = verify_metadata(self.citation, message)
+        self.assertEqual(result["status"], "pending")
+
+    def test_invalid_doi_is_pending_without_crashing_batch(self):
+        result = verify_all([{"doi": "https://evil.example/10.1234/x", "title": "Example"}])[0]
+        self.assertEqual(result["status"], "pending")
+        self.assertEqual(result["doi"], "")
+
+    def test_citation_batch_limit_is_enforced(self):
+        with self.assertRaises(ValueError):
+            verify_all([{"title": f"Paper {index}"} for index in range(101)])
+
     def test_title_similarity_is_normalized(self):
         self.assertEqual(title_similarity("A Reliable-System", "a reliable system"), 1.0)
 
