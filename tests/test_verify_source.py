@@ -134,6 +134,16 @@ class SearchAndJudgementTests(unittest.TestCase):
         self.assertIsNone(article["steps"]["S2"])
         self.assertIsNone(article["steps"]["S10"])
 
+
+    def test_manual_evidence_requires_reviewer_identity_timestamp_and_locator(self) -> None:
+        for field in ("reviewer_id", "reviewed_at", "locator"):
+            with self.subTest(field=field):
+                entry = {**ENTRY, "judgements": {
+                    **ENTRY["judgements"],
+                    "S1": {**ENTRY["judgements"]["S1"], field: ""},
+                }}
+                self.assertIsNone(decide(entry=entry)["steps"]["S1"])
+
     def test_judgement_requires_url_and_note(self) -> None:
         entry = {**ENTRY, "judgements": {
             **ENTRY["judgements"],
