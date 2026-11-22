@@ -11,7 +11,11 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from scripts.web_api import handler as APIHandler
+from scripts.web_api import handler as APIHandler, http_util
+
+# Keep public API requests bounded on a long-running Railway process.
+http_util.TIMEOUT = int(os.environ.get("ARTICLE_FINDER_HTTP_TIMEOUT", "8"))
+http_util.RETRIES = int(os.environ.get("ARTICLE_FINDER_HTTP_RETRIES", "1"))
 
 ROOT = Path(__file__).resolve().parents[1]
 STATIC_FILES = {
