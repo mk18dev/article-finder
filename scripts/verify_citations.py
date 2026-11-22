@@ -1,0 +1,246 @@
+#!/usr/bin/env python3
+"""Verify citation identity against Crossref metadata and flag recorded updates.
+
+A successful metadata match verifies bibliographic identity only. It does not
+prove that a cited claim is supported by the paper or that no unregistered
+correction/retraction exists.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+import urllib.parse
+from difflib import SequenceMatcher
+from pathlib import Path
+from typing import Any
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPT_DIR))
+from http_util import fetch_json  # noqa: E402
+
+TITLE_MATCH_THRESHOLD = 0.92
+
+
+def normalize_doi(value: Any) -> str:
+    raw = str(value or "").strip()
+    raw = re.sub(r"^https?://(?:dx\.)?doi\.org/", "", raw, flags=re.I)
+    raw = re.sub(r"^doi:\s*", "", raw, flags=re.I)
+    return raw.strip().rstrip(" .").casefold()
+
+
+def normalize_text(value: Any) -> str:
+    return " ".join(re.findall(r"[\w]+", str(value or "").casefold(), flags=re.UNICODE))
+
+
+def title_similarity(expected: str, actual: str) -> float:
+    left, right = normalize_text(expected), normalize_text(actual)
+    if not left or not right:
+        return 0.0
+    return SequenceMatcher(None, left, right).ratio()
+
+
+def first_author_family(authors: Any) -> str:
+    if not isinstance(authors, list) or not authors or not isinstance(authors[0], dict):
+        return ""
+    return normalize_text(authors[0].get("family") or authors[0].get("name") or "")
+
+
+def publication_year(message: dict[str, Any]) -> int | None:
+    for field in ("published-print", "published-online", "issued", "created"):
+        parts = (message.get(field) or {}).get("date-parts") or []
+        if parts and parts[0] and isinstance(parts[0][0], int):
+            return parts[0][0]
+    return None
+
+
+def update_status(message: dict[str, Any]) -> tuple[str, list[dict[str, str]]]:
+    updates: list[dict[str, str]] = []
+    raw = message.get("update-to") or []
+    if isinstance(raw, list):
+        for item in raw:
+            if not isinstance(item, dict):
+                continue
+            kind = str(item.get("type") or "update").strip().lower()
+            updates.append({
+                "type": kind,
+                "doi": normalize_doi(item.get("DOI")),
+                "label": str(item.get("label") or ""),
+            })
+    relation = message.get("relation") or {}
+    if isinstance(relation, dict):
+        for kind, values in relation.items():
+            if "retract" in str(kind).lower():
+                for item in values if isinstance(values, list) else []:
+                    if isinstance(item, dict):
+                        updates.append({
+                            "type": str(kind).lower(),
+                            "doi": normalize_doi(item.get("id")),
+                            "label": str(item.get("asserted-by") or ""),
+                        })
+    if any("retract" in item["type"] for item in updates):
+        return "retracted", updates
+    if any("correct" in item["type"] or "errat" in item["type"] for item in updates):
+        return "corrected", updates
+    return "no_update_recorded", updates
+
+
+def verify_metadata(citation: dict[str, Any], message: dict[str, Any]) -> dict[str, Any]:
+    expected_doi = normalize_doi(citation.get("doi"))
+    actual_doi = normalize_doi(message.get("DOI"))
+    titles = message.get("title") or []
+    actual_title = str(titles[0]) if titles else ""
+    expected_title = str(citation.get("title") or "")
+    similarity = title_similarity(expected_title, actual_title)
+    actual_year = publication_year(message)
+    expected_year = citation.get("year")
+    actual_author = first_author_family(message.get("author"))
+    expected_author = normalize_text(citation.get("first_author") or "")
+    status_update, updates = update_status(message)
+
+    mismatches: list[str] = []
+    if expected_doi and actual_doi and expected_doi != actual_doi:
+        mismatches.append("DOI returned by Crossref does not match the supplied DOI")
+    if expected_title and similarity < TITLE_MATCH_THRESHOLD:
+        mismatches.append(f"title similarity {similarity:.3f} is below {TITLE_MATCH_THRESHOLD:.2f}")
+    if expected_year is not None and actual_year is not None and int(expected_year) != actual_year:
+        mismatches.append(f"publication year mismatch: expected {expected_year}, Crossref reports {actual_year}")
+    if expected_author and actual_author and expected_author != actual_author:
+        mismatches.append("first-author family name mismatch")
+
+    if status_update == "retracted":
+        status = "retracted"
+    elif mismatches:
+        status = "mismatch"
+    elif not expected_title or not actual_title or actual_year is None:
+        status = "pending"
+    elif expected_author and not actual_author:
+        status = "pending"
+    else:
+        status = "verified"
+
+    return {
+        "status": status,
+        "doi": actual_doi or expected_doi,
+        "title": actual_title,
+        "year": actual_year,
+        "first_author": actual_author,
+        "title_similarity": round(similarity, 4),
+        "updates": updates,
+        "mismatches": mismatches,
+        "limitations": [
+            "Metadata agreement verifies citation identity, not whether the cited paper supports the manuscript claim.",
+            "No update recorded is not proof that no correction or retraction exists outside Crossref metadata.",
+        ],
+    }
+
+
+def verify_citation(citation: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(citation, dict):
+        raise ValueError("each citation must be an object")
+    doi = normalize_doi(citation.get("doi"))
+    if doi:
+        url = "https://api.crossref.org/works/" + urllib.parse.quote(doi, safe="/")
+        payload = fetch_json(url)
+        message = payload.get("message")
+        if not isinstance(message, dict):
+            return {"status": "pending", "doi": doi, "reason": "Crossref returned no metadata record"}
+        return verify_metadata(citation, message)
+
+    title = str(citation.get("title") or "").strip()
+    author = str(citation.get("first_author") or "").strip()
+    if not title:
+        return {"status": "pending", "reason": "citation has neither a DOI nor a title"}
+    query = " ".join(part for part in (title, author) if part)
+    params = urllib.parse.urlencode({"query.bibliographic": query, "rows": 5})
+    payload = fetch_json("https://api.crossref.org/works?" + params)
+    items = (payload.get("message") or {}).get("items") or []
+    candidates = []
+    for item in items[:5]:
+        if not isinstance(item, dict):
+            continue
+        titles = item.get("title") or []
+        candidate_title = str(titles[0]) if titles else ""
+        candidates.append({
+            "doi": normalize_doi(item.get("DOI")),
+            "title": candidate_title,
+            "title_similarity": round(title_similarity(title, candidate_title), 4),
+        })
+    candidates.sort(key=lambda item: item["title_similarity"], reverse=True)
+    return {
+        "status": "pending",
+        "reason": "no DOI supplied; Crossref matches are candidates and require human confirmation",
+        "candidates": candidates,
+    }
+
+
+def verify_all(document: Any) -> list[dict[str, Any]]:
+    citations = document.get("citations") if isinstance(document, dict) else document
+    if not isinstance(citations, list):
+        raise ValueError("input must be a list or an object with a citations list")
+    results = []
+    for index, citation in enumerate(citations, 1):
+        try:
+            result = verify_citation(citation)
+        except Exception as exc:  # preserve per-citation failures without approving them
+            result = {
+                "status": "pending",
+                "doi": normalize_doi(citation.get("doi")) if isinstance(citation, dict) else "",
+                "reason": f"metadata lookup failed: {type(exc).__name__}",
+            }
+        result["index"] = index
+        result["input"] = citation
+        results.append(result)
+    return results
+
+
+def render_markdown(results: list[dict[str, Any]]) -> str:
+    lines = [
+        "# Citation verification report",
+        "",
+        "| # | Status | DOI | Title | Year | Notes |",
+        "|---:|---|---|---|---:|---|",
+    ]
+    for item in results:
+        safe = lambda value: str(value or "").replace("|", "\\|").replace("\n", " ")
+        citation = item.get("input") or {}
+        notes = "; ".join(item.get("mismatches") or []) or item.get("reason", "")
+        lines.append("| " + " | ".join((
+            str(item.get("index", "")), safe(item.get("status")),
+            safe(item.get("doi")), safe(item.get("title") or citation.get("title")),
+            safe(item.get("year") or citation.get("year")), safe(notes),
+        )) + " |")
+    lines.extend([
+        "",
+        "A verified result means Crossref metadata matched the supplied citation fields.",
+        "It does not establish claim support or prove the absence of updates outside Crossref.",
+        "Pending and corrected items require human review; retracted items must not support claims.",
+        "",
+    ])
+    return "\n".join(lines)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Check citation identity and Crossref update metadata.")
+    parser.add_argument("input", help="JSON list or {citations: [...]} file")
+    parser.add_argument("--format", choices=("json", "markdown"), default="markdown")
+    parser.add_argument("-o", "--output")
+    args = parser.parse_args()
+    try:
+        document = json.loads(Path(args.input).read_text(encoding="utf-8"))
+        results = verify_all(document)
+        output = (json.dumps(results, ensure_ascii=False, indent=2)
+                  if args.format == "json" else render_markdown(results))
+        if args.output:
+            Path(args.output).write_text(output + "\n", encoding="utf-8")
+        else:
+            print(output)
+        return 0
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
