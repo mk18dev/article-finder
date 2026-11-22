@@ -386,9 +386,10 @@ class BlacklistTests(unittest.TestCase):
     def test_clear_blacklist_without_indexing_is_pending(self) -> None:
         self.assertIsNone(decide(entry={**ENTRY, "indexing_evidence": []})["steps"]["S6"])
 
-    def test_clear_blacklist_without_blacklist_evidence_is_pending(self) -> None:
-        entry = {k: v for k, v in ENTRY.items() if k != "blacklist_evidence"}
-        self.assertIsNone(decide(entry=entry)["steps"]["S6"])
+    def test_clear_blacklist_without_reviewer_attestation_is_pending(self) -> None:
+        checks = [dict(item) for item in ENTRY["blacklist_checks"]]
+        checks[0].pop("reviewed_at")
+        self.assertIsNone(decide(entry={**ENTRY, "blacklist_checks": checks})["steps"]["S6"])
 
     def test_legacy_http_impactfactor_evidence_does_not_pass_s6(self) -> None:
         entry = {
