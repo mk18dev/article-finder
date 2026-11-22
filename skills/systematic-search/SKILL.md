@@ -13,4 +13,4 @@ description: Run reproducible scholarly searches across Crossref and OpenAlex an
 6. Deduplicate with the PRISMA ledger's documented DOI/PMID/URL/title rules; preserve duplicate-to-canonical links and conflicts.
 7. Treat every result as a candidate. Search rank, DOI presence, and metadata do not establish relevance, quality, or eligibility.
 
-Output: exact query log, provider status, raw/deduplicated counts, candidate records, and unresolved retrieval gaps.
+Use `raw_records` when constructing the PRISMA screening ledger; use deduplicated `records` for candidate review only. Every raw record has a stable provider record ID.\n\nOutput: exact query log, provider status, raw/deduplicated counts, candidate records, and unresolved retrieval gaps.
