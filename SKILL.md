@@ -151,6 +151,7 @@ Use when a user asks whether bibliography entries match their DOI, title, year, 
 ## Bundled files
 
 - `VERSION`: canonical release version (1.1.0).
+- `requirements.txt`: pinned `defusedxml` runtime dependency for safe parsing of arXiv Atom feeds.
 - `skills/`: specialized playbooks for search, OpenAlex, source verification, PRISMA screening, literature synthesis, citation verification, scientific writing, security, and CI/CD.
 - `references/course-background.md`: research concept, types, prerequisites, area/subject/reference, keywords (slides 1-14).
 - `references/prisma-review.md`: raw-record ledger schema, reviewer attribution, database/register/other-method count derivation, and PRISMA-style flow scope.
@@ -163,6 +164,7 @@ Use when a user asks whether bibliography entries match their DOI, title, year, 
 - `scripts/check_ids.py`: offline ISSN / ISBN-10 / ISBN-13 checksum validator.
 - `scripts/verify_source.py`: builds `results.json` from DOIs (Crossref + OpenAlex + `check_ids.py`) and writes the S6 checklist.
 - `scripts/verify_citations.py`: compares citation identity with Crossref metadata and flags recorded corrections/retractions.
+- `scripts/citation_crosswalk.py`: checks APA/IEEE in-text citations against bibliography entries.
 - `scripts/search_databases.py`: searches Crossref and OpenAlex, saves exact query provenance and deduplicates candidate records.
 - `scripts/fetch_pdf.py`: downloads the open full text and reports the licensed route for everything else.
 - `scripts/render_table.py`: Mode 1 checklist tables, verdicts, duplicate merge, APA/IEEE reference list.
