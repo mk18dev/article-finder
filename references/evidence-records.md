@@ -104,9 +104,18 @@ Example book record:
 }
 ```
 
-The script validates evidence fields, not the truth of the external page. A
-reviewer must inspect the record. DOAJ membership alone does not substitute
-for the journal/conference index evidence required by this gate.
+The script validates evidence fields and official-host boundaries, not the truth
+of the external page. Journal indexing URLs must be hosted on the official
+provider domain: Scopus (\`scopus.com\`), Web of Science (\`mjl.clarivate.com\` or
+\`webofscience.com\`), ISC (\`isc.gov.ir\`), or DBLP (\`dblp.org\`). Journal blacklist
+evidence must be on \`impactfactor.ir\`; its legacy HTTP exception applies only
+to that exact host. A URL such as \`scopus.com.attacker.example\` is rejected.
+For Irandoc, the evidence host must be \`irandoc.ac.ir\`. For a university or
+institutional repository, provide \`institution_domain\` and use a URL on that
+domain. Google Books evidence must use \`books.google.com\`; Amazon evidence
+must use a supported Amazon country domain. A reviewer must still inspect the
+actual record. DOAJ membership alone does not substitute for the required
+journal/conference index evidence.
 
 ### S7 — identifiers by source type
 
