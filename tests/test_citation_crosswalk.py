@@ -62,6 +62,29 @@ class CitationCrosswalkTests(unittest.TestCase):
         self.assertEqual(len(result["duplicate_author_year_keys"]), 1)
         self.assertEqual(result["status"], "review")
 
+
+    def test_ieee_reference_section_is_not_counted_as_in_text_citation(self):
+        text = "No citations in the body.\n\nReferences\n[1] Smith, 2020."
+        result = audit_ieee(text, [{"number": 1}])
+        self.assertEqual(result["uncited_bibliography_numbers"], [1])
+        self.assertEqual(result["status"], "review")
+
+    def test_apa_reference_section_is_not_counted_as_in_text_citation(self):
+        text = "No citations in the body.\n\nReferences\nSmith, J. (2020). Example title."
+        result = audit_apa(text, [{"first_author": "Smith, J.", "year": 2020}])
+        self.assertEqual(result["uncited_reference_indices"], [1])
+        self.assertEqual(result["status"], "review")
+
+    def test_malformed_ieee_bracket_is_reported(self):
+        result = audit_ieee("Evidence [1;2].", [{"number": 1}, {"number": 2}])
+        self.assertTrue(result["malformed_citations"])
+        self.assertEqual(result["status"], "review")
+
+    def test_malformed_apa_year_parenthetical_is_reported(self):
+        result = audit_apa("The threshold was set (2020, p. 4).", [{"first_author": "Smith", "year": 2020}])
+        self.assertTrue(result["malformed_citations"])
+        self.assertEqual(result["status"], "review")
+
     def test_audit_accepts_wrapped_citations_input(self):
         result = audit("Citation [1].", {"citations": [{"number": 1}]}, "IEEE")
         self.assertEqual(result["status"], "pass")
