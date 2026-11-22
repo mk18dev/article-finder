@@ -130,6 +130,18 @@ jobs:
           done
           cat /tmp/health.json || true
           exit 1
+      - name: Verify invalid bearer keys and cross-origin POSTs are rejected
+        run: |
+          set -euo pipefail
+          bad_key="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+          status="$(curl --silent --show-error --output /tmp/invalid-auth.json --write-out '%{http_code}' --max-time 15 \
+            -H 'Content-Type: application/json' -H "Authorization: Bearer $bad_key" \
+            --data '{"action":"check_draft","draft":"test"}' "$BASE_URL/api")"
+          test "$status" = "401"
+          status="$(curl --silent --show-error --output /tmp/cors.json --write-out '%{http_code}' --max-time 15 \
+            -H 'Origin: https://attacker.invalid' -H 'Content-Type: application/json' \
+            -H "Authorization: Bearer $API_KEY" --data '{"action":"check_draft","draft":"test"}' "$BASE_URL/api")"
+          test "$status" = "403"
       - name: Verify production static assets
         run: |
           set -euo pipefail
