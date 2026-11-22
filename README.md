@@ -55,7 +55,7 @@ Discovery returns candidates, never approvals. Reviewer evidence remains pending
 
 ## Quickstart
 
-Requires **Python 3.10+** and nothing else. No third-party packages.
+Requires **Python 3.10+** and one pinned runtime dependency: `defusedxml` for safe parsing of untrusted arXiv Atom feeds. Browser and static-analysis dependencies are isolated to CI.
 
 ```bash
 # 1. Record each DOI you actually found and its review evidence.
@@ -210,9 +210,10 @@ retries. On Vercel, `ARTICLE_FINDER_API_KEY` is required by default; the browser
 
 ### Local development
 
-Run the offline suite and start the standard-library HTTP server:
+Install the pinned runtime dependency, run the offline suite, and start the local HTTP server:
 
 ```bash
+python -m pip install -r requirements.txt
 python -m unittest discover -s tests -t tests -v
 python -m scripts.serve
 ```
