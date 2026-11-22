@@ -77,6 +77,11 @@ class ArticleFinderHandler(APIHandler):
         self._serve_static(head_only=True)
 
 
+def bind_host() -> str:
+    """Bind locally by default; exposing the dev server requires explicit opt-in."""
+    return os.environ.get("HOST", "127.0.0.1")
+
+
 def main() -> None:
     try:
         port = int(os.environ.get("PORT", "8000"))
@@ -85,10 +90,11 @@ def main() -> None:
     if not 1 <= port <= 65535:
         raise SystemExit("PORT must be between 1 and 65535")
 
-    server = ThreadingHTTPServer(("0.0.0.0", port), ArticleFinderHandler)
+    host = bind_host()
+    server = ThreadingHTTPServer((host, port), ArticleFinderHandler)
     server.daemon_threads = True
     server.request_queue_size = 64
-    print(f"Article Finder listening on 0.0.0.0:{port}", flush=True)
+    print(f"Article Finder listening on {host}:{port}", flush=True)
     try:
         server.serve_forever(poll_interval=0.5)
     except KeyboardInterrupt:
