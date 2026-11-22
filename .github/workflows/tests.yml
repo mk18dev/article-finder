@@ -26,8 +26,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Check browser JavaScript syntax
         run: node --check app.js
-      - name: Validate deployment configuration and static entry points
-        run: python -c "import json,pathlib; json.loads(pathlib.Path('vercel.json').read_text()); r=json.loads(pathlib.Path('railway.json').read_text()); assert r['deploy']['startCommand']=='python -m scripts.serve'; assert r['deploy']['healthcheckPath']=='/api'; assert pathlib.Path('scripts/serve.py').is_file(); assert pathlib.Path('index.html').is_file(); assert pathlib.Path('styles.css').is_file(); assert pathlib.Path('app.js').is_file()"
+      - name: Validate Vercel configuration and static entry points
+        run: python -c "import json,pathlib; json.loads(pathlib.Path('vercel.json').read_text()); assert pathlib.Path('api/index.py').is_file(); assert pathlib.Path('scripts/serve.py').is_file(); assert pathlib.Path('index.html').is_file(); assert pathlib.Path('styles.css').is_file(); assert pathlib.Path('app.js').is_file()"
       - name: Compile scripts, API and tests
         run: python -m compileall -q scripts api tests
       - name: Run the test suite
