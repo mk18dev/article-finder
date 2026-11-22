@@ -88,7 +88,7 @@ class LiteratureSynthesisTests(unittest.TestCase):
     def test_markdown_reports_limitations_and_flags(self):
         output = render_markdown(synthesize(bundle()))
         self.assertIn("conflicting or mixed reported directions", output)
-        self.assertIn("A DOI alone is not claim support", output)
+        self.assertIn("a DOI alone is not claim support", output)
 
     def test_duplicate_study_ids_are_rejected(self):
         data = bundle()
