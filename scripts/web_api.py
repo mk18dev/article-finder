@@ -462,7 +462,7 @@ class handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self) -> None:
-        if self.path.rstrip("/") not in {"/api", "/api/health", "/api/index"}:
+        if self.path.split("?", 1)[0].rstrip("/") not in {"", "/", "/api", "/api/health", "/api/index"}:
             self._send(404, {"ok": False, "error": "مسیر API پیدا نشد."})
             return
         self._send(200, {
@@ -473,7 +473,7 @@ class handler(BaseHTTPRequestHandler):
         })
 
     def do_POST(self) -> None:
-        if self.path.rstrip("/") not in {"/api", "/api/index"}:
+        if self.path.split("?", 1)[0].rstrip("/") not in {"", "/", "/api", "/api/index"}:
             self._send(404, {"ok": False, "error": "مسیر API پیدا نشد."})
             return
         if not self._same_origin():
