@@ -75,9 +75,9 @@ If a source cannot be verified, try one alternative source (SJR when the Master 
 
 1. Collect the DOIs you actually found and create a plan using `references/evidence-records.md`. The script retrieves Crossref/OpenAlex metadata and checks the evidence records supplied in the plan; it does **not** execute database searches or read papers for you. Record the real query, search-result URL, matching DOI and date; add the reviewed judgements, tier basis, blacklist check, index result and reading-depth evidence. Then run `python3 scripts/verify_source.py plan.json -o results.json --s6 s6-checklist.md`. Any missing or malformed evidence remains ❓; a blacklist hit rejects S6.
 2. Run `python3 scripts/render_table.py results.json --lang fa` (`--lang en` for English, `--cutoff` to change the cut-off, `--evidence` to show the proof behind each tick, `--bibliography apa|ieee` to also emit the reference list). The script decides the verdict itself: approved only when all 11 steps are ✅. Duplicate records (same DOI, URL or normalised title) are merged before the count. Missing evidence can be filled from another duplicate, but contradictory evidence or metadata is recorded and makes the affected gate pending.
-3. Paste its output. Then, for each approved article, add a one-to-two-sentence extract in your own words of the point that made it useful in its category.
-4. Hand the S6 checklist to the user as its own file: every row needs a human to open the blacklist and index links, confirm the relevant source record, and record both the blacklist result and index evidence in the plan. Do not tick S6 by inference from the publisher.
-5. Close with one natural next step (for instance "next, write the Research Background from the Challenge sources").
+3. Run the citation identity audit for the bibliography: save the cited records as a JSON list and run `python3 scripts/verify_citations.py citations.json --format markdown`. DOI metadata must match the title/year/first author; retractions are rejected, corrections require human review, and missing DOIs produce candidates that remain pending. A metadata match does not prove that the paper supports the manuscript claim.\n4. Paste the output. Then, for each approved article, add a one-to-two-sentence extract in your own words of the point that made it useful in its category.
+5. Hand the S6 checklist to the user as its own file: every row needs a human to open the blacklist and index links, confirm the relevant source record, and record both the blacklist result and index evidence in the plan. Do not tick S6 by inference from the publisher.
+6. Close with one natural next step (for instance "next, write the Research Background from the Challenge sources").
 
 ---
 
@@ -139,7 +139,7 @@ Do not describe a review as PRISMA-compliant solely because a diagram was genera
 - `references/output-example.md`: JSON inputs and rendered outputs for both modes (placeholder data).
 - `references/slide-coverage.md`: all 60 pages and all 53 numbered steps mapped to the file and the phase that implements each one.
 - `scripts/check_ids.py`: offline ISSN / ISBN-10 / ISBN-13 checksum validator.
-- `scripts/verify_source.py`: builds `results.json` from DOIs (Crossref + OpenAlex + `check_ids.py`) and writes the S6 checklist.
+- `scripts/verify_source.py`: builds `results.json` from DOIs (Crossref + OpenAlex + `check_ids.py`) and writes the S6 checklist.\n- `scripts/verify_citations.py`: compares citation identity with Crossref metadata and flags recorded corrections/retractions.
 - `scripts/fetch_pdf.py`: downloads the open full text and reports the licensed route for everything else.
 - `scripts/render_table.py`: Mode 1 checklist tables, verdicts, duplicate merge, APA/IEEE reference list.
 - `scripts/check_draft.py`: Mode 2 checklist tables for a draft.
