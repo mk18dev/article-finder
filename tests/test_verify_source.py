@@ -94,6 +94,13 @@ class PublisherTests(unittest.TestCase):
     def test_missing_publisher_is_pending(self) -> None:
         self.assertIsNone(decide(work(publisher=""))["steps"]["S5"])
 
+    def test_untrusted_publisher_name_cannot_pass_by_substring(self) -> None:
+        self.assertFalse(vs.publisher_trusted("Not Elsevier Publishing"))
+
+    def test_trusted_publisher_legal_suffix_is_normalized(self) -> None:
+        self.assertTrue(vs.publisher_trusted("Elsevier B.V."))
+
+
 
 class SearchAndJudgementTests(unittest.TestCase):
     def test_search_evidence_allows_keyword_gate(self) -> None:
@@ -270,6 +277,32 @@ class BlacklistTests(unittest.TestCase):
     def test_invalid_index_evidence_is_pending(self) -> None:
         bad = [{"index": "Scopus", "verified": True, "url": "http://index.example", "note": "checked"}]
         self.assertIsNone(decide(entry={**ENTRY, "indexing_evidence": bad})["steps"]["S6"])
+
+
+    def test_fake_index_domain_does_not_pass_s6(self) -> None:
+        bad = [{"index": "Scopus", "verified": True,
+                "url": "https://scopus.com.attacker.example/source",
+                "note": "Looks like an index record"}]
+        self.assertIsNone(decide(entry={**ENTRY, "indexing_evidence": bad})["steps"]["S6"])
+
+    def test_fake_blacklist_domain_does_not_pass_s6(self) -> None:
+        entry = {**ENTRY, "blacklist_evidence": {
+            "reviewed": True, "url": "https://impactfactor.ir.attacker.example/",
+            "note": "Claimed to be official blacklist evidence",
+        }}
+        self.assertIsNone(decide(entry=entry)["steps"]["S6"])
+
+    def test_fake_search_domain_does_not_pass_s3(self) -> None:
+        entry = {**ENTRY, "search_evidence": {
+            **ENTRY["search_evidence"], "url": "https://crossref.org.attacker.example/search",
+        }}
+        self.assertIsNone(decide(entry=entry)["steps"]["S3"])
+
+    def test_search_timestamp_must_include_timezone(self) -> None:
+        entry = {**ENTRY, "search_evidence": {
+            **ENTRY["search_evidence"], "searched_at": "2026-11-23T10:00:00",
+        }}
+        self.assertIsNone(decide(entry=entry)["steps"]["S3"])
 
     def test_checklist_starts_with_blacklist_link(self) -> None:
         self.assertIn("impactfactor.ir", vs.s6_links(work())[0])
