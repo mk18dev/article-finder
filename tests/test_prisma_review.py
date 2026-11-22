@@ -24,6 +24,7 @@ def valid_review():
             "record_id": f"r{index}",
             "doi": f"10.1234/{index}",
             "title": f"Excluded title {index}",
+            "title_abstract_exclusion_reason": "outside prespecified population",
             "title_abstract_review": stage_review("exclude"),
             "full_text_status": "not_sought",
         })
@@ -44,7 +45,7 @@ def valid_review():
         })
     for index in (7, 8):
         records.append({
-            "record_id": f"r{index}", "doi": f"10.1234/{index}", "title": f"Included study {index}",
+            "record_id": f"r{index}", "study_id": f"study-{index}", "doi": f"10.1234/{index}", "title": f"Included study {index}",
             "title_abstract_review": stage_review("include"),
             "full_text_status": "retrieved",
             "full_text_review": stage_review("include"),
@@ -130,6 +131,7 @@ class PrismaReviewTests(unittest.TestCase):
         self.assertEqual(counts["reports_assessed"], 4)
         self.assertEqual(counts["reports_excluded_full_text"], 2)
         self.assertEqual(counts["studies_included"], 2)
+        self.assertEqual(counts["reports_of_included_studies"], 2)
 
     def test_raw_records_must_match_retrieved_search_hits(self):
         review = valid_review()
