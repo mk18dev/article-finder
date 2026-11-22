@@ -173,14 +173,16 @@ def publisher_trusted(publisher: str) -> bool:
     return normalized in TRUSTED_PUBLISHERS
 
 
-def host_matches(url: str, domains: tuple[str, ...]) -> bool:
+def host_matches(url: str, domains: tuple[str, ...], allow_legacy_http: bool = False) -> bool:
     try:
         parsed = urllib.parse.urlsplit(url)
         host = (parsed.hostname or "").lower().rstrip(".")
+        scheme_ok = parsed.scheme.lower() == "https" and parsed.port in (None, 443)
+        if allow_legacy_http and host == "impactfactor.ir":
+            scheme_ok = scheme_ok or (parsed.scheme.lower() == "http" and parsed.port in (None, 80))
         return (
-            parsed.scheme.lower() == "https"
+            scheme_ok
             and parsed.username is None and parsed.password is None
-            and parsed.port in (None, 443)
             and any(host == domain or host.endswith("." + domain) for domain in domains)
         )
     except ValueError:
@@ -332,7 +334,7 @@ def s6_gate(work: Work, entry: dict[str, Any]) -> bool | None:
             if (
                 blacklist != "clear" or not isinstance(blacklist_evidence, dict)
                 or not evidence_item_ok({**blacklist_evidence, "allow_legacy_blacklist_http": True})
-                or not host_matches(str(blacklist_evidence.get("url") or ""), ("impactfactor.ir",))
+                or not host_matches(str(blacklist_evidence.get("url") or ""), ("impactfactor.ir",), allow_legacy_http=True)
             ):
                 return None
         for item in entry.get("indexing_evidence", []) or []:
