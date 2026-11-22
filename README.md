@@ -141,7 +141,7 @@ When a paper is not open, the report names the licensed route and `--draft-email
 python3 -m unittest discover -s tests -t tests -v
 ```
 
-The suite is network-free and additionally covers source evidence gates, citation identity/update checks, PRISMA count reconciliation, thematic evidence synthesis, claim-to-source mapping, duplicate conflicts, URL/redirect policy, response-size limits and the original draft/PDF regressions. GitHub Actions runs it on Python 3.10–3.13.
+The suite is network-free and additionally covers source evidence gates, citation identity/update checks, APA/IEEE in-text crosswalk, PRISMA count reconciliation, thematic evidence synthesis, claim-to-source mapping, duplicate conflicts, URL/redirect policy, response-size limits and the original draft/PDF regressions. GitHub Actions runs it on Python 3.10–3.13.
 
 | Bug | What it did |
 |---|---|
@@ -157,7 +157,7 @@ SKILL.md              the main workflow an agent follows
 VERSION               canonical release version
 skills/               nine specialized research and engineering playbooks
 references/           the rule set, gates, rubric, reading rules, verification map
-scripts/              search_databases · verify_source · verify_citations · prisma_review · synthesize_literature · render_table · fetch_pdf · check_draft · check_ids · web_api · http_util
+scripts/              search_databases · verify_source · verify_citations · citation_crosswalk · prisma_review · synthesize_literature · render_table · fetch_pdf · check_draft · check_ids · web_api · http_util
 tests/                regression tests for every script and package
 examples/             fixtures whose real output the docs show
 tools/pack_skill.py   builds dist/article-finder.skill
