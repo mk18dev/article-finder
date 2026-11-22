@@ -440,10 +440,20 @@ class handler(BaseHTTPRequestHandler):
         except ValueError:
             return False
 
+    def _auth_mode(self) -> str:
+        if os.environ.get("ARTICLE_FINDER_API_KEY", ""):
+            return "key_required"
+        if os.environ.get("VERCEL") == "1" and os.environ.get("ARTICLE_FINDER_PUBLIC_MODE") != "1":
+            return "misconfigured"
+        return "public"
+
     def _authorized(self) -> bool:
-        required = os.environ.get("ARTICLE_FINDER_API_KEY", "")
-        if not required:
+        mode = self._auth_mode()
+        if mode == "public":
             return True
+        if mode == "misconfigured":
+            return False
+        required = os.environ["ARTICLE_FINDER_API_KEY"]
         supplied = self.headers.get("Authorization", "")
         prefix = "Bearer "
         return supplied.startswith(prefix) and hmac.compare_digest(
@@ -470,6 +480,8 @@ class handler(BaseHTTPRequestHandler):
             "service": "article-finder",
             "version": APP_VERSION,
             "capabilities": ["source-discovery", "source-verification", "draft-checking"],
+            "auth_mode": self._auth_mode(),
+            "auth_configured": bool(os.environ.get("ARTICLE_FINDER_API_KEY")),
         })
 
     def do_POST(self) -> None:
@@ -478,6 +490,12 @@ class handler(BaseHTTPRequestHandler):
             return
         if not self._same_origin():
             self._send(403, {"ok": False, "error": "درخواست cross-origin مجاز نیست."})
+            return
+        if self._auth_mode() == "misconfigured":
+            self._send(503, {
+                "ok": False,
+                "error": "کلید API در محیط production تنظیم نشده است؛ ARTICLE_FINDER_API_KEY را تنظیم کن یا public mode را صریحاً فعال کن.",
+            })
             return
         if not self._authorized():
             self._send(401, {"ok": False, "error": "کلید دسترسی معتبر نیست."})
