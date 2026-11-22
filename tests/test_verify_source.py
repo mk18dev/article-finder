@@ -84,6 +84,27 @@ def decide(source: vs.Work | None = None, entry: dict | None = None) -> dict:
 
 
 class IntegritySignalTests(unittest.TestCase):
+
+    def test_crossref_update_to_is_preserved(self) -> None:
+        payload = {"message": {
+            "DOI": "10.1000/x",
+            "title": ["A paper"],
+            "container-title": ["Journal"],
+            "publisher": "Springer",
+            "ISSN": ["0924-1868"],
+            "volume": "1",
+            "issue": "1",
+            "page": "1-2",
+            "issued": {"date-parts": [[2024]]},
+            "author": [{"family": "Smith", "given": "Jane"}],
+            "type": "journal-article",
+            "update-to": [{"type": "retraction", "DOI": "10.1000/retract"}],
+        }}
+        with patch("verify_source.fetch_json", return_value=payload):
+            parsed = vs.crossref("10.1000/x")
+        self.assertEqual(parsed.updates[0]["type"], "retraction")
+        self.assertEqual(vs.integrity_status(parsed), "retracted")
+
     def test_openalex_retraction_flag_is_captured(self) -> None:
         with patch("verify_source.fetch_json", return_value={
             "is_retracted": True,
