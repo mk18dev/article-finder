@@ -199,5 +199,7 @@ python -m scripts.serve
 ```
 
 The local web/API is available at `http://127.0.0.1:8000/` (or the configured
-`PORT`). Vercel deployment configuration is maintained separately in
-`vercel.json`; a successful CI run does not by itself prove a hosted release.
+`PORT`). Vercel deployment configuration is maintained in `vercel.json`.
+GitHub Actions tests Python 3.10–3.13 and, on pushes to `main`, waits for the
+production deployment before checking the live health endpoint, static assets,
+Crossref discovery and draft-check API.
