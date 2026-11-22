@@ -5,7 +5,7 @@ description: Step-by-step research-paper workflow from the "Research method and 
 
 # Article Finder
 
-Release 1.3.0.
+Release 1.1.0.
 
 Two jobs, one method, both from the user's research-methods slides (Niloofar Mirzaei Chahardeh, I.A.U.):
 
