@@ -79,6 +79,22 @@
           </div>
 
           <form id="source-form" class="tool-form">
+            <section class="discovery-box" aria-labelledby="discovery-title">
+              <div class="discovery-heading">
+                <div>
+                  <p class="section-kicker">LIVE DISCOVERY / CROSSREF</p>
+                  <h3 id="discovery-title">اول منبع پیدا کن</h3>
+                </div>
+                <span class="discovery-provider">Crossref API</span>
+              </div>
+              <label class="field-label" for="discovery-keyword">عبارت جست‌وجو <span class="required">*</span></label>
+              <input id="discovery-keyword" class="input-control" type="text" maxlength="240" placeholder="Survey + hybrid recommender systems" autocomplete="off">
+              <div class="field-hint">عبارت باید با یکی از کلیدواژه‌های روش درس شروع شود؛ نتایج واقعی‌اند اما تأیید علمی محسوب نمی‌شوند.</div>
+              <button class="secondary-button" id="discover-submit" type="button"><span>جست‌وجوی منابع در Crossref</span><b>⌕</b></button>
+              <div id="discovery-results" class="discovery-results is-hidden" aria-live="polite"></div>
+              <p class="discovery-footnote">نتایج انتخابی با DOI و سابقه جست‌وجو وارد طرح شواهد می‌شوند؛ سایر دروازه‌ها همچنان مستقل بررسی خواهند شد.</p>
+            </section>
+
             <label class="field-label" for="source-dois">DOI یا لینک DOI <span class="required">*</span></label>
             <textarea id="source-dois" class="input-control code-input" rows="4" placeholder="10.3233/IDA-163209&#10;https://doi.org/10.xxxx/example" spellcheck="false"></textarea>
             <div class="field-hint"><span class="hint-dot"></span> هر DOI در یک خط؛ حداکثر ۴ منبع در هر اجرا</div>
