@@ -54,7 +54,10 @@ def record_key(record: dict[str, Any]) -> tuple[str, str]:
     title = normalize_title(record.get("title"))
     if title:
         return ("title", title)
-    record_id = str(record.get("record_id") or "").strip()\n    if record_id:\n        return ("record", record_id.casefold())\n    raise ValueError("record requires DOI, PMID, URL, title, or record_id")
+    record_id = str(record.get("record_id") or "").strip()
+    if record_id:
+        return ("record", record_id.casefold())
+    raise ValueError("record requires DOI, PMID, URL, title, or record_id")
 
 
 def _metadata_conflicts(canonical: dict[str, Any], duplicate: dict[str, Any]) -> list[dict[str, Any]]:
@@ -269,7 +272,8 @@ def derive_counts(review: dict[str, Any]) -> dict[str, int]:
         "reports_not_retrieved": not_retrieved,
         "reports_assessed": len(assessed_records),
         "reports_excluded_full_text": full_excluded,
-        "studies_included": included,\n        "reports_of_included_studies": len(included_records),
+        "studies_included": included,
+        "reports_of_included_studies": len(included_records),
     }
 
 
@@ -328,6 +332,8 @@ def validate_review(review: dict[str, Any]) -> list[str]:
         decision = str((title_review or {}).get("decision") or "").lower() if isinstance(title_review, dict) else ""
         full_status = str(record.get("full_text_status") or "").lower()
         if decision == "exclude":
+            if not _nonempty(record.get("title_abstract_exclusion_reason")):
+                errors.append(f"{record_id} title/abstract exclusion requires title_abstract_exclusion_reason")
             if full_status != "not_sought":
                 errors.append(f"{record_id} title/abstract-excluded record must be not_sought")
             if record.get("full_text_review") is not None:
@@ -343,6 +349,8 @@ def validate_review(review: dict[str, Any]) -> list[str]:
                 full_decision = str((full_review or {}).get("decision") or "").lower() if isinstance(full_review, dict) else ""
                 if full_decision == "exclude" and not _nonempty((full_review or {}).get("exclusion_reason")):
                     errors.append(f"{record_id} full-text exclusion requires exclusion_reason")
+                if full_decision == "include" and not _nonempty(record.get("study_id")):
+                    errors.append(f"{record_id} included report requires study_id")
         elif decision:
             errors.append(f"{record_id} title/abstract decision is unresolved")
     return errors
