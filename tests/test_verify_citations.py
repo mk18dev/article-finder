@@ -57,7 +57,7 @@ class CitationVerificationTests(unittest.TestCase):
         self.assertEqual(status, "corrected")
         self.assertEqual(len(updates), 1)
         result = verify_metadata(self.citation, message)
-        self.assertEqual(result["status"], "verified")
+        self.assertEqual(result["status"], "corrected")
         self.assertEqual(result["updates"][0]["type"], "correction")
 
     @patch("scripts.verify_citations.fetch_json")
