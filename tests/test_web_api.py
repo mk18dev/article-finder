@@ -265,10 +265,25 @@ class RequestBoundaryTests(unittest.TestCase):
         with patch.dict("os.environ", {"ARTICLE_FINDER_API_KEY": "correct-test-key"}, clear=False):
             self.assertFalse(request._authorized())
 
-    def test_no_configured_key_keeps_public_mode_explicit(self):
+    def test_no_configured_key_keeps_local_public_mode_explicit(self):
         request = object.__new__(api.handler)
         request.headers = {}
         with patch.dict("os.environ", {}, clear=True):
+            self.assertEqual(request._auth_mode(), "public")
+            self.assertTrue(request._authorized())
+
+    def test_vercel_without_key_fails_closed(self):
+        request = object.__new__(api.handler)
+        request.headers = {}
+        with patch.dict("os.environ", {"VERCEL": "1"}, clear=True):
+            self.assertEqual(request._auth_mode(), "misconfigured")
+            self.assertFalse(request._authorized())
+
+    def test_vercel_public_mode_requires_explicit_opt_in(self):
+        request = object.__new__(api.handler)
+        request.headers = {}
+        with patch.dict("os.environ", {"VERCEL": "1", "ARTICLE_FINDER_PUBLIC_MODE": "1"}, clear=True):
+            self.assertEqual(request._auth_mode(), "public")
             self.assertTrue(request._authorized())
 
 
