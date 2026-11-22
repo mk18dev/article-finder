@@ -151,9 +151,11 @@ Missing or invalid ISSN, publisher not identifiable, Number inconsistent with Vo
 | S5 Publisher | script, one-sided | Crossref `publisher`, matched against the slide's publisher list; a publisher outside that list stays ❓, never ❌ |
 | S7 Identifiers | script | ISSN checksums via `check_ids.py`; for a conference, edition + venue + DOI |
 | S8 Specialization & year | script, partly | Crossref year against the recency rule; specialization requires a reviewer record and evidence URL |
+| S9 Tier | reviewer + renderer | A-D tier, rubric/basis, reviewer evidence URL; \`render_table.py\` computes pass/fail against the selected cutoff |
+| S10 Category | model/reviewer | category judgement, taken from the plan and reported as declared |
 | S11 Extraction | script, partly | reviewer reading records for abstract/introduction/conclusion, chapters 1-2, or full text according to category and source type |
-| S1, S2, S3, S10 | the model | judgments about the research, taken from the plan and reported as declared |
-| S6 Indexing | the user | no API decides it — see the ladder below |
+| S1, S2, S3 | model/reviewer | research judgements and exact search provenance, reported as declared |
+| S6 Indexing | user/reviewer | official-host allowlist + reviewed record; no API independently certifies index status — see the ladder below |
 
 **S6 is manually verified but machine-enforced by source type.** The CLI validates the required evidence record's shape and official host boundary; it does not claim to have inspected or authenticated the external page's contents.
 
