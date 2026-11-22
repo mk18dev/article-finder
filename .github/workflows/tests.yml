@@ -91,7 +91,7 @@ jobs:
             -H 'Content-Type: application/json' \
             --data-binary @/tmp/verify.json \
             "$BASE_URL/api" -o /tmp/verification.json
-          python -c "import json; d=json.load(open('/tmp/verification.json')); n=len(d['results'])+len(d['errors']); assert d['ok'] and d['mode']=='sources' and n==1; print('Production source verification processed', n, 'candidate(s); verdict:', d['results'][0]['verdict'] if d['results'] else 'metadata-error')"
+          python -c "import json; d=json.load(open('/tmp/verification.json')); assert d['ok'] and d['mode']=='sources' and len(d['results'])==1 and d['results'][0]['verdict']=='pending'; print('Production source verification processed one candidate and correctly kept it PENDING without reviewer evidence')"
       - name: Exercise production draft-check API
         env:
           BASE_URL: https://article-finder-peach.vercel.app
