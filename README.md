@@ -1,6 +1,6 @@
 # article-finder
 
-**Release 1.2.0** — evidence-backed gates, fail-closed HTTPS retrieval and conflict-aware duplicate handling.
+**Release 1.3.0** — evidence-backed gates, fail-closed HTTPS retrieval and conflict-aware duplicate handling.
 
 **A verification-first research-paper skill for AI agents.** It finds and vets sources for a paper, then checks a draft section by section — and it refuses to tick a box it cannot prove.
 
@@ -15,7 +15,7 @@ Zero approved is a normal, honest result. Read the next section for why.
 
 ---
 
-## Two modes
+## Three workflows\n\n| Workflow | Input | Output |\n|---|---|---|\n| Discover sources | Course keyword + research topic | Real Crossref candidates with query, DOI and timestamp provenance |\n| Verify sources | DOI + evidence plan | 11-gate evidence checklist and APA/IEEE references |\n| Check a draft | Article draft | Section-by-section report against 76 writing rules |\n\nThe web workspace can search Crossref directly, select up to four candidates, and pass their exact search records into source verification. Discovery is not approval: missing reviewer evidence remains pending.\n\n## Two modes
 
 | | Mode 1 — find and vet | Mode 2 — check a draft |
 |---|---|---|
@@ -171,7 +171,7 @@ functions as the CLI; it does not introduce a second rules engine.
   and restart policy. No third-party Python package or Node build is required.
 - `api/index.py` and `vercel.json` remain available for the Vercel adapter.
 
-The hosted API never exposes `fetch_pdf.py`: arbitrary PDF fetching remains a
+The hosted API exposes source discovery through Crossref, source verification and draft checking. Discovery records the exact Crossref query URL, matching DOI and UTC timestamp; it does not approve a candidate.\n\nThe hosted API never exposes `fetch_pdf.py`: arbitrary PDF fetching remains a
 local CLI workflow, not a public URL-fetch endpoint.
 
 ### Railway deployment
