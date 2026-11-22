@@ -149,12 +149,14 @@ class VercelFunctionRootTests(unittest.TestCase):
         cls.server.server_close()
         cls.thread.join(timeout=2)
 
-    def test_vercel_function_root_is_health_endpoint(self):
-        response = urllib.request.urlopen(self.base + "/", timeout=3)
-        payload = json.loads(response.read())
-        self.assertEqual(response.status, 200)
-        self.assertTrue(payload["ok"])
-        self.assertIn("source-discovery", payload["capabilities"])
+    def test_vercel_function_paths_are_health_endpoints(self):
+        for path in ("/", "/index", "/index.py", "/api", "/api/index", "/api/index.py"):
+            with self.subTest(path=path):
+                response = urllib.request.urlopen(self.base + path, timeout=3)
+                payload = json.loads(response.read())
+                self.assertEqual(response.status, 200)
+                self.assertTrue(payload["ok"])
+                self.assertIn("source-discovery", payload["capabilities"])
 
     def test_vercel_function_root_accepts_api_post(self):
         body = json.dumps({
