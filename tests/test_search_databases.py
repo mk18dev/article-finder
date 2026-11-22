@@ -55,7 +55,9 @@ class SearchDatabasesTests(unittest.TestCase):
         )
         result = discover("paper search", 5)
         self.assertEqual(len(result["records"]), 1)
+        self.assertEqual(len(result["raw_records"]), 2)
         self.assertEqual(len(result["duplicates"]), 1)
+        self.assertTrue(all(item.get("record_id") for item in result["raw_records"]))
         self.assertEqual(len(result["search_log"]), 2)
         self.assertEqual(result["providers_succeeded"], ["Crossref", "OpenAlex"])
 
