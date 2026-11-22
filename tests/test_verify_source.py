@@ -132,6 +132,10 @@ class IntegritySignalTests(unittest.TestCase):
         result = decide(work(is_retracted=False))
         self.assertIn("not proof", result["notes"]["en"])
 
+
+    def test_paratext_requires_human_eligibility_review(self) -> None:
+        self.assertEqual(vs.integrity_status(work(is_retracted=False, is_paratext=True)), "paratext")
+
     def test_missing_retraction_signal_is_partial(self) -> None:
         self.assertEqual(vs.integrity_status(work()), "partial")
 
