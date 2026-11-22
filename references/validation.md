@@ -155,7 +155,7 @@ Missing or invalid ISSN, publisher not identifiable, Number inconsistent with Vo
 | S1, S2, S3, S10 | the model | judgments about the research, taken from the plan and reported as declared |
 | S6 Indexing | the user | no API decides it — see the ladder below |
 
-**S6 is manually verified but machine-enforced by source type.** The CLI validates the required evidence record's shape; it does not claim to have inspected or authenticated the external page.
+**S6 is manually verified but machine-enforced by source type.** The CLI validates the required evidence record's shape and official host boundary; it does not claim to have inspected or authenticated the external page's contents.
 
 - **Journal:** a reported blacklist hit rejects the source. Otherwise, a documented clear blacklist check plus a verified Scopus, Web of Science/WoS, ISC or DBLP record is required.
 - **Conference:** a verified proceedings index record in Scopus, Web of Science/WoS, ISC or DBLP is required. The journal blacklist check does not apply.
