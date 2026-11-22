@@ -457,7 +457,8 @@ def build_report(review: dict[str, Any]) -> str:
         "|---|---|---|---|---|---:|---|---|---|",
     ]
     for item in review["search_log"]:
-        safe = lambda value: str(value).replace("|", "\\|").replace("\n", " ")
+        def safe(value):
+            return str(value).replace("|", "\\|").replace("\n", " ")
         lines.append("| " + " | ".join(safe(item.get(key, "")) for key in
                      ("source_type", "database", "platform", "query", "date_run", "hits", "limits", "status", "search_url")) + " |")
     other_methods = review.get("other_methods_log") or []
