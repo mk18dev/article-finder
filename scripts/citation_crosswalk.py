@@ -35,9 +35,14 @@ def _references(document: Any) -> list[dict[str, Any]]:
     if isinstance(document, list):
         refs = document
     elif isinstance(document, dict):
-        refs = document.get("references", document.get("citations", []))
+        if "references" in document:
+            refs = document["references"]
+        elif "citations" in document:
+            refs = document["citations"]
+        else:
+            raise ValueError("reference object must contain references or citations")
     else:
-        refs = []
+        raise ValueError("reference input must be a list or an object")
     if not isinstance(refs, list) or not all(isinstance(item, dict) for item in refs):
         raise ValueError("reference input must be a list or contain references/citations list")
     return refs
