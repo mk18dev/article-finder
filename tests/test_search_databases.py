@@ -60,6 +60,7 @@ class SearchDatabasesTests(unittest.TestCase):
         self.assertTrue(all(item.get("record_id") for item in result["raw_records"]))
         self.assertEqual(len(result["search_log"]), 2)
         self.assertEqual(result["providers_succeeded"], ["Crossref", "OpenAlex"])
+        self.assertEqual([item["record_id"] for item in result["raw_records"]], ["crossref-000001", "openalex-000002"])
 
     @patch("scripts.search_databases.search_crossref")
     @patch("scripts.search_databases.search_openalex", side_effect=TimeoutError("offline"))
