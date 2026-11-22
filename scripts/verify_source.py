@@ -47,6 +47,12 @@ SEARCH_DOMAINS: tuple[str, ...] = (
     "semanticscholar.org", "arxiv.org", "ieeexplore.ieee.org", "dl.acm.org",
     "dblp.org", "scopus.com", "mjl.clarivate.com",
 )
+JOURNAL_METADATA_DOMAINS: tuple[str, ...] = (
+    "sciencedirect.com", "link.springer.com", "ieeexplore.ieee.org", "dl.acm.org",
+    "tandfonline.com", "onlinelibrary.wiley.com", "wiley.com", "journals.sagepub.com",
+    "journals.plos.org", "frontiersin.org", "nature.com", "academic.oup.com",
+    "cambridge.org", "journals.aps.org",
+)
 COURSE_KEYWORDS: tuple[str, ...] = (
     "tutorial", "survey", "overview", "an introduction", "bibliography", "references",
     "archive", "method", "technique", "algorithm", "model", "concept", "thesis",
@@ -313,13 +319,39 @@ def source_type_ok(work: Work, entry: dict[str, Any]) -> bool | None:
     return True
 
 
+def _positive_int(value: Any) -> int | None:
+    match = re.search(r"\d+", str(value or ""))
+    if not match:
+        return None
+    parsed = int(match.group(0))
+    return parsed if parsed > 0 else None
+
+
 def identifiers_ok(work: Work, entry: dict[str, Any]) -> bool | None:
     if work.kind == "journal":
         if not work.issns:
             return None
         if not all(issn_valid(i.replace("-", "")) for i in work.issns):
             return False
-        if not work.volume or not work.issue:
+        volume = _positive_int(work.volume)
+        issue = _positive_int(work.issue)
+        if not volume or not issue:
+            return None
+        if entry.get("calendar_year_volume") is True:
+            return True
+        journal_number = _positive_int(entry.get("journal_number"))
+        issues_per_year = _positive_int(entry.get("issues_per_year"))
+        if not journal_number or not issues_per_year:
+            return None
+        if issue > issues_per_year:
+            return False
+        expected_number = (volume - 1) * issues_per_year + issue
+        if journal_number != expected_number:
+            return False
+        number_evidence = entry.get("journal_number_evidence")
+        if not evidence_item_ok(number_evidence):
+            return None
+        if not host_matches(str(number_evidence.get("url") or ""), JOURNAL_METADATA_DOMAINS):
             return None
         return True
     if work.kind == "conference":
