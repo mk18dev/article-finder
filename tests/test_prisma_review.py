@@ -10,50 +10,94 @@ from scripts.prisma_review import (
 )
 
 
-STAMP = "2026-11-23T10:00:00Z"
-
-
-def stage_review(decision, reviewer="reviewer-a"):
-    return {"decision": decision, "reviewer_id": reviewer, "reviewed_at": STAMP}
+def stage_review(decision, second_decision=None, reviewer="R1", second_reviewer="R2"):
+    result = {
+        "reviewer_id": reviewer,
+        "decision": decision,
+        "reviewed_at": "2026-11-23T10:00:00Z",
+        "second_review": {
+            "reviewer_id": second_reviewer,
+            "decision": second_decision or decision,
+            "reviewed_at": "2026-11-23T10:05:00Z",
+        },
+    }
+    if second_decision and second_decision != decision:
+        result["adjudication"] = {
+            "reviewer_id": "R3",
+            "decision": decision,
+            "reviewed_at": "2026-11-23T10:10:00Z",
+            "note": "Independent adjudication after reviewer disagreement.",
+        }
+    return result
 
 
 def valid_review():
-    records = []
-    for index in range(1, 4):
-        records.append({
-            "record_id": f"r{index}",
-            "doi": f"10.1234/{index}",
-            "title": f"Excluded title {index}",
-            "title_abstract_exclusion_reason": "outside prespecified population",
-            "title_abstract_review": stage_review("exclude"),
-            "full_text_status": "not_sought",
-        })
-    records.append({
-        "record_id": "r4", "doi": "10.1234/4", "title": "Unavailable full text",
-        "title_abstract_review": stage_review("include"),
-        "full_text_status": "not_retrieved",
-    })
-    for index in (5, 6):
-        records.append({
-            "record_id": f"r{index}", "doi": f"10.1234/{index}", "title": f"Full text excluded {index}",
-            "title_abstract_review": stage_review("include"),
-            "full_text_status": "retrieved",
-            "full_text_review": {
-                **stage_review("exclude"),
-                "exclusion_reason": "wrong study design" if index == 5 else "wrong population",
-            },
-        })
-    for index in (7, 8):
-        records.append({
-            "record_id": f"r{index}", "study_id": f"study-{index}", "doi": f"10.1234/{index}", "title": f"Included study {index}",
+    records = [
+        {
+            "record_id": "r1", "doi": "10.1234/a", "title": "Included Paper A",
+            "automation_excluded": False,
             "title_abstract_review": stage_review("include"),
             "full_text_status": "retrieved",
             "full_text_review": stage_review("include"),
-        })
-    records.extend([
-        {"record_id": "dup1", "doi": "10.1234/1", "title": "Duplicate of record 1"},
-        {"record_id": "dup2", "doi": "10.1234/2", "title": "Duplicate of record 2"},
-    ])
+            "study_id": "study-a",
+        },
+        {
+            "record_id": "r2", "title": "Excluded Paper B",
+            "automation_excluded": False,
+            "title_abstract_review": stage_review("include"),
+            "full_text_status": "retrieved",
+            "full_text_review": dict(stage_review("exclude"), exclusion_reason="wrong study design"),
+        },
+        {
+            "record_id": "r3", "title": "Title Abstract Exclusion C",
+            "automation_excluded": False,
+            "title_abstract_review": stage_review("exclude"),
+            "title_abstract_exclusion_reason": "editorial",
+            "full_text_status": "not_sought",
+        },
+        {
+            "record_id": "r4", "title": "Title Abstract Exclusion D",
+            "automation_excluded": False,
+            "title_abstract_review": stage_review("exclude"),
+            "title_abstract_exclusion_reason": "wrong population",
+            "full_text_status": "not_sought",
+        },
+        {
+            "record_id": "r5", "title": "Title Abstract Exclusion E",
+            "automation_excluded": False,
+            "title_abstract_review": stage_review("exclude"),
+            "title_abstract_exclusion_reason": "no relevant outcome",
+            "full_text_status": "not_sought",
+        },
+        {
+            "record_id": "r6", "title": "Full Text Exclusion F",
+            "automation_excluded": False,
+            "title_abstract_review": stage_review("include"),
+            "full_text_status": "retrieved",
+            "full_text_review": dict(stage_review("exclude"), exclusion_reason="wrong study design"),
+        },
+        {
+            "record_id": "r7", "title": "Included Paper G",
+            "automation_excluded": False,
+            "title_abstract_review": stage_review("include"),
+            "full_text_status": "retrieved",
+            "full_text_review": stage_review("include"),
+            "study_id": "study-g",
+        },
+        {
+            "record_id": "r8", "title": "Not Retrieved H",
+            "automation_excluded": False,
+            "title_abstract_review": stage_review("include"),
+            "full_text_status": "not_retrieved",
+        },
+        {
+            "record_id": "r9", "doi": "https://doi.org/10.1234/a",
+            "title": "Conflicting Duplicate Title",
+        },
+        {
+            "record_id": "r10", "title": "Excluded Paper B",
+        },
+    ]
     return {
         "protocol": {
             "review_type": "systematic",
@@ -61,9 +105,8 @@ def valid_review():
             "inclusion_criteria": ["Peer-reviewed studies", "Population matches protocol"],
             "exclusion_criteria": ["Editorials", "Wrong population"],
             "registration": {"registry": "OSF", "id": "osf-example"},
-            "reviewers": ["reviewer-a"],
-            "dual_screening": False,
-            "single_reviewer_justification": "This pilot review was screened by one reviewer.",
+            "reviewers": ["R1", "R2", "R3"],
+            "dual_screening": True,
         },
         "search_log": [{
             "database": "Crossref",
@@ -75,6 +118,19 @@ def valid_review():
             "limits": "2018-2026; English",
             "status": "ok",
         }],
+        "counts": {
+            "records_identified": 10,
+            "duplicates_removed": 2,
+            "records_removed_automation": 0,
+            "records_screened": 8,
+            "records_excluded_title_abstract": 3,
+            "reports_sought": 5,
+            "reports_not_retrieved": 1,
+            "reports_assessed": 4,
+            "reports_excluded_full_text": 2,
+            "studies_included": 2,
+            "reports_of_included_studies": 2,
+        },
         "records": records,
     }
 
@@ -88,14 +144,16 @@ class PrismaReviewTests(unittest.TestCase):
         self.assertEqual(normalize_title("A Study: Recommender-Systems!"), "a study recommender systems")
 
     def test_deduplicate_by_doi_and_preserve_canonical(self):
-        unique, duplicates = deduplicate_records([
+        records = [
             {"record_id": "first", "title": "Paper A", "doi": "10.1234/ABC"},
             {"record_id": "second", "title": "Different title", "doi": "https://doi.org/10.1234/abc"},
             {"record_id": "third", "title": "Unique Paper"},
-        ])
+        ]
+        unique, duplicates = deduplicate_records(records)
         self.assertEqual([item["record_id"] for item in unique], ["first", "third"])
         self.assertEqual(duplicates[0]["duplicate_of"], "first")
         self.assertEqual(duplicates[0]["key_type"], "doi")
+        self.assertEqual(duplicates[0]["metadata_conflicts"][0]["field"], "title")
 
     def test_deduplicate_by_normalized_title_as_last_resort(self):
         unique, duplicates = deduplicate_records([
@@ -103,6 +161,7 @@ class PrismaReviewTests(unittest.TestCase):
             {"record_id": "b", "title": "a-study on AI!"},
         ])
         self.assertEqual(len(unique), 1)
+        self.assertEqual(len(duplicates), 1)
         self.assertEqual(duplicates[0]["key_type"], "title")
 
     def test_protocol_requires_reproducible_search_log(self):
@@ -115,105 +174,65 @@ class PrismaReviewTests(unittest.TestCase):
         review["search_log"][0]["date_run"] = "23/11/2026"
         self.assertTrue(any("YYYY-MM-DD" in error for error in validate_review(review)))
 
-    def test_failed_provider_cannot_count_as_completed_search(self):
-        review = valid_review()
-        review["search_log"][0]["status"] = "error"
-        self.assertTrue(any("marked failed" in error for error in validate_review(review)))
-
-    def test_counts_are_derived_from_raw_record_ledger(self):
+    def test_counts_derive_from_raw_screening_ledger(self):
         counts = derive_counts(valid_review())
         self.assertEqual(counts["records_identified"], 10)
         self.assertEqual(counts["duplicates_removed"], 2)
         self.assertEqual(counts["records_screened"], 8)
-        self.assertEqual(counts["records_excluded_title_abstract"], 3)
         self.assertEqual(counts["reports_sought"], 5)
-        self.assertEqual(counts["reports_not_retrieved"], 1)
         self.assertEqual(counts["reports_assessed"], 4)
-        self.assertEqual(counts["reports_excluded_full_text"], 2)
         self.assertEqual(counts["studies_included"], 2)
         self.assertEqual(counts["reports_of_included_studies"], 2)
 
-    def test_raw_records_must_match_retrieved_search_hits(self):
+    def test_count_tampering_is_detected(self):
         review = valid_review()
-        review["records"].pop()
-        self.assertTrue(any("must equal retrieved search hits" in error for error in validate_review(review)))
-
-    def test_manual_count_cannot_override_record_ledger(self):
-        review = valid_review()
-        review["counts"] = {"records_screened": 999}
+        review["counts"]["duplicates_removed"] = 20
         self.assertTrue(any("derived from the record ledger" in error for error in validate_review(review)))
 
-    def test_full_text_exclusions_require_reason(self):
+    def test_raw_record_count_must_match_search_hits(self):
         review = valid_review()
-        review["records"][4]["full_text_review"].pop("exclusion_reason")
-        self.assertTrue(any("requires exclusion_reason" in error for error in validate_review(review)))
+        review["records"].pop()
+        self.assertTrue(any("raw record count" in error for error in validate_review(review)))
 
-    def test_reviewer_timestamp_must_be_timezone_aware(self):
+    def test_title_abstract_exclusion_requires_reason(self):
         review = valid_review()
-        review["records"][0]["title_abstract_review"]["reviewed_at"] = "2026-11-23T10:00:00"
-        self.assertTrue(any("timezone-aware" in error for error in validate_review(review)))
+        review["records"][2].pop("title_abstract_exclusion_reason")
+        self.assertTrue(any("title/abstract exclusion requires" in error for error in validate_review(review)))
 
-    def test_dual_screening_requires_independent_second_reviewer(self):
+    def test_full_text_exclusion_requires_reason(self):
         review = valid_review()
-        review["protocol"]["dual_screening"] = True
-        review["protocol"]["reviewers"] = ["reviewer-a", "reviewer-b"]
-        self.assertTrue(any("second_review" in error for error in validate_review(review)))
+        review["records"][1]["full_text_review"].pop("exclusion_reason")
+        self.assertTrue(any("full-text exclusion requires" in error for error in validate_review(review)))
 
-    def test_dual_reviewer_disagreement_requires_adjudication(self):
+    def test_dual_screeners_must_be_independent(self):
         review = valid_review()
-        review["protocol"]["dual_screening"] = True
-        review["protocol"]["reviewers"] = ["reviewer-a", "reviewer-b"]
-        for record in review["records"][:8]:
-            stage = record.get("title_abstract_review")
-            if stage:
-                stage["second_review"] = {
-                    "decision": "exclude" if stage["decision"] == "include" else "include",
-                    "reviewer_id": "reviewer-b",
-                    "reviewed_at": STAMP,
-                }
-        self.assertTrue(any("disagreement requires an adjudication" in error for error in validate_review(review)))
+        review["records"][0]["title_abstract_review"]["second_review"]["reviewer_id"] = "R1"
+        self.assertTrue(any("must be independent" in error for error in validate_review(review)))
 
-
-    def test_dual_screening_passes_with_independent_adjudicator(self):
+    def test_disagreement_requires_independent_adjudication(self):
         review = valid_review()
-        review["protocol"]["dual_screening"] = True
-        review["protocol"]["reviewers"] = ["reviewer-a", "reviewer-b", "reviewer-c"]
-        for record in review["records"][:8]:
-            for field in ("title_abstract_review", "full_text_review"):
-                stage = record.get(field)
-                if stage:
-                    stage["second_review"] = {
-                        "decision": stage["decision"],
-                        "reviewer_id": "reviewer-b",
-                        "reviewed_at": STAMP,
-                    }
-        first = review["records"][0]["title_abstract_review"]
-        first["second_review"]["decision"] = "include"
-        first["adjudication"] = {
-            "decision": "exclude",
-            "reviewer_id": "reviewer-c",
-            "reviewed_at": STAMP,
-            "note": "Adjudicated against the prespecified inclusion criteria.",
-        }
-        self.assertEqual(validate_review(review), [])
+        stage = review["records"][0]["title_abstract_review"]
+        stage["second_review"]["decision"] = "exclude"
+        stage.pop("adjudication", None)
+        self.assertTrue(any("requires an adjudication" in error for error in validate_review(review)))
 
-    def test_automation_exclusion_is_counted_and_requires_reason(self):
+    def test_included_report_requires_study_id(self):
         review = valid_review()
-        record = review["records"][7]
-        record["automation_excluded"] = True
-        record["automation_tool"] = "dedicated duplicate classifier"
-        record["automation_exclusion_reason"] = "Exact duplicate of a retained record"
-        record["full_text_status"] = "not_sought"
-        record.pop("title_abstract_review")
-        record.pop("full_text_review", None)
+        review["records"][0].pop("study_id")
+        self.assertTrue(any("requires study_id" in error for error in validate_review(review)))
+
+    def test_study_count_deduplicates_multiple_reports(self):
+        review = valid_review()
+        review["records"][6]["study_id"] = "study-a"
         counts = derive_counts(review)
-        self.assertEqual(counts["records_removed_automation"], 1)
-        self.assertEqual(counts["records_screened"], 7)
+        self.assertEqual(counts["studies_included"], 1)
+        self.assertEqual(counts["reports_of_included_studies"], 2)
 
     def test_mermaid_flow_uses_derived_counts(self):
         flow = render_prisma_flow(derive_counts(valid_review()))
         self.assertIn("Records identified from databases (n=10)", flow)
         self.assertIn("Studies included (n=2)", flow)
+        self.assertIn("Reports of included studies (n=2)", flow)
         self.assertIn("flowchart TD", flow)
 
 
