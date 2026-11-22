@@ -95,6 +95,9 @@ class Work:
     source_name: str = ""
     source_issn: str = ""
     in_doaj: bool = False
+    is_retracted: bool | None = None
+    is_paratext: bool | None = None
+    updates: list[dict[str, str]] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
 
 
@@ -128,6 +131,14 @@ def crossref(doi: str) -> Work:
     ]
     issued = message.get("issued", {}).get("date-parts", [[None]])
     raw_type = str(message.get("type", ""))
+    updates = []
+    for update in message.get("update-to", []) or []:
+        if isinstance(update, dict):
+            updates.append({
+                "type": str(update.get("type") or "update").strip().lower(),
+                "doi": str(update.get("DOI") or "").strip().lower(),
+                "label": str(update.get("label") or ""),
+            })
     return Work(
         doi=str(message.get("DOI", doi)),
         title=(message.get("title") or ["(untitled)"])[0].strip(),
@@ -160,7 +171,22 @@ def enrich(work: Work) -> Work:
     work.source_name = str(source.get("display_name", "") or "")
     work.source_issn = str(source.get("issn_l", "") or "")
     work.in_doaj = bool(source.get("is_in_doaj"))
+    if isinstance(record.get("is_retracted"), bool):
+        work.is_retracted = record["is_retracted"]
+    if isinstance(record.get("is_paratext"), bool):
+        work.is_paratext = record["is_paratext"]
     return work
+
+
+def integrity_status(work: Work) -> str:
+    update_types = [str(item.get("type") or "").lower() for item in work.updates]
+    if work.is_retracted is True or any("retract" in kind for kind in update_types):
+        return "retracted"
+    if any("correct" in kind or "errat" in kind for kind in update_types):
+        return "corrected"
+    if work.is_retracted is False:
+        return "not_flagged"
+    return "partial"
 
 
 def publisher_trusted(publisher: str) -> bool:
@@ -594,6 +620,24 @@ def decide(work: Work, entry: dict[str, Any]) -> dict[str, Any]:
         if steps[key] is None:
             notes_en.append(f"{key} pending: add a documented research judgement.")
             notes_fa.append(f"{key} در انتظار است: قضاوت پژوهشی مستند ثبت کن.")
+    integrity = {
+        "status": integrity_status(work),
+        "openalex_is_retracted": work.is_retracted,
+        "openalex_is_paratext": work.is_paratext,
+        "crossref_updates": work.updates,
+    }
+    if integrity["status"] == "retracted":
+        notes_en.append("RETRACTION FLAG: this work is marked retracted by OpenAlex or Crossref update metadata.")
+        notes_fa.append("هشدار پس‌گرفتن: این اثر در داده‌های OpenAlex یا Crossref پس‌گرفته‌شده علامت‌گذاری شده است.")
+    elif integrity["status"] == "corrected":
+        notes_en.append("CORRECTION FLAG: inspect the correction/erratum notice before citing this version.")
+        notes_fa.append("هشدار اصلاحیه: پیش از استناد، اطلاعیه اصلاح/اراطا را بررسی کن.")
+    elif integrity["status"] == "partial":
+        notes_en.append("Retraction status is incomplete: OpenAlex did not provide an is_retracted value.")
+        notes_fa.append("وضعیت پس‌گرفتن کامل نیست: OpenAlex مقدار is_retracted ارائه نکرد.")
+    else:
+        notes_en.append("No retraction flag recorded by OpenAlex/Crossref; this is not proof that no notice exists.")
+        notes_fa.append("در OpenAlex/Crossref نشانه پس‌گرفتن ثبت نشده؛ این اثبات نبود اطلاعیه نیست.")
     for note in work.notes:
         notes_en.append(note)
         notes_fa.append("رکورد OpenAlex در دسترس نبود." if note.startswith("OpenAlex") else note)
@@ -610,6 +654,8 @@ def decide(work: Work, entry: dict[str, Any]) -> dict[str, Any]:
         "category": category,
         "tier": tier if tier_ok else "",
         "tier_verified": tier_ok,
+        "integrity_status": integrity["status"],
+        "integrity": integrity,
         "keyword": keyword,
         "cited_by": work.cited_by,
         "steps": steps,
