@@ -8,11 +8,17 @@ import urllib.request
 from http.server import ThreadingHTTPServer
 from unittest.mock import patch
 
-from scripts.serve import ArticleFinderHandler
+from scripts.serve import ArticleFinderHandler, bind_host
 from scripts.web_api import handler as VercelAPIHandler
 
 
 class ArticleFinderHTTPServerTests(unittest.TestCase):
+    def test_local_server_binds_loopback_unless_overridden(self):
+        with patch.dict("os.environ", {}, clear=True):
+            self.assertEqual(bind_host(), "127.0.0.1")
+        with patch.dict("os.environ", {"HOST": "0.0.0.0"}, clear=True):
+            self.assertEqual(bind_host(), "0.0.0.0")
+
     @classmethod
     def setUpClass(cls):
         cls.server = ThreadingHTTPServer(("127.0.0.1", 0), ArticleFinderHandler)
