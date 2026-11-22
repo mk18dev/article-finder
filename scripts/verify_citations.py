@@ -23,12 +23,37 @@ from http_util import fetch_json  # noqa: E402
 TITLE_MATCH_THRESHOLD = 0.92
 
 
+DOI_PATTERN = re.compile(r"^10\\.\\d{4,9}/[^\\s]+$", re.I)
+
+
 def normalize_doi(value: Any) -> str:
     raw = str(value or "").strip()
-    raw = re.sub(r"^https?://(?:dx\.)?doi\.org/", "", raw, flags=re.I)
-    raw = re.sub(r"^doi:\s*", "", raw, flags=re.I)
-    return raw.strip().rstrip(" .").casefold()
-
+    if not raw:
+        return ""
+    if raw.lower().startswith(("https://doi.org/", "https://dx.doi.org/")):
+        try:
+            parsed = urllib.parse.urlsplit(raw)
+            port = parsed.port
+        except ValueError as exc:
+            raise ValueError("malformed DOI URL") from exc
+        if (
+            parsed.scheme != "https"
+            or (parsed.hostname or "").lower() not in {"doi.org", "dx.doi.org"}
+            or port not in (None, 443)
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise ValueError("DOI URL must use the official HTTPS resolver without extra components")
+        raw = urllib.parse.unquote(parsed.path.lstrip("/"))
+    elif raw.lower().startswith(("http://", "https://")):
+        raise ValueError("only doi.org HTTPS URLs are accepted")
+    raw = re.sub(r"^doi:\\s*", "", raw, flags=re.I)
+    raw = urllib.parse.unquote(raw).strip().rstrip(" .").casefold()
+    if not DOI_PATTERN.fullmatch(raw):
+        raise ValueError("invalid DOI format")
+    return raw
 
 def normalize_text(value: Any) -> str:
     return " ".join(re.findall(r"[\w]+", str(value or "").casefold(), flags=re.UNICODE))
@@ -62,7 +87,7 @@ def update_status(message: dict[str, Any]) -> tuple[str, list[dict[str, str]]]:
         for item in raw:
             if not isinstance(item, dict):
                 continue
-            kind = str(item.get("type") or "update").strip().lower()
+            kind = str(item.get("type") or "update").strip().lower().replace("-", "_")
             updates.append({
                 "type": kind,
                 "doi": normalize_doi(item.get("DOI")),
@@ -71,20 +96,25 @@ def update_status(message: dict[str, Any]) -> tuple[str, list[dict[str, str]]]:
     relation = message.get("relation") or {}
     if isinstance(relation, dict):
         for kind, values in relation.items():
-            if "retract" in str(kind).lower():
-                for item in values if isinstance(values, list) else []:
-                    if isinstance(item, dict):
-                        updates.append({
-                            "type": str(kind).lower(),
-                            "doi": normalize_doi(item.get("id")),
-                            "label": str(item.get("asserted-by") or ""),
-                        })
-    if any("retract" in item["type"] for item in updates):
+            relation_kind = str(kind).lower().replace("-", "_")
+            for item in values if isinstance(values, list) else []:
+                if not isinstance(item, dict):
+                    continue
+                target_type = str(item.get("type") or "").lower().replace("-", "_")
+                update_type = relation_kind + " " + target_type
+                if any(term in update_type for term in ("retract", "correct", "errat", "withdraw", "expression_of_concern")):
+                    updates.append({
+                        "type": update_type.strip(),
+                        "doi": normalize_doi(item.get("id")),
+                        "label": str(item.get("asserted-by") or ""),
+                    })
+    retraction_terms = ("retract", "withdraw", "expression_of_concern")
+    correction_terms = ("correct", "errat", "corrigendum")
+    if any(any(term in item["type"] for term in retraction_terms) for item in updates):
         return "retracted", updates
-    if any("correct" in item["type"] or "errat" in item["type"] for item in updates):
+    if any(any(term in item["type"] for term in correction_terms) for item in updates):
         return "corrected", updates
     return "no_update_recorded", updates
-
 
 def verify_metadata(citation: dict[str, Any], message: dict[str, Any]) -> dict[str, Any]:
     expected_doi = normalize_doi(citation.get("doi"))
@@ -96,7 +126,7 @@ def verify_metadata(citation: dict[str, Any], message: dict[str, Any]) -> dict[s
     actual_year = publication_year(message)
     expected_year = citation.get("year")
     actual_author = first_author_family(message.get("author"))
-    expected_author = normalize_text(citation.get("first_author") or "")
+    expected_author_tokens = normalize_text(citation.get("first_author") or "").split()\n    expected_author = expected_author_tokens[-1] if expected_author_tokens else ""
     status_update, updates = update_status(message)
 
     mismatches: list[str] = []
@@ -186,9 +216,13 @@ def verify_all(document: Any) -> list[dict[str, Any]]:
         try:
             result = verify_citation(citation)
         except Exception as exc:  # preserve per-citation failures without approving them
+            try:
+                failed_doi = normalize_doi(citation.get("doi")) if isinstance(citation, dict) else ""
+            except ValueError:
+                failed_doi = ""
             result = {
                 "status": "pending",
-                "doi": normalize_doi(citation.get("doi")) if isinstance(citation, dict) else "",
+                "doi": failed_doi,
                 "reason": f"metadata lookup failed: {type(exc).__name__}",
             }
         result["index"] = index
