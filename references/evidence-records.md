@@ -100,7 +100,10 @@ Example book record:
 "book_s6_evidence": {
   "source": "Google Books",
   "verified": true,
+  "reviewer_id": "reviewer-1",
+  "reviewed_at": "2026-11-23T10:00:00Z",
   "url": "https://books.google.com/books?id=replace-with-real-record",
+  "locator": "Google Books bibliographic record",
   "note": "Book record, publisher and citation count were inspected",
   "citation_count": 27,
   "publisher_verified": true
@@ -109,13 +112,13 @@ Example book record:
 
 The script validates evidence fields and official-host boundaries, not the truth
 of the external page. Journal indexing URLs must be hosted on the official
-provider domain: Scopus (\`scopus.com\`), Web of Science (\`mjl.clarivate.com\` or
-\`webofscience.com\`), ISC (\`isc.gov.ir\`), or DBLP (\`dblp.org\`). Journal blacklist
-evidence must be on \`impactfactor.ir\`; its legacy HTTP exception applies only
-to that exact host. A URL such as \`scopus.com.attacker.example\` is rejected.
-For Irandoc, the evidence host must be \`irandoc.ac.ir\`. For a university or
-institutional repository, provide \`institution_domain\` and use a URL on that
-domain. Google Books evidence must use \`books.google.com\`; Amazon evidence
+provider domain: Scopus (`scopus.com`), Web of Science (`mjl.clarivate.com` or
+`webofscience.com`), ISC (`isc.gov.ir`), or DBLP (`dblp.org`). Journal blacklist
+evidence must be on `impactfactor.ir`; its legacy HTTP exception applies only
+to that exact host. A URL such as `scopus.com.attacker.example` is rejected.
+For Irandoc, the evidence host must be `irandoc.ac.ir`. For a university or
+institutional repository, provide `institution_domain` and use a URL on that
+domain. Google Books evidence must use `books.google.com`; Amazon evidence
 must use a supported Amazon country domain. A reviewer must still inspect the
 actual record. DOAJ membership alone does not substitute for the required
 journal/conference index evidence.
@@ -136,8 +139,7 @@ journal/conference index evidence.
 
 ### S11 — reading depth
 
-Every required field is an evidence item with `reviewed`, a real HTTPS URL,
-and a short note.
+Every required field is an evidence item with `reviewed`, `reviewer_id`, timezone-aware `reviewed_at`, a real HTTPS URL, a `locator`, and a short note.
 
 - Journal/conference, Concept/Challenge/Application:
   `abstract`, `introduction`, `conclusion`.
@@ -150,7 +152,5 @@ you actually inspected it.
 
 ## What this does not automate
 
-The CLI does not execute database searches, inspect Clarivate/Scopus pages,
-read a paper, or independently determine a journal's blacklist status. It
-stores the evidence path and enforces that a required review record exists.
+The source-verification CLI does not execute database searches, inspect Clarivate/Scopus page contents, read a paper, or independently determine a journal's blacklist status. The separate `search_databases.py` tool executes Crossref and OpenAlex retrieval. The verifier stores evidence paths and enforces the reviewer attestation shape; it does not authenticate page contents.
 A reviewer remains responsible for the correctness of each attestation.
