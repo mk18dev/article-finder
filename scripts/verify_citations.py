@@ -23,7 +23,7 @@ from http_util import fetch_json  # noqa: E402
 TITLE_MATCH_THRESHOLD = 0.92
 
 
-DOI_PATTERN = re.compile(r"^10\\.\\d{4,9}/[^\\s]+$", re.I)
+DOI_PATTERN = re.compile(r"^10\.\d{4,9}/[^\s]+$", re.I)
 
 
 def normalize_doi(value: Any) -> str:
@@ -49,7 +49,7 @@ def normalize_doi(value: Any) -> str:
         raw = urllib.parse.unquote(parsed.path.lstrip("/"))
     elif raw.lower().startswith(("http://", "https://")):
         raise ValueError("only doi.org HTTPS URLs are accepted")
-    raw = re.sub(r"^doi:\\s*", "", raw, flags=re.I)
+    raw = re.sub(r"^doi:\s*", "", raw, flags=re.I)
     raw = urllib.parse.unquote(raw).strip().rstrip(" .").casefold()
     if not DOI_PATTERN.fullmatch(raw):
         raise ValueError("invalid DOI format")
@@ -126,7 +126,9 @@ def verify_metadata(citation: dict[str, Any], message: dict[str, Any]) -> dict[s
     actual_year = publication_year(message)
     expected_year = citation.get("year")
     actual_author = first_author_family(message.get("author"))
-    expected_author_tokens = normalize_text(citation.get("first_author") or "").split()\n    expected_author = expected_author_tokens[-1] if expected_author_tokens else ""
+    expected_author_raw = str(citation.get("first_author") or "").strip()
+    expected_author_raw = expected_author_raw.split(",", 1)[0] if "," in expected_author_raw else expected_author_raw
+    expected_author = normalize_text(expected_author_raw)
     status_update, updates = update_status(message)
 
     mismatches: list[str] = []
