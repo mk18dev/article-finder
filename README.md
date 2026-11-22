@@ -97,6 +97,7 @@ python3 scripts/check_draft.py draft.md --lang fa --manual manual.json
 python3 scripts/prisma_review.py examples/prisma-review.json --format report
 python3 scripts/synthesize_literature.py examples/literature-evidence.json --format markdown
 python3 scripts/verify_citations.py examples/citations.json --format markdown
+python3 scripts/citation_crosswalk.py manuscript.txt references.json --style APA
 ```
 
 The PRISMA, literature and citation fixtures are explicitly placeholders. For a real review, copy `raw_records` (not only deduplicated `records`) from each completed search into the ledger. Each screening decision needs reviewer ID and timezone-aware timestamp; dual-review disagreements need adjudication, while single-reviewer work needs a stated justification. Counts are calculated from that record ledger. Placeholder output is not research evidence.
