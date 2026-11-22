@@ -206,7 +206,7 @@ rejected and no CORS access is granted. POSTs are JSON-only and limited to
 512 KiB. Missing or unverified research evidence remains pending; the service
 does not claim that a reviewer attestation or an indexing record is true merely
 because it was submitted. Remote metadata requests use bounded timeouts and
-retries. On Vercel, `ARTICLE_FINDER_API_KEY` is required by default; the browser sends the key only for the current request and does not persist it. To intentionally expose a public production API, set `ARTICLE_FINDER_PUBLIC_MODE=1`. Local development remains public by default. The health endpoint reports the active auth mode.
+retries. On Vercel, `ARTICLE_FINDER_API_KEY` is required by default; the browser sends this Article Finder access key only for the current request and does not persist it. It is not an LLM/provider key. Set the same secret as a Sensitive Production environment variable in Vercel and as the GitHub Actions repository secret `ARTICLE_FINDER_API_KEY` before running production smoke. Do not set `ARTICLE_FINDER_PUBLIC_MODE=1` unless the API is intentionally meant to be public. Local development remains public by default. The health endpoint reports the active auth mode.
 
 ### Local development
 
@@ -218,4 +218,4 @@ python -m scripts.serve
 ```
 
 The local web/API is available at `http://127.0.0.1:8000/` (or the configured
-`PORT`). Vercel deployment configuration is maintained in `vercel.json`, but deployment is intentionally gated. GitHub Actions tests Python 3.10–3.13 on pushes to `main`; the live Vercel smoke suite is a separate manual workflow dispatch (`run_production_smoke=true`) and must not run until the user explicitly authorizes a release.
+`PORT`). Vercel deployment configuration is maintained in `vercel.json`. The current Vercel project is not Git-linked, so pushes to `main` do not auto-deploy; deploy the tested `main` commit manually, or connect the repository in Vercel after granting the Vercel GitHub App access. GitHub Actions tests Python 3.10–3.13, browser behavior, lint, security and package contents on pushes to `main`; the live Vercel smoke suite is a separate manual workflow dispatch (`run_production_smoke=true`) and requires the matching API key secret.
