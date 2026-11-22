@@ -40,12 +40,11 @@ Every entry starts with:
 - `keyword`: the exact course-keyword + research-keyword pair used.
 - `search_evidence`: `query` (must equal `keyword`), `doi` (must match the
   Crossref DOI), `url` (the real search-result page), and `searched_at`
-  (timestamp or date).
+  (timezone-aware ISO-8601 timestamp).
 - `specialized`: an explicit boolean plus `specialization_evidence` (reviewed
   URL and note); missing either is pending, false fails S8.
 - `tier`: provisional A-D; it is not trusted without `tier_evidence`.
-- `tier_evidence`: `verified: true`, `url`, and `basis` explaining the
-  evidence/rubric used to assign the tier.
+- `tier_evidence`: `verified: true`, `reviewer_id`, `reviewed_at`, `locator`, `url`, and `basis` explaining the evidence/rubric used to assign the tier.
 - `area` and `subject`: labels only; S1/S2 need matching records under
   `judgements`.
 - `degree_evidence`: thesis degree confirmation with a reviewer URL and note;
