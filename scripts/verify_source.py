@@ -151,6 +151,7 @@ def crossref(doi: str) -> Work:
         pages=str(message.get("page", "")).strip(),
         year=issued[0][0] if issued and issued[0] else None,
         authors=authors,
+        updates=updates,
         kind=CROSSREF_TYPE.get(raw_type),
     )
 
@@ -180,9 +181,9 @@ def enrich(work: Work) -> Work:
 
 def integrity_status(work: Work) -> str:
     update_types = [str(item.get("type") or "").lower() for item in work.updates]
-    if work.is_retracted is True or any("retract" in kind for kind in update_types):
+    if work.is_retracted is True or any(any(term in kind for term in ("retract", "withdraw", "expression_of_concern")) for kind in update_types):
         return "retracted"
-    if any("correct" in kind or "errat" in kind for kind in update_types):
+    if any(any(term in kind for term in ("correct", "errat", "corrigendum")) for kind in update_types):
         return "corrected"
     if work.is_paratext is True:
         return "paratext"
