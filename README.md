@@ -32,7 +32,7 @@ Discovery returns candidates, never approvals. Reviewer evidence remains pending
 | | Mode 1 — find and vet | Mode 2 — check a draft | Mode 3 — systematic/scoping review | Mode 4 — citation identity audit |
 |---|---|---|---|---|
 | Input | Research topic and DOI candidates | Draft with one heading per section | Protocol, exact searches, and screening ledger | Bibliography with DOI/title/year/author |
-| Output | 11-gate source checklist + APA/IEEE bibliography | 76-rule section report + fix list + citation crosswalk | Search audit, reconciled counts, Mermaid flow, evidence matrix | Identity match, mismatch, correction/retraction flags + APA/IEEE crosswalk |
+| Output | 11-gate source checklist + APA/IEEE bibliography | 76-rule section report + fix list + citation crosswalk | Database/register/other-method search audit, reconciled counts, Mermaid flow, evidence matrix | Identity match, mismatch, correction/retraction flags + APA/IEEE crosswalk |
 | Command | `search_databases.py` → `verify_source.py` → `render_table.py` | `check_draft.py` + `citation_crosswalk.py` | `prisma_review.py` + `synthesize_literature.py` | `verify_citations.py` + `citation_crosswalk.py` |
 
 ## The 11 gates (Mode 1)
