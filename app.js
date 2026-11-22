@@ -262,6 +262,99 @@
     elements.download.disabled = false;
   }
 
+
+  async function discoverSources() {
+    const button = $("#discover-submit");
+    const results = $("#discovery-results");
+    const keyword = $("#discovery-keyword").value.trim();
+    if (!keyword) {
+      results.classList.remove("is-hidden");
+      results.textContent = "عبارت جست‌وجو را وارد کن.";
+      return;
+    }
+    button.disabled = true;
+    button.querySelector("span").textContent = "در حال جست‌وجو…";
+    results.classList.remove("is-hidden");
+    results.replaceChildren();
+    results.append(makeNode("p", "", "در حال دریافت نتایج واقعی از Crossref…"));
+    try {
+      const response = await fetch("/api", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        cache: "no-store",
+        body: JSON.stringify({
+          action: "discover_sources",
+          keyword,
+          category: $("#source-category").value,
+          area: $("#source-area").value.trim(),
+          subject: $("#source-area").value.trim(),
+          limit: 4,
+        }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.ok) {
+        throw new Error(data?.error || ("خطای جست‌وجو: HTTP " + response.status));
+      }
+      results.replaceChildren();
+      const candidates = Array.isArray(data.candidates) ? data.candidates : [];
+      if (!candidates.length) {
+        results.append(makeNode("p", "", "نتیجه‌ای با DOI معتبر در پاسخ Crossref پیدا نشد."));
+        return;
+      }
+      results.append(makeNode("p", "discovery-footnote", candidates.length + " نتیجه از Crossref دریافت شد. موارد دلخواه را انتخاب کن."));
+      candidates.forEach((candidate, index) => {
+        const label = makeNode("label", "discovery-result");
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = String(index);
+        checkbox.checked = true;
+        checkbox.setAttribute("aria-label", "انتخاب " + (candidate.title || candidate.doi));
+        const copy = makeNode("div", "");
+        copy.append(
+          makeNode("h4", "", candidate.title || "بدون عنوان"),
+          makeNode("p", "", [
+            (candidate.authors || []).slice(0, 3).join(", "),
+            candidate.year || "سال نامشخص",
+            candidate.venue || candidate.publisher || "",
+          ].filter(Boolean).join(" · "))
+        );
+        const link = makeNode("a", "", candidate.doi);
+        link.href = candidate.url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        const meta = makeNode("p", "");
+        meta.append(link);
+        copy.append(meta);
+        label.append(checkbox, copy);
+        results.append(label);
+      });
+      const actions = makeNode("div", "discovery-actions");
+      const count = makeNode("small", "", "حداکثر ۴ منبع؛ تأیید نهایی با ۱۱ دروازه انجام می‌شود.");
+      const use = makeNode("button", "secondary-button", "افزودن انتخاب‌ها به طرح شواهد");
+      use.type = "button";
+      use.addEventListener("click", () => {
+        const selected = Array.from(results.querySelectorAll(".discovery-result input:checked"))
+          .map(input => data.plan[Number(input.value)])
+          .filter(Boolean);
+        if (!selected.length) {
+          results.append(makeNode("p", "discovery-error", "حداقل یک نتیجه انتخاب کن."));
+          return;
+        }
+        $("#source-plan").value = JSON.stringify(selected, null, 2);
+        $("#source-dois").value = selected.map(item => item.doi).join("\n");
+        results.append(makeNode("p", "discovery-footnote", selected.length + " منبع به طرح شواهد اضافه شد. حالا «اجرای اعتبارسنجی» را بزن."));
+      });
+      actions.append(count, use);
+      results.append(actions);
+    } catch (error) {
+      results.replaceChildren(makeNode("p", "discovery-error", error?.message || "جست‌وجو ناموفق بود."));
+    } finally {
+      button.disabled = false;
+      button.querySelector("span").textContent = "جست‌وجوی منابع در Crossref";
+    }
+  }
+
   function parseJsonField(value, label) {
     if (!value.trim()) return null;
     try {
@@ -401,6 +494,8 @@
       ? $("#access-key").value.trim()
       : $("#draft-access-key").value.trim();
   }
+
+  $("#discover-submit").addEventListener("click", discoverSources);
 
   elements.sourceForm.addEventListener("submit", event => {
     event.preventDefault();
