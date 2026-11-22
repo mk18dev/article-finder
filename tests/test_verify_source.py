@@ -48,7 +48,7 @@ ENTRY = {
     "search_evidence": {
         "query": "Method + test",
         "doi": "10.1000/x",
-        "url": "https://search.example/query",
+        "url": "https://api.crossref.org/works?query=Method%20%2B%20test",
         "searched_at": "2026-11-23T10:00:00Z",
     },
     "area": "Computer Science",
@@ -64,10 +64,10 @@ ENTRY = {
                 "note": "Source fits application category"},
     },
     "blacklist_status": "clear",
-    "blacklist_evidence": evidence("Iranian blacklist checked on official source"),
+    "blacklist_evidence": {**evidence("Iranian blacklist checked on official source"), "url": "https://impactfactor.ir/"},
     "indexing_evidence": [{
         "index": "Scopus", "verified": True,
-        "url": "https://index.example/scopus",
+        "url": "https://www.scopus.com/sources.uri?zone=TopNavBar",
         "note": "Checked source entry and coverage",
     }],
     "reading_evidence": {
