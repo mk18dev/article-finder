@@ -111,6 +111,8 @@ def verify_metadata(citation: dict[str, Any], message: dict[str, Any]) -> dict[s
 
     if status_update == "retracted":
         status = "retracted"
+    elif status_update == "corrected":
+        status = "corrected"
     elif mismatches:
         status = "mismatch"
     elif not expected_title or not actual_title or actual_year is None:
