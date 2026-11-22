@@ -245,7 +245,8 @@ def render_markdown(results: list[dict[str, Any]]) -> str:
         "|---:|---|---|---|---:|---|",
     ]
     for item in results:
-        safe = lambda value: str(value or "").replace("|", "\\|").replace("\n", " ")
+        def safe(value):
+            return str(value or "").replace("|", "\\|").replace("\n", " ")
         citation = item.get("input") or {}
         notes = "; ".join(item.get("mismatches") or []) or item.get("reason", "")
         lines.append("| " + " | ".join((
