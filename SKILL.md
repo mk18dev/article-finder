@@ -123,7 +123,8 @@ Use this mode when the user asks for a systematic or scoping review, reproducibl
 4. **Record screening decisions.** Keep title/abstract and full-text stages separate. Full-text exclusions require one explicit reason. AI suggestions are not reviewer decisions and must not silently change protocol criteria.
 5. **Reconcile counts.** Put the search log and counts in a JSON file following `examples/prisma-review.json`. The tool derives downstream counts and rejects negative or inconsistent arithmetic.
 6. **Generate the report.** Run `python3 scripts/prisma_review.py examples/prisma-review.json --format report`; use `--format flow` for Mermaid or `--format json` for machine-readable counts.
-7. **State the limits.** A valid flow diagram proves arithmetic consistency, not search completeness, eligibility correctness, or absence of bias. Human screening and quality appraisal remain explicit responsibilities.
+7. **Synthesize only extracted evidence.** Save reviewer-extracted study fields and claim-to-source excerpts in a JSON bundle, then run `python3 scripts/synthesize_literature.py evidence-bundle.json --format markdown`. Group findings by theme, preserve conflicting and null directions, and leave a claim pending unless every linked study has a reviewed excerpt and locator. Do not infer study findings from titles or abstracts.
+8. **State the limits.** A valid flow diagram proves arithmetic consistency, not search completeness, eligibility correctness, or absence of bias. Human screening and quality appraisal remain explicit responsibilities.
 
 Do not describe a review as PRISMA-compliant solely because a diagram was generated. Complete the relevant PRISMA checklist and report protocol deviations, missing full texts, single-reviewer limitations, and any unregistered post hoc changes.
 
@@ -145,6 +146,7 @@ Do not describe a review as PRISMA-compliant solely because a diagram was genera
 - `scripts/render_table.py`: Mode 1 checklist tables, verdicts, duplicate merge, APA/IEEE reference list.
 - `scripts/check_draft.py`: Mode 2 checklist tables for a draft.
 - `scripts/prisma_review.py`: Mode 3 protocol/search-log validation, deduplication helpers, PRISMA count reconciliation and Mermaid flow output.
+- `scripts/synthesize_literature.py`: reviewer-extracted evidence matrix, thematic grouping, conflict flags and claim-to-source evidence map.
 - `scripts/http_util.py`: the shared request, retry and TLS handling the three network scripts use.
 - `examples/`: the fixture files whose real output `references/output-example.md` shows.
 - `tests/`: regression tests for every script.
