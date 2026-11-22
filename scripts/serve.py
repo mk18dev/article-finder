@@ -1,4 +1,4 @@
-"""Production HTTP server for the Article Finder Railway deployment.
+"""Standard-library HTTP server for the Article Finder web workspace.
 
 The CLI modules and verification engine remain unchanged. This adapter serves
 the existing static UI and delegates /api requests to scripts.web_api.handler.
@@ -13,7 +13,7 @@ from urllib.parse import urlsplit
 
 from scripts.web_api import handler as APIHandler, http_util
 
-# Keep public API requests bounded on a long-running Railway process.
+# Keep public API requests bounded on a long-running process.
 http_util.TIMEOUT = int(os.environ.get("ARTICLE_FINDER_HTTP_TIMEOUT", "8"))
 http_util.RETRIES = int(os.environ.get("ARTICLE_FINDER_HTTP_RETRIES", "1"))
 
