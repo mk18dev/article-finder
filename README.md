@@ -15,14 +15,24 @@ Zero approved is a normal, honest result. Read the next section for why.
 
 ---
 
-## Three workflows\n\n| Workflow | Input | Output |\n|---|---|---|\n| Discover sources | Course keyword + research topic | Real Crossref candidates with query, DOI and timestamp provenance |\n| Verify sources | DOI + evidence plan | 11-gate evidence checklist and APA/IEEE references |\n| Check a draft | Article draft | Section-by-section report against 76 writing rules |\n\nThe web workspace can search Crossref directly, select up to four candidates, and pass their exact search records into source verification. Discovery is not approval: missing reviewer evidence remains pending.\n\n## Two modes
+## Workflows
 
-| | Mode 1 — find and vet | Mode 2 — check a draft |
+| Workflow | Input | Output |
 |---|---|---|
-| Input | a research topic | a draft, one heading per section |
-| Output | checklist table per source + APA/IEEE reference list | checklist table per section + fix list |
-| Decides | 11 gates (S1–S11) | 76 rules, 21 countable, 6 requiring a hint/reviewer |
-| Command | `verify_source.py` → `render_table.py` | `check_draft.py` |
+| Discover sources | Course keyword + research topic | Crossref candidates with DOI and query provenance |
+| Verify sources | DOI + evidence plan | 11-gate checklist and APA/IEEE references |
+| Check a draft | Article draft | Section-by-section report against 76 writing rules |
+| Systematic/scoping review | Protocol + database search log + screening counts | Validated PRISMA-style counts, flow diagram and audit report |
+
+Discovery returns candidates, never approvals. Reviewer evidence remains pending until documented. PRISMA counts are derived from the supplied search log and screening ledger; the tool refuses inconsistent arithmetic and never invents screening decisions.
+
+## Three modes
+
+| | Mode 1 — find and vet | Mode 2 — check a draft | Mode 3 — systematic/scoping review |
+|---|---|---|---|
+| Input | Research topic and DOI candidates | Draft with one heading per section | Protocol, exact searches, and screening ledger |
+| Output | 11-gate source checklist + APA/IEEE bibliography | 76-rule section report + fix list | Search audit, reconciled counts, Mermaid flow |
+| Command | `verify_source.py` → `render_table.py` | `check_draft.py` | `prisma_review.py` |
 
 ## The 11 gates (Mode 1)
 
