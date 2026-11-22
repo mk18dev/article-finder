@@ -166,7 +166,7 @@ def enrich(work: Work) -> Work:
 def publisher_trusted(publisher: str) -> bool:
     normalized = re.sub(r"[^a-z0-9]+", " ", publisher.casefold()).strip()
     tokens = normalized.split()
-    legal_suffixes = {"bv", "inc", "ltd", "llc", "ag", "gmbh", "plc", "sa", "limited", "company"}
+    legal_suffixes = {"b", "v", "inc", "ltd", "llc", "ag", "gmbh", "plc", "s", "a", "limited", "company"}
     while tokens and tokens[-1] in legal_suffixes:
         tokens.pop()
     normalized = " ".join(tokens)
