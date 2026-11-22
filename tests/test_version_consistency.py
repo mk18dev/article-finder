@@ -10,6 +10,14 @@ class ReleaseVersionTests(unittest.TestCase):
         version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
         self.assertEqual(version, "1.1.0")
 
+    def test_specialized_skills_match_canonical_version(self):
+        version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+        skill_files = sorted((ROOT / "skills").rglob("SKILL.md"))
+        self.assertGreaterEqual(len(skill_files), 9)
+        for path in skill_files:
+            with self.subTest(path=str(path.relative_to(ROOT))):
+                self.assertIn(version, path.read_text(encoding="utf-8"))
+
     def test_runtime_and_user_facing_versions_match(self):
         version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
         paths = (
