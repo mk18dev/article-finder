@@ -13,6 +13,7 @@ import sys
 import urllib.error
 import urllib.parse
 from http.server import BaseHTTPRequestHandler
+from datetime import datetime, timezone
 from threading import RLock
 from pathlib import Path
 from typing import Any
@@ -159,6 +160,107 @@ def validate_source_payload(payload: Any) -> tuple[list[dict[str, Any]], str, st
     if bibliography not in (None, "apa", "ieee"):
         raise RequestError("سبک منابع باید apa یا ieee باشد.")
     return entries, cutoff, language, bibliography
+
+
+
+def run_source_discovery(payload: Any) -> dict[str, Any]:
+    """Search Crossref and return real candidates with traceable search records."""
+    if not isinstance(payload, dict):
+        raise RequestError("بدنه درخواست باید یک شیء JSON باشد.")
+    keyword = _string(payload.get("keyword"), "keyword", 240, required=True)
+    if not verify_source.keyword_gate(keyword):
+        raise RequestError("کلیدواژه باید قالب «کلیدواژه مجاز + موضوع پژوهش» داشته باشد.")
+    category = _string(payload.get("category", "concept"), "category", 24).lower()
+    if category not in CATEGORIES:
+        raise RequestError("دسته باید concept، challenge، application یا methodology باشد.")
+    area = _string(payload.get("area", ""), "area", 160)
+    subject = _string(payload.get("subject", ""), "subject", 160)
+    rows = payload.get("limit", 4)
+    if isinstance(rows, bool) or not isinstance(rows, int) or not 1 <= rows <= 4:
+        raise RequestError("تعداد نتایج باید عددی بین ۱ تا ۴ باشد.")
+
+    params = urllib.parse.urlencode({
+        "query.bibliographic": keyword,
+        "rows": rows,
+        "select": "DOI,title,author,published-print,published-online,type,publisher,container-title,volume,issue,ISSN,URL",
+    })
+    search_url = "https://api.crossref.org/works?" + params
+    try:
+        response = http_util.fetch_json(search_url, headers={"Accept": "application/json"})
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, ValueError) as exc:
+        raise RequestError("جست‌وجو در Crossref انجام نشد؛ سرویس فراداده در دسترس نیست.", 502) from exc
+    items = ((response.get("message") or {}).get("items") or [])
+    searched_at = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    candidates = []
+    seen = set()
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        try:
+            doi = normalize_doi(item.get("DOI"))
+        except RequestError:
+            continue
+        if doi.casefold() in seen:
+            continue
+        seen.add(doi.casefold())
+        title_values = item.get("title") or []
+        title = str(title_values[0]).strip() if title_values else ""
+        if not title:
+            continue
+        date_parts = (
+            (item.get("published-print") or {}).get("date-parts")
+            or (item.get("published-online") or {}).get("date-parts")
+            or []
+        )
+        year = date_parts[0][0] if date_parts and date_parts[0] else None
+        authors = []
+        for author in item.get("author") or []:
+            if not isinstance(author, dict):
+                continue
+            name = " ".join(part for part in (
+                str(author.get("given", "")).strip(),
+                str(author.get("family", "")).strip(),
+            ) if part)
+            if name:
+                authors.append(name)
+        candidates.append({
+            "doi": doi,
+            "title": title,
+            "authors": authors,
+            "year": year if isinstance(year, int) else None,
+            "type": str(item.get("type", "")),
+            "publisher": str(item.get("publisher", "")),
+            "venue": str((item.get("container-title") or [""])[0]),
+            "url": f"https://doi.org/{urllib.parse.quote(doi, safe='/')}",
+            "search_evidence": {
+                "query": keyword,
+                "doi": doi,
+                "url": search_url,
+                "searched_at": searched_at,
+            },
+        })
+        if len(candidates) >= rows:
+            break
+
+    return {
+        "ok": True,
+        "mode": "discovery",
+        "version": APP_VERSION,
+        "query": keyword,
+        "searched_at": searched_at,
+        "provider": "Crossref",
+        "total_returned": len(candidates),
+        "candidates": candidates,
+        "plan": [{
+            "doi": candidate["doi"],
+            "category": category,
+            "keyword": keyword,
+            "area": area,
+            "subject": subject,
+            "search_evidence": candidate["search_evidence"],
+        } for candidate in candidates],
+        "disclaimer": "این‌ها نتایج واقعی جست‌وجوی Crossref هستند، نه منابع تأییدشده. همه دروازه‌های اعتبارسنجی مستقل اجرا می‌شوند و شواهد انسانیِ ثبت‌نشده همچنان Pending می‌مانند.",
+    }
 
 
 def run_source_verification(payload: Any) -> dict[str, Any]:
@@ -363,7 +465,7 @@ class handler(BaseHTTPRequestHandler):
             "ok": True,
             "service": "article-finder",
             "version": APP_VERSION,
-            "capabilities": ["source-verification", "draft-checking"],
+            "capabilities": ["source-discovery", "source-verification", "draft-checking"],
         })
 
     def do_POST(self) -> None:
@@ -398,12 +500,14 @@ class handler(BaseHTTPRequestHandler):
             if not isinstance(payload, dict):
                 raise RequestError("بدنه درخواست باید یک شیء JSON باشد.")
             action = payload.get("action")
-            if action == "verify_sources":
+            if action == "discover_sources":
+                result = run_source_discovery(payload)
+            elif action == "verify_sources":
                 result = run_source_verification(payload)
             elif action == "check_draft":
                 result = run_draft_check(payload)
             else:
-                raise RequestError("action باید verify_sources یا check_draft باشد.")
+                raise RequestError("action باید discover_sources، verify_sources یا check_draft باشد.")
             self._send(200, result)
         except RequestError as exc:
             self._send(exc.status, {"ok": False, "error": str(exc)})
