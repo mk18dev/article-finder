@@ -23,6 +23,7 @@ class SkillPackageTests(unittest.TestCase):
                 names = set(archive.namelist())
 
         self.assertIn("article-finder/VERSION", names)
+        self.assertIn("article-finder/requirements.txt", names)
         self.assertIn("article-finder/SKILL.md", names)
         expected = {
             "systematic-search",
