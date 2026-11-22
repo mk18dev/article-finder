@@ -110,6 +110,24 @@ Rules per section (word counts, what each part must contain, the slide examples)
 
 Two judgment notes: the "and" rule (B7) is the slide's own rule, so report it as written, but say that it is a style rule and not a grammar error; rule B8 quotes a slide line that is only a fragment, so mark it from what the user tells you.
 
+
+---
+
+## Mode 3: Systematic and scoping review (PRISMA ledger)
+
+Use this mode when the user asks for a systematic or scoping review, reproducible search documentation, screening counts, or a PRISMA-style flow.
+
+1. **Freeze the protocol before screening.** Record the review type, research question, inclusion criteria, exclusion criteria, and any registry and registration ID. Do not invent a registration.
+2. **Log every database search when it runs.** For each database/platform, save the exact query, ISO date, hit count, and limits. A database count without a corresponding query and date is invalid.
+3. **Deduplicate explicitly.** Run `deduplicate_records()` or use the review ledger's DOI/PMID/URL/title keys. Preserve a link from each duplicate to its canonical record; do not silently discard conflicts.
+4. **Record screening decisions.** Keep title/abstract and full-text stages separate. Full-text exclusions require one explicit reason. AI suggestions are not reviewer decisions and must not silently change protocol criteria.
+5. **Reconcile counts.** Put the search log and counts in a JSON file following `examples/prisma-review.json`. The tool derives downstream counts and rejects negative or inconsistent arithmetic.
+6. **Generate the report.** Run `python3 scripts/prisma_review.py examples/prisma-review.json --format report`; use `--format flow` for Mermaid or `--format json` for machine-readable counts.
+7. **State the limits.** A valid flow diagram proves arithmetic consistency, not search completeness, eligibility correctness, or absence of bias. Human screening and quality appraisal remain explicit responsibilities.
+
+Do not describe a review as PRISMA-compliant solely because a diagram was generated. Complete the relevant PRISMA checklist and report protocol deviations, missing full texts, single-reviewer limitations, and any unregistered post hoc changes.
+
+
 ---
 
 ## Bundled files
@@ -125,6 +143,7 @@ Two judgment notes: the "and" rule (B7) is the slide's own rule, so report it as
 - `scripts/fetch_pdf.py`: downloads the open full text and reports the licensed route for everything else.
 - `scripts/render_table.py`: Mode 1 checklist tables, verdicts, duplicate merge, APA/IEEE reference list.
 - `scripts/check_draft.py`: Mode 2 checklist tables for a draft.
+- `scripts/prisma_review.py`: Mode 3 protocol/search-log validation, deduplication helpers, PRISMA count reconciliation and Mermaid flow output.
 - `scripts/http_util.py`: the shared request, retry and TLS handling the three network scripts use.
 - `examples/`: the fixture files whose real output `references/output-example.md` shows.
 - `tests/`: regression tests for every script.
@@ -135,7 +154,7 @@ Two judgment notes: the "and" rule (B7) is the slide's own rule, so report it as
 python3 -m unittest discover tests
 ```
 
-The suite covers the verdict logic, the ISSN checksums, Persian-digit parsing, the table and figure counters, the duplicate merge, the bibliography format and the bilingual detail column. Run it after any edit to `scripts/`. Bug classes it exists for, because each one silently produced a false ✅ or a false download: a mention counted as a table, a Persian-year citation missed, English text leaking into the Persian table, and an HTML error page accepted as a PDF.
+The suite covers the verdict logic, ISSN/ISBN checksums, Persian-digit parsing, draft counters, duplicate merging, bibliography formatting, bilingual output, transport policy, API boundaries and PRISMA count reconciliation. Run it after any edit to `scripts/`. Bug classes it exists for, because each one silently produced a false ✅ or a false download: a mention counted as a table, a Persian-year citation missed, English text leaking into the Persian table, and an HTML error page accepted as a PDF.
 
 
 
