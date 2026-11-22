@@ -88,6 +88,63 @@ class SourceInputTests(unittest.TestCase):
             api.validate_source_payload(payload)
 
 
+class SourceDiscoveryTests(unittest.TestCase):
+    def test_crossref_candidates_include_exact_query_and_search_evidence(self):
+        response = {"message": {"items": [{
+            "DOI": "10.1234/example.1",
+            "title": ["A Real Candidate"],
+            "author": [{"given": "Ada", "family": "Lovelace"}],
+            "published-online": {"date-parts": [[2025, 4, 1]]},
+            "type": "journal-article",
+            "publisher": "Example Publisher",
+            "container-title": ["Example Journal"],
+        }]}}
+        with patch.object(api.http_util, "fetch_json", return_value=response) as fetch:
+            result = api.run_source_discovery({
+                "keyword": "Survey + recommender systems",
+                "category": "concept",
+                "limit": 4,
+            })
+        fetch.assert_called_once()
+        self.assertEqual(result["provider"], "Crossref")
+        self.assertEqual(result["total_returned"], 1)
+        candidate = result["candidates"][0]
+        self.assertEqual(candidate["doi"], "10.1234/example.1")
+        self.assertEqual(candidate["title"], "A Real Candidate")
+        self.assertEqual(candidate["authors"], ["Ada Lovelace"])
+        self.assertEqual(candidate["year"], 2025)
+        evidence = result["plan"][0]["search_evidence"]
+        self.assertEqual(evidence["query"], "Survey + recommender systems")
+        self.assertEqual(evidence["doi"], candidate["doi"])
+        self.assertTrue(evidence["url"].startswith("https://api.crossref.org/works?"))
+        self.assertTrue(evidence["searched_at"].endswith("Z"))
+
+    def test_discovery_rejects_invalid_query_category_and_limit(self):
+        with self.assertRaises(api.RequestError):
+            api.run_source_discovery({"keyword": "recommender systems"})
+        with self.assertRaises(api.RequestError):
+            api.run_source_discovery({"keyword": "Survey + recommender systems", "category": "other"})
+        with self.assertRaises(api.RequestError):
+            api.run_source_discovery({"keyword": "Survey + recommender systems", "limit": 5})
+
+    def test_discovery_skips_malformed_and_duplicate_dois(self):
+        response = {"message": {"items": [
+            {"DOI": "not-a-doi", "title": ["Bad"]},
+            {"DOI": "10.1234/dup", "title": ["First"]},
+            {"DOI": "10.1234/dup", "title": ["Duplicate"]},
+            {"DOI": "10.1234/no-title", "title": []},
+        ]}}
+        with patch.object(api.http_util, "fetch_json", return_value=response):
+            result = api.run_source_discovery({"keyword": "Survey + recommender systems"})
+        self.assertEqual([item["title"] for item in result["candidates"]], ["First"])
+
+    def test_discovery_reports_upstream_failure_as_bad_gateway(self):
+        with patch.object(api.http_util, "fetch_json", side_effect=OSError("offline")):
+            with self.assertRaises(api.RequestError) as caught:
+                api.run_source_discovery({"keyword": "Survey + recommender systems"})
+        self.assertEqual(caught.exception.status, 502)
+
+
 class SourceExecutionTests(unittest.TestCase):
     def test_existing_verifier_and_renderer_are_used(self):
         doi = "10.3233/IDA-163209"
