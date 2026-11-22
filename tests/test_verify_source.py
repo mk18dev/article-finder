@@ -13,7 +13,7 @@ import verify_source as vs
 
 
 def evidence(note: str = "Checked against the source record") -> dict:
-    return {"reviewed": True, "url": "https://evidence.example/source", "note": note}
+    return {"reviewed": True, "reviewer_id": "reviewer-1", "reviewed_at": "2026-11-23T10:00:00Z", "locator": "record section 1", "url": "https://evidence.example/source", "note": note}
 
 
 def work(**overrides) -> vs.Work:
@@ -41,6 +41,7 @@ ENTRY = {
     "tier": "B",
     "tier_evidence": {
         "verified": True,
+        "reviewer_id": "reviewer-1", "reviewed_at": "2026-11-23T10:00:00Z", "locator": "ranking table",
         "url": "https://evidence.example/tier",
         "basis": "Ranking reviewed against the stated rubric",
     },
@@ -56,17 +57,15 @@ ENTRY = {
     "specialized": True,
     "specialization_evidence": evidence("Journal scope matches the research area"),
     "judgements": {
-        "S1": {"ok": True, "reviewed": True, "evidence_url": "https://evidence.example/area",
-               "note": "Source belongs to computing"},
-        "S2": {"ok": True, "reviewed": True, "evidence_url": "https://evidence.example/subject",
-               "note": "Relevance directly assessed"},
-        "S10": {"ok": True, "reviewed": True, "evidence_url": "https://evidence.example/category",
-                "note": "Source fits application category"},
+        "S1": {"ok": True, **evidence("Source belongs to computing"), "evidence_url": "https://evidence.example/area"},
+        "S2": {"ok": True, **evidence("Relevance directly assessed"), "evidence_url": "https://evidence.example/subject"},
+        "S10": {"ok": True, **evidence("Source fits application category"), "evidence_url": "https://evidence.example/category"},
     },
     "blacklist_status": "clear",
     "blacklist_evidence": {**evidence("Iranian blacklist checked on official source"), "url": "https://impactfactor.ir/"},
     "indexing_evidence": [{
         "index": "Scopus", "verified": True,
+        "reviewer_id": "reviewer-1", "reviewed_at": "2026-11-23T10:00:00Z", "locator": "source profile",
         "url": "https://www.scopus.com/sources.uri?zone=TopNavBar",
         "note": "Checked source entry and coverage",
     }],
@@ -261,7 +260,7 @@ class BlacklistTests(unittest.TestCase):
 
     def test_legacy_http_blacklist_domain_is_allowed_only_for_s6(self) -> None:
         legacy = {
-            "reviewed": True,
+            "reviewed": True, "reviewer_id": "reviewer-1", "reviewed_at": "2026-11-23T10:00:00Z", "locator": "blacklist result",
             "url": "http://impactfactor.ir/",
             "note": "Checked the official blacklist record",
         }
@@ -402,6 +401,7 @@ class SourceSpecificS6Tests(unittest.TestCase):
         thesis = work(kind="thesis", issns=[])
         evidence = {
             "repository": "Irandoc", "verified": True,
+            "reviewer_id": "reviewer-1", "reviewed_at": "2026-11-23T10:00:00Z", "locator": "record TH-123",
             "url": "https://irandoc.ac.ir/record/123",
             "note": "Institutional thesis record was inspected",
         }
@@ -415,6 +415,7 @@ class SourceSpecificS6Tests(unittest.TestCase):
         book = work(kind="book", issns=[], isbns=["9780262033848"])
         evidence = {
             "source": "Google Books", "verified": True,
+            "reviewer_id": "reviewer-1", "reviewed_at": "2026-11-23T10:00:00Z", "locator": "book record",
             "url": "https://books.google.com/books?id=example",
             "note": "Book record and publisher were inspected",
             "citation_count": 27, "publisher_verified": True,
@@ -435,6 +436,7 @@ class SourceSpecificS6Tests(unittest.TestCase):
         book = work(kind="book", issns=[], isbns=["9780262033848"])
         evidence = {
             "source": "Amazon", "verified": True,
+            "reviewer_id": "reviewer-1", "reviewed_at": "2026-11-23T10:00:00Z", "locator": "product details",
             "url": "https://www.amazon.com/dp/example",
             "note": "Book record and citation count were inspected",
             "citation_count": 12, "publisher_verified": False,
@@ -446,6 +448,7 @@ class SourceSpecificS6Tests(unittest.TestCase):
         conference = work(kind="conference", issns=[], container="Proceedings of Tests")
         evidence = [{
             "index": "DBLP", "verified": True,
+            "reviewer_id": "reviewer-1", "reviewed_at": "2026-11-23T10:00:00Z", "locator": "proceedings record",
             "url": "https://dblp.org/db/conf/example",
             "note": "Conference proceedings record was inspected",
         }]
