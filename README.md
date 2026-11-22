@@ -21,7 +21,7 @@ Zero approved is a normal, honest result. Read the next section for why.
 |---|---|---|
 | Discover sources | Course keyword + research topic | Crossref/OpenAlex CLI results with DOI and query provenance; web UI offers Crossref discovery |
 | Verify sources | DOI + evidence plan | 11-gate checklist and APA/IEEE references |
-| Verify citations | Bibliography with DOI/title/year/author | Crossref identity comparison and correction/retraction flags |
+| Verify citations | Bibliography + manuscript text + APA/IEEE style | Crossref identity/update audit and in-text/reference crosswalk |
 | Check a draft | Article draft | Section-by-section report against 76 writing rules |
 | Systematic/scoping review | Protocol + database search log + screening counts | Validated PRISMA-style counts, flow diagram, evidence matrix and thematic synthesis |
 
@@ -32,8 +32,8 @@ Discovery returns candidates, never approvals. Reviewer evidence remains pending
 | | Mode 1 — find and vet | Mode 2 — check a draft | Mode 3 — systematic/scoping review | Mode 4 — citation identity audit |
 |---|---|---|---|---|
 | Input | Research topic and DOI candidates | Draft with one heading per section | Protocol, exact searches, and screening ledger | Bibliography with DOI/title/year/author |
-| Output | 11-gate source checklist + APA/IEEE bibliography | 76-rule section report + fix list | Search audit, reconciled counts, Mermaid flow, evidence matrix | Identity match, mismatch, correction/retraction flags |
-| Command | `search_databases.py` → `verify_source.py` → `render_table.py` | `check_draft.py` | `prisma_review.py` + `synthesize_literature.py` | `verify_citations.py` |
+| Output | 11-gate source checklist + APA/IEEE bibliography | 76-rule section report + fix list + citation crosswalk | Search audit, reconciled counts, Mermaid flow, evidence matrix | Identity match, mismatch, correction/retraction flags + APA/IEEE crosswalk |
+| Command | `search_databases.py` → `verify_source.py` → `render_table.py` | `check_draft.py` + `citation_crosswalk.py` | `prisma_review.py` + `synthesize_literature.py` | `verify_citations.py` + `citation_crosswalk.py` |
 
 ## The 11 gates (Mode 1)
 
