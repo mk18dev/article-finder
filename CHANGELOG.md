@@ -12,7 +12,7 @@ All notable changes to this skill and web app. Format: [Keep a Changelog](https:
 - Allows up to four selected candidates to flow directly into the existing 11-gate verifier; discovery never grants approval or fabricates reviewer evidence.
 - Added unit and HTTP integration tests for discovery validation, malformed/duplicate records, upstream failures and evidence provenance.
 - Removed unused Railway deployment configuration and platform-specific instructions; retained the hosting-neutral HTTP server and Vercel adapter.
-- Added a production smoke-test job after the Python matrix: waits for Vercel health, checks static assets, performs real Crossref discovery, and exercises all 76 draft rules against the live API.
+- Added a production smoke-test job after the Python matrix: waits for Vercel health, checks static assets, performs real Crossref discovery, the 11-gate source-verification path, and the 76-rule draft-check API.
 - Released and verified the Vercel production build at `article-finder-peach.vercel.app`.
 
 ## [1.2.0] — 2026-11-23
