@@ -91,6 +91,16 @@ python3 scripts/check_draft.py draft.md --lang en
 python3 scripts/check_draft.py draft.md --lang fa --manual manual.json
 ```
 
+### Systematic review, evidence synthesis and citation audit
+
+```bash
+python3 scripts/prisma_review.py examples/prisma-review.json --format report
+python3 scripts/synthesize_literature.py examples/literature-evidence.json --format markdown
+python3 scripts/verify_citations.py examples/citations.json --format markdown
+```
+
+The PRISMA, literature and citation fixtures are explicitly placeholders. Their output must remain pending where human screening, source excerpts, or identity evidence is missing.
+
 ## What the tables look like
 
 ```
