@@ -54,7 +54,7 @@ def record_key(record: dict[str, Any]) -> tuple[str, str]:
     title = normalize_title(record.get("title"))
     if title:
         return ("title", title)
-    return ("record", str(record.get("record_id") or id(record)))
+    record_id = str(record.get("record_id") or "").strip()\n    if record_id:\n        return ("record", record_id.casefold())\n    raise ValueError("record requires DOI, PMID, URL, title, or record_id")
 
 
 def _metadata_conflicts(canonical: dict[str, Any], duplicate: dict[str, Any]) -> list[dict[str, Any]]:
