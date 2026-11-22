@@ -10,7 +10,12 @@
       "Editorials and opinion pieces",
       "Records outside the prespecified population or topic"
     ],
-    "registration": null
+    "registration": null,
+    "reviewers": [
+      "reviewer-1"
+    ],
+    "dual_screening": false,
+    "single_reviewer_justification": "Template only; replace with the actual screening arrangement."
   },
   "search_log": [
     {
@@ -23,12 +28,5 @@
       "limits": "REPLACE WITH THE ACTUAL LIMITS"
     }
   ],
-  "counts": {
-    "duplicates_removed": 0,
-    "records_removed_automation": 0,
-    "records_excluded_title_abstract": 0,
-    "reports_not_retrieved": 0,
-    "full_text_exclusions": {}
-  },
   "records": []
 }
