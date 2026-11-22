@@ -39,6 +39,9 @@ def work(**overrides) -> vs.Work:
 ENTRY = {
     "doi": "10.1000/x",
     "category": "application",
+    "journal_number": 70,
+    "issues_per_year": 6,
+    "journal_number_evidence": {**evidence("Journal volume and issue numbering inspected"), "url": "https://link.springer.com/journal/10618", "locator": "Volume 12, Issue 4, No. 70"},
     "tier": "B",
     "tier_evidence": {
         "verified": True,
@@ -225,6 +228,22 @@ class SearchAndJudgementTests(unittest.TestCase):
 class IdentifierTests(unittest.TestCase):
     def test_valid_journal_issn_and_metadata_pass(self) -> None:
         self.assertIs(decide()["steps"]["S7"], True)
+
+
+    def test_inconsistent_journal_number_fails(self) -> None:
+        self.assertIs(decide(entry={**ENTRY, "journal_number": 71})["steps"]["S7"], False)
+
+    def test_missing_journal_number_is_pending(self) -> None:
+        entry = {key: value for key, value in ENTRY.items() if key != "journal_number"}
+        self.assertIsNone(decide(entry=entry)["steps"]["S7"])
+
+    def test_journal_number_requires_publisher_page_evidence(self) -> None:
+        evidence_item = {**ENTRY["journal_number_evidence"], "url": "https://evidence.example/journal"}
+        self.assertIsNone(decide(entry={**ENTRY, "journal_number_evidence": evidence_item})["steps"]["S7"])
+
+    def test_calendar_year_volume_skips_cumulative_number_formula(self) -> None:
+        self.assertIs(decide(work(volume="2024", issue="1"),
+                             {**ENTRY, "calendar_year_volume": True})["steps"]["S7"], True)
 
     def test_invalid_issn_fails(self) -> None:
         self.assertIs(decide(work(issns=["1234-5678"]))["steps"]["S7"], False)
