@@ -153,6 +153,7 @@ Use when a user asks whether bibliography entries match their DOI, title, year, 
 - `VERSION`: canonical release version (1.1.0).
 - `skills/`: specialized playbooks for search, OpenAlex, source verification, PRISMA screening, literature synthesis, citation verification, scientific writing, security, and CI/CD.
 - `references/course-background.md`: research concept, types, prerequisites, area/subject/reference, keywords (slides 1-14).
+- `references/prisma-review.md`: raw-record ledger schema, reviewer attribution, database/register/other-method count derivation, and PRISMA-style flow scope.
 - `references/validation.md`: gates for each source type, tier rubric, where to verify, the worked example, full-text policy, and §10 on which gates a script can decide.
 - `references/reading.md`: reading and extraction rules for the four categories. Read before S11.
 - `references/writing-article.md`: all Chapter 2 rules and the rule IDs for `check_draft.py`.
