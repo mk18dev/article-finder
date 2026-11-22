@@ -5,7 +5,6 @@ the existing static UI and delegates /api requests to scripts.web_api.handler.
 """
 from __future__ import annotations
 
-import mimetypes
 import os
 from http.server import ThreadingHTTPServer
 from pathlib import Path
