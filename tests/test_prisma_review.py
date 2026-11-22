@@ -171,6 +171,43 @@ class PrismaReviewTests(unittest.TestCase):
                 }
         self.assertTrue(any("disagreement requires an adjudication" in error for error in validate_review(review)))
 
+
+    def test_dual_screening_passes_with_independent_adjudicator(self):
+        review = valid_review()
+        review["protocol"]["dual_screening"] = True
+        review["protocol"]["reviewers"] = ["reviewer-a", "reviewer-b", "reviewer-c"]
+        for record in review["records"][:8]:
+            for field in ("title_abstract_review", "full_text_review"):
+                stage = record.get(field)
+                if stage:
+                    stage["second_review"] = {
+                        "decision": stage["decision"],
+                        "reviewer_id": "reviewer-b",
+                        "reviewed_at": STAMP,
+                    }
+        first = review["records"][0]["title_abstract_review"]
+        first["second_review"]["decision"] = "include"
+        first["adjudication"] = {
+            "decision": "exclude",
+            "reviewer_id": "reviewer-c",
+            "reviewed_at": STAMP,
+            "note": "Adjudicated against the prespecified inclusion criteria.",
+        }
+        self.assertEqual(validate_review(review), [])
+
+    def test_automation_exclusion_is_counted_and_requires_reason(self):
+        review = valid_review()
+        record = review["records"][7]
+        record["automation_excluded"] = True
+        record["automation_tool"] = "dedicated duplicate classifier"
+        record["automation_exclusion_reason"] = "Exact duplicate of a retained record"
+        record["full_text_status"] = "not_sought"
+        record.pop("title_abstract_review")
+        record.pop("full_text_review", None)
+        counts = derive_counts(review)
+        self.assertEqual(counts["records_removed_automation"], 1)
+        self.assertEqual(counts["records_screened"], 7)
+
     def test_mermaid_flow_uses_derived_counts(self):
         flow = render_prisma_flow(derive_counts(valid_review()))
         self.assertIn("Records identified from databases (n=10)", flow)
