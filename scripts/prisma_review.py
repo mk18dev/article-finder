@@ -144,6 +144,9 @@ def validate_protocol(review: dict[str, Any]) -> list[str]:
         for field in ("database", "platform", "query", "date_run", "search_url"):
             if not _nonempty(item.get(field)):
                 errors.append(f"{prefix}.{field} is required")
+        source_type = item.get("source_type", "database")
+        if source_type not in {"database", "register"}:
+            errors.append(f"{prefix}.source_type must be database or register")
         if item.get("status") == "error":
             errors.append(f"{prefix} is marked failed and cannot count as a completed search")
         search_url = str(item.get("search_url") or "")
@@ -158,6 +161,31 @@ def validate_protocol(review: dict[str, Any]) -> list[str]:
             errors.append(f"{prefix}.hits must be a non-negative integer")
         if not isinstance(item.get("limits", ""), str):
             errors.append(f"{prefix}.limits must be text")
+    other_methods = review.get("other_methods_log", [])
+    if not isinstance(other_methods, list):
+        errors.append("other_methods_log must be a list")
+    else:
+        for index, item in enumerate(other_methods, 1):
+            prefix = f"other_methods_log[{index}]"
+            if not isinstance(item, dict):
+                errors.append(f"{prefix} must be an object")
+                continue
+            for field in ("method", "date_run", "search_url"):
+                if not _nonempty(item.get(field)):
+                    errors.append(f"{prefix}.{field} is required")
+            if item.get("status") == "error":
+                errors.append(f"{prefix} is marked failed and cannot count as completed")
+            if item.get("search_url") and not str(item["search_url"]).startswith("https://"):
+                errors.append(f"{prefix}.search_url must use HTTPS")
+            try:
+                date.fromisoformat(str(item.get("date_run", "")))
+            except ValueError:
+                errors.append(f"{prefix}.date_run must be YYYY-MM-DD")
+            hits = item.get("hits")
+            if isinstance(hits, bool) or not isinstance(hits, int) or hits < 0:
+                errors.append(f"{prefix}.hits must be a non-negative integer")
+            if not isinstance(item.get("limits", ""), str):
+                errors.append(f"{prefix}.limits must be text")
     return errors
 
 
@@ -238,15 +266,36 @@ def _screened_records(review: dict[str, Any]) -> tuple[list[dict[str, Any]], lis
 
 def derive_counts(review: dict[str, Any]) -> dict[str, int]:
     searches = review.get("search_log") or []
+    other_methods = review.get("other_methods_log") or []
     raw_records = review.get("records")
     if not isinstance(raw_records, list):
         raise ValueError("records must be a list of raw records from every completed search")
-    identified = sum(item["hits"] for item in searches)
+
+    database_hits = sum(item["hits"] for item in searches if item.get("source_type", "database") == "database")
+    register_hits = sum(item["hits"] for item in searches if item.get("source_type", "database") == "register")
+    other_hits = sum(item["hits"] for item in other_methods)
+    identified = database_hits + register_hits + other_hits
     if len(raw_records) != identified:
         raise ValueError(
             f"raw record count ({len(raw_records)}) must equal retrieved search hits ({identified}); "
             "do not pass only deduplicated records"
         )
+
+    raw_by_type = {"database": 0, "register": 0, "other_method": 0}
+    for record in raw_records:
+        if not isinstance(record, dict):
+            raise ValueError("every raw record must be an object")
+        source_type = record.get("source_type", "database")
+        if source_type not in raw_by_type:
+            raise ValueError(f"record {record.get('record_id', '<unknown>')} has invalid source_type")
+        raw_by_type[source_type] += 1
+    if raw_by_type["database"] != database_hits:
+        raise ValueError("database raw-record count does not match database search hits")
+    if raw_by_type["register"] != register_hits:
+        raise ValueError("register raw-record count does not match register search hits")
+    if raw_by_type["other_method"] != other_hits:
+        raise ValueError("other-method raw-record count does not match other_methods_log hits")
+
     unique, duplicates = _screened_records(review)
     automation_removed = sum(1 for item in unique if item.get("automation_excluded") is True)
     screened_records = [item for item in unique if item.get("automation_excluded") is not True]
@@ -263,6 +312,9 @@ def derive_counts(review: dict[str, Any]) -> dict[str, int]:
     ]
     included = len({str(record.get("study_id") or record.get("record_id")) for record in included_records})
     return {
+        "records_identified_from_databases": database_hits,
+        "records_identified_from_registers": register_hits,
+        "records_identified_from_other_methods": other_hits,
         "records_identified": identified,
         "duplicates_removed": len(duplicates),
         "records_removed_automation": automation_removed,
@@ -275,6 +327,7 @@ def derive_counts(review: dict[str, Any]) -> dict[str, int]:
         "studies_included": included,
         "reports_of_included_studies": len(included_records),
     }
+
 
 
 def validate_counts(review: dict[str, Any]) -> list[str]:
@@ -356,26 +409,32 @@ def validate_review(review: dict[str, Any]) -> list[str]:
     return errors
 
 def render_prisma_flow(counts: dict[str, int]) -> str:
-    """Render a Mermaid PRISMA-style flow from validated, derived counts."""
+    """Render a PRISMA-style flow with database, register and other-method inputs."""
     return "\n".join([
         "flowchart TD",
-        f'    A["Records identified from databases (n={counts["records_identified"]})"]',
-        f'    B["Duplicates removed (n={counts["duplicates_removed"]})"]',
-        f'    C["Records removed before screening (n={counts["records_removed_automation"]})"]',
-        f'    D["Records screened (n={counts["records_screened"]})"]',
-        f'    E["Records excluded (n={counts["records_excluded_title_abstract"]})"]',
-        f'    F["Reports sought for retrieval (n={counts["reports_sought"]})"]',
-        f'    G["Reports not retrieved (n={counts["reports_not_retrieved"]})"]',
-        f'    H["Reports assessed for eligibility (n={counts["reports_assessed"]})"]',
-        f'    I["Reports excluded (n={counts["reports_excluded_full_text"]})"]',
-        f'    J["Studies included (n={counts["studies_included"]})"]',
-        f'    K["Reports of included studies (n={counts["reports_of_included_studies"]})"]',
-        "    A --> B --> C --> D",
-        "    D --> E",
-        "    D --> F --> G",
+        f'    A["Records identified from databases (n={counts["records_identified_from_databases"]})"]',
+        f'    B["Records identified from registers (n={counts["records_identified_from_registers"]})"]',
+        f'    C["Records identified from other methods (n={counts["records_identified_from_other_methods"]})"]',
+        f'    D["Duplicates removed (n={counts["duplicates_removed"]})"]',
+        f'    E["Records removed before screening (n={counts["records_removed_automation"]})"]',
+        f'    F["Records screened (n={counts["records_screened"]})"]',
+        f'    G["Records excluded (n={counts["records_excluded_title_abstract"]})"]',
+        f'    H["Reports sought for retrieval (n={counts["reports_sought"]})"]',
+        f'    I["Reports not retrieved (n={counts["reports_not_retrieved"]})"]',
+        f'    J["Reports assessed for eligibility (n={counts["reports_assessed"]})"]',
+        f'    K["Reports excluded (n={counts["reports_excluded_full_text"]})"]',
+        f'    L["Studies included (n={counts["studies_included"]})"]',
+        f'    M["Reports of included studies (n={counts["reports_of_included_studies"]})"]',
+        "    A --> D",
+        "    B --> D",
+        "    C --> D",
+        "    D --> E --> F",
+        "    F --> G",
         "    F --> H --> I",
         "    H --> J --> K",
+        "    J --> L --> M",
     ])
+
 
 
 def build_report(review: dict[str, Any]) -> str:
