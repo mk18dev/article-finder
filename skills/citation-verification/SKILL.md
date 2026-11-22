@@ -8,6 +8,7 @@ description: Audit DOI/title/year/author identity, flag Crossref correction and 
 Use `scripts/verify_citations.py` on a bibliography JSON file and `scripts/citation_crosswalk.py` on manuscript text plus a structured reference list.
 
 - Compare DOI, title, year, and first-author metadata with Crossref.
+- Cross-check APA author-year or IEEE numeric citations against the bibliography; report missing in-text entries, uncited references, duplicate DOI/author-year keys, and malformed citations.
 - If DOI is absent, return candidate DOI matches as Pending; never auto-replace a citation.
 - Flag title/year/author mismatches and recorded corrections or retractions.
 - A metadata identity match does not establish that the source supports the cited claim.
