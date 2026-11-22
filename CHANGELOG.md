@@ -2,7 +2,7 @@
 
 All notable changes to this skill and web app. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning [SemVer](https://semver.org/).
 
-## [1.3.0] — 2026-11-23
+## [1.1.0] — 2026-11-23
 
 ### Source discovery
 
@@ -15,8 +15,6 @@ All notable changes to this skill and web app. Format: [Keep a Changelog](https:
 - Added a production smoke-test job after the Python matrix: waits for Vercel health, checks static assets, performs real Crossref discovery, the 11-gate source-verification path, and the 76-rule draft-check API.
 - Released and verified the Vercel production build at `article-finder-peach.vercel.app`.
 
-## [1.2.0] — 2026-11-23
-
 ### Web application and API
 
 - Added a Persian-first responsive web workspace for source verification and draft checking, backed by the existing Python modules.
@@ -25,8 +23,6 @@ All notable changes to this skill and web app. Format: [Keep a Changelog](https:
 - Added API regression tests plus JavaScript syntax and deployment-config validation to the Python 3.10–3.13 CI matrix.
 - Documented Vercel setup, production API-key configuration, and the limits of submitted reviewer evidence.
 
-
-## [1.1.0] — 2026-11-23
 
 ### Security and retrieval
 
