@@ -206,9 +206,7 @@ rejected and no CORS access is granted. POSTs are JSON-only and limited to
 512 KiB. Missing or unverified research evidence remains pending; the service
 does not claim that a reviewer attestation or an indexing record is true merely
 because it was submitted. Remote metadata requests use bounded timeouts and
-retries. Set `ARTICLE_FINDER_API_KEY` in the hosting environment to require
-Bearer authentication; the browser sends the key only for the current request
-and does not persist it. Without this variable, API access is public.
+retries. On Vercel, `ARTICLE_FINDER_API_KEY` is required by default; the browser sends the key only for the current request and does not persist it. To intentionally expose a public production API, set `ARTICLE_FINDER_PUBLIC_MODE=1`. Local development remains public by default. The health endpoint reports the active auth mode.
 
 ### Local development
 
