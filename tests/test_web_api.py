@@ -25,6 +25,14 @@ class SourceInputTests(unittest.TestCase):
         value.update(overrides)
         return value
 
+    def test_validate_payload_returns_validated_entries(self):
+        entries, cutoff, language, bibliography = api.validate_source_payload(self.payload())
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["doi"], "10.3233/IDA-163209")
+        self.assertEqual(cutoff, "B")
+        self.assertEqual(language, "fa")
+        self.assertIsNone(bibliography)
+
     def test_accepts_plain_doi_and_doi_url(self):
         self.assertEqual(api.normalize_doi("10.3233/IDA-163209"), "10.3233/IDA-163209")
         self.assertEqual(

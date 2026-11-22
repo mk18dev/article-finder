@@ -149,6 +149,7 @@ def validate_source_payload(payload: Any) -> tuple[list[dict[str, Any]], str, st
 
         for field in ("area", "subject"):
             entry[field] = _string(entry.get(field), field, 160)
+        entries.append(entry)
 
     cutoff = _string(payload.get("cutoff", "B"), "cutoff", 1).upper()
     if cutoff not in TIERS:
