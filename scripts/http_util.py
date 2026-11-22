@@ -3,13 +3,13 @@
 
 Only public HTTPS destinations on port 443 are accepted. TLS certificate
 verification is always enabled. Redirect destinations are checked again.
-DNS is resolved before each request; this blocks ordinary private-address
-SSRF, but it cannot prevent a hostile DNS resolver from rebinding between
-validation and connection. Use a network sandbox for untrusted inputs when
-connection-time DNS pinning is required.
+Every resolved address is checked and the validated public IP is pinned at
+connection time while TLS SNI and certificate verification use the original
+hostname. Redirect destinations are resolved and pinned independently.
 """
 from __future__ import annotations
 
+import http.client
 import ipaddress
 import json
 import os
@@ -27,6 +27,28 @@ RETRIES = 3
 MAX_BYTES = 80 * 1024 * 1024
 CHUNK = 1 << 16
 _UA = f"article-finder/1.1 (mailto:{MAILTO})" if MAILTO else "article-finder/1.1"
+
+
+def _resolve_public_addresses(host: str) -> tuple[str, ...]:
+    try:
+        infos = socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
+    except OSError as exc:
+        raise ValueError(f"unable to resolve destination host: {host}") from exc
+    addresses = tuple(dict.fromkeys(
+        item[4][0].split("%", 1)[0] for item in infos
+    ))
+    if not addresses:
+        raise ValueError("destination host has no addresses")
+    for raw_address in addresses:
+        try:
+            address = ipaddress.ip_address(raw_address)
+        except ValueError as exc:
+            raise ValueError("destination resolved to an invalid IP address") from exc
+        if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped:
+            address = address.ipv4_mapped
+        if not address.is_global:
+            raise ValueError(f"non-public destination IP is blocked: {address}")
+    return addresses
 
 
 def validate_remote_url(url: str) -> str:
@@ -48,25 +70,50 @@ def validate_remote_url(url: str) -> str:
     host = host.rstrip(".").encode("idna").decode("ascii").lower()
     if not host or host == "localhost" or host.endswith(".localhost"):
         raise ValueError("local hostnames are not allowed")
-    try:
-        addresses = {
-            item[4][0].split("%", 1)[0]
-            for item in socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
-        }
-    except OSError as exc:
-        raise ValueError(f"unable to resolve destination host: {host}") from exc
-    if not addresses:
-        raise ValueError("destination host has no addresses")
-    for raw_address in addresses:
-        try:
-            address = ipaddress.ip_address(raw_address)
-        except ValueError as exc:
-            raise ValueError("destination resolved to an invalid IP address") from exc
-        if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped:
-            address = address.ipv4_mapped
-        if not address.is_global:
-            raise ValueError(f"non-public destination IP is blocked: {address}")
-    return urllib.parse.urlunsplit(parsed._replace(fragment=""))
+    _resolve_public_addresses(host)
+    netloc = f"[{host}]" if ":" in host else host
+    return urllib.parse.urlunsplit(parsed._replace(netloc=netloc, fragment=""))
+
+
+class _PinnedHTTPSConnection(http.client.HTTPSConnection):
+    """HTTPS connection that dials only previously validated public IPs."""
+
+    def __init__(self, host: str, *, pinned_addresses: tuple[str, ...], **kwargs: Any) -> None:
+        self._pinned_addresses = pinned_addresses
+        super().__init__(host, **kwargs)
+
+    def connect(self) -> None:
+        if self._tunnel_host:
+            raise OSError("HTTPS proxy tunneling is disabled")
+        last_error: OSError | None = None
+        for address in self._pinned_addresses:
+            try:
+                sock = socket.create_connection(
+                    (address, self.port), self.timeout, self.source_address
+                )
+                self.sock = self._context.wrap_socket(sock, server_hostname=self.host)
+                return
+            except OSError as exc:
+                last_error = exc
+        if last_error:
+            raise last_error
+        raise OSError("no validated public destination addresses")
+
+
+class _PinnedHTTPSHandler(urllib.request.HTTPSHandler):
+    def https_open(self, req: urllib.request.Request) -> Any:
+        host = urllib.parse.urlsplit(req.full_url).hostname
+        if not host:
+            raise ValueError("HTTPS request has no hostname")
+        addresses = _resolve_public_addresses(host)
+        return self.do_open(
+            lambda connection_host, **kwargs: _PinnedHTTPSConnection(
+                connection_host, pinned_addresses=addresses, **kwargs
+            ),
+            req,
+            context=self._context,
+            check_hostname=self._check_hostname,
+        )
 
 
 class _SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
@@ -95,7 +142,7 @@ def _open(url: str, headers: dict[str, str] | None = None) -> Any:
     opener = urllib.request.build_opener(
         urllib.request.ProxyHandler({}),
         _SafeRedirectHandler(),
-        urllib.request.HTTPSHandler(context=ssl.create_default_context()),
+        _PinnedHTTPSHandler(context=ssl.create_default_context()),
     )
     response = opener.open(_request(checked, headers), timeout=TIMEOUT)
     validate_remote_url(response.geturl())
