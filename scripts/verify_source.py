@@ -39,9 +39,18 @@ INDEX_DOMAINS: dict[str, tuple[str, ...]] = {
     "scopus": ("scopus.com",),
     "web of science": ("mjl.clarivate.com", "webofscience.com"),
     "wos": ("mjl.clarivate.com", "webofscience.com"),
+    "isi master journal list": ("mjl.clarivate.com",),
     "isc": ("isc.gov.ir",),
     "dblp": ("dblp.org",),
+    "doaj": ("doaj.org",),
 }
+BLACKLIST_DOMAINS: dict[str, tuple[str, ...]] = {
+    "msrt": ("journals.msrt.ir", "msrt.ir", "rppc.msrt.ir"),
+    "iau": ("eval.journals.iau.ir", "iau.ac.ir", "rvp.iau.ir"),
+}
+MSRT_PORTAL = "https://journals.msrt.ir/"
+IAU_INVALID_PORTAL = "https://rsh.rvp.iau.ir/"
+IAU_EVALUATION_PORTAL = "https://eval.journals.iau.ir/"
 SEARCH_DOMAINS: tuple[str, ...] = (
     "crossref.org", "openalex.org", "scholar.google.com", "pubmed.ncbi.nlm.nih.gov",
     "semanticscholar.org", "arxiv.org", "ieeexplore.ieee.org", "dl.acm.org",
@@ -381,6 +390,41 @@ def identifiers_ok(work: Work, entry: dict[str, Any]) -> bool | None:
     return None
 
 
+def _normalize_issn(value: Any) -> str:
+    return re.sub(r"[^0-9x]", "", str(value or "").casefold())
+
+
+def blacklist_gate(work: Work, entry: dict[str, Any]) -> bool | None:
+    checks = entry.get("blacklist_checks")
+    if not isinstance(checks, list):
+        return None
+    valid_issns = {_normalize_issn(value) for value in work.issns if _normalize_issn(value)}
+    by_authority: dict[str, dict[str, Any]] = {}
+    for item in checks:
+        if not isinstance(item, dict):
+            return None
+        authority = str(item.get("authority") or "").strip().lower()
+        if authority not in BLACKLIST_DOMAINS or authority in by_authority:
+            return None
+        if str(item.get("query_type") or "").strip().lower() != "issn":
+            return None
+        if _normalize_issn(item.get("query_value")) not in valid_issns:
+            return None
+        if not str(item.get("list_version") or "").strip():
+            return None
+        if not evidence_item_ok(item) or not host_matches(
+            str(item.get("url") or ""), BLACKLIST_DOMAINS[authority]
+        ):
+            return None
+        status = str(item.get("status") or "").strip().lower()
+        if status in {"listed", "blacklisted", "invalid", "revoked"}:
+            return False
+        if status != "clear":
+            return None
+        by_authority[authority] = item
+    return True if set(by_authority) == set(BLACKLIST_DOMAINS) else None
+
+
 def s6_gate(work: Work, entry: dict[str, Any]) -> bool | None:
     def verified_record(item: Any, domains: tuple[str, ...]) -> bool:
         return (
@@ -398,16 +442,9 @@ def s6_gate(work: Work, entry: dict[str, Any]) -> bool | None:
 
     if work.kind in {"journal", "conference"}:
         if work.kind == "journal":
-            blacklist = str(entry.get("blacklist_status", "")).strip().lower()
-            if blacklist in {"listed", "blacklisted"}:
-                return False
-            blacklist_evidence = entry.get("blacklist_evidence")
-            if (
-                blacklist != "clear" or not isinstance(blacklist_evidence, dict)
-                or not evidence_item_ok({**blacklist_evidence, "allow_legacy_blacklist_http": True})
-                or not host_matches(str(blacklist_evidence.get("url") or ""), ("impactfactor.ir",), allow_legacy_http=True)
-            ):
-                return None
+            blacklist_result = blacklist_gate(work, entry)
+            if blacklist_result is not True:
+                return blacklist_result
         for item in entry.get("indexing_evidence", []) or []:
             if not isinstance(item, dict):
                 continue
@@ -500,7 +537,11 @@ def s6_links(work: Work) -> list[str]:
     if work.kind == "conference":
         return [f"[DBLP]({DBLP}{title})"]
     key = work.source_issn or (work.issns[0] if work.issns else "")
-    links: list[str] = [f"[blacklist + IF]({IMPACTFACTOR})"]
+    links: list[str] = [
+        f"[MSRT journal portal]({MSRT_PORTAL})",
+        f"[IAU invalid-journals portal]({IAU_INVALID_PORTAL})",
+        f"[IAU evaluation 1405]({IAU_EVALUATION_PORTAL})",
+    ]
     if key:
         links.extend([
             f"[SCImago]({SCI_MAGO}{key})",
@@ -719,9 +760,12 @@ def checklist(articles: list[dict[str, Any]], works: list[Work]) -> str:
         rows.append(f"| {index} | {article['title']} | {work.publisher} | {issns} | "
                     + " · ".join(s6_links(work)) + " |")
     rows.append("")
-    rows.append("After checking the blacklist, record blacklist_status as clear or listed "
-                "in the plan. For a positive index result, add indexing_evidence with index, "
-                "verified=true, source URL and a short note, then rerun verify_source.py.")
+    rows.append("For each journal, record two independent blacklist_checks: one for authority=msrt "
+                "and one for authority=iau. Each check must include status=clear/listed, ISSN query, "
+                "list_version, reviewer_id, reviewed_at, URL, locator and note. Any verified listed "
+                "result hard-rejects S6. Missing or inaccessible lists remain pending. For a positive "
+                "index result, add indexing_evidence with index, verified=true, source URL and note, "
+                "then rerun verify_source.py.")
     return "\n".join(rows)
 
 
