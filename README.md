@@ -1,6 +1,6 @@
 # article-finder
 
-**Release 1.1.0** — evidence-backed gates, fail-closed HTTPS retrieval and conflict-aware duplicate handling.
+**Release 1.2.0** — evidence-backed gates, fail-closed HTTPS retrieval and conflict-aware duplicate handling.
 
 **A verification-first research-paper skill for AI agents.** It finds and vets sources for a paper, then checks a draft section by section — and it refuses to tick a box it cannot prove.
 
@@ -134,7 +134,7 @@ The suite is network-free and additionally covers source evidence gates, duplica
 ```
 SKILL.md              the workflow an agent follows
 references/           the rule set, gates, rubric, reading rules, verification map
-scripts/              verify_source · render_table · fetch_pdf · check_draft · check_ids · http_util
+scripts/              verify_source · render_table · fetch_pdf · check_draft · check_ids · web_api · http_util
 tests/                regression tests for every script
 examples/             fixtures whose real output the docs show
 tools/pack_skill.py   builds dist/article-finder.skill
@@ -154,3 +154,50 @@ Code is MIT (see [`LICENSE`](LICENSE)). The rule set paraphrases a course deck b
 
 Not affiliated with, or endorsed by, the deck's author or Islamic Azad University.
 
+## Web app and Vercel deployment
+
+The repository also includes a small Persian-first web interface. It runs the same
+Python verification and draft-checking functions as the CLI; it does not introduce
+a second rules engine.
+
+- `/` serves the responsive web workspace.
+- `GET /api` reports API health and the supported actions.
+- `POST /api` accepts `{"action":"verify_sources", ...}` or
+  `{"action":"check_draft", ...}` and returns structured JSON plus the Markdown report.
+- `api/index.py` is a standard-library Python HTTP handler. No Python package
+  installation or Node build step is required.
+- `vercel.json` sets a bounded function duration and security/cache headers.
+  The hosted API never exposes `fetch_pdf.py`: arbitrary PDF fetching remains a
+  local CLI workflow, not a public URL-fetch endpoint.
+
+### Deploy
+
+1. Import `mk18dev/article-finder` into the intended Vercel team.
+2. Keep the project root at the repository root and connect the production branch
+   to `main`.
+3. Enable Git-based deployments. The GitHub Actions matrix must pass before
+   promoting a release; do not bypass a failed check.
+4. Configure `ARTICLE_FINDER_API_KEY` as a Preview and Production environment
+   variable when API bearer authentication is required. The browser's key field
+   sends it in the `Authorization: Bearer ...` header and does not save it.
+   When the variable is absent, the API is public; keep the per-request limits
+   in place and use platform-level abuse protection before exposing it broadly.
+
+The API accepts at most four source records per request and a draft of at most
+180,000 characters. Cross-origin browser POSTs are rejected and no CORS access
+is granted. POSTs are JSON-only and limited to 512 KiB. Missing or unverified research evidence remains pending; the service
+does not claim that a reviewer attestation or an indexing record is true merely
+because it was submitted.
+
+### Local development
+
+Run the existing offline suite with:
+
+```bash
+python -m unittest discover -s tests -t tests -v
+python tools/pack_skill.py
+```
+
+For a full local web/API run, install the Vercel CLI and start its local development
+server from the repository root. A plain static file server can preview the page,
+but it cannot execute the Python `/api` function.

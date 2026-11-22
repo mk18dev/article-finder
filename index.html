@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111827">
+  <meta name="description" content="Article Finder؛ اعتبارسنجی شواهد منابع پژوهشی و ارزیابی ساختار پیش‌نویس مقاله.">
+  <meta name="color-scheme" content="light">
+  <title>Article Finder — Research Workspace</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Article Finder home">
+        <span class="brand-mark">AF</span>
+        <span class="brand-copy">
+          <strong>Article Finder</strong>
+          <small>RESEARCH WORKSPACE</small>
+        </span>
+      </a>
+      <div class="topbar-right">
+        <span class="engine-status" id="engine-status"><i></i><span>در حال بررسی موتور</span></span>
+        <span class="version-tag">v1.2.0</span>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="eyebrow-line"></span> EVIDENCE-FIRST RESEARCH TOOLKIT</p>
+          <h1>پژوهش قابل دفاع،<br><em>از اولین DOI.</em></h1>
+          <p class="hero-description">منبع را فقط وقتی تأیید می‌کنیم که شواهدش ثبت شده باشد. پیش‌نویس را هم قاعده‌به‌قاعده بررسی می‌کنیم؛ نه با حدس، نه با تیک نمایشی.</p>
+          <div class="hero-tags">
+            <span><b>۱۱</b> دروازه شواهد</span>
+            <span><b>۷۶</b> قاعده نگارش</span>
+            <span><b>۰</b> تأیید ساختگی</span>
+          </div>
+        </div>
+        <div class="hero-visual" aria-hidden="true">
+          <div class="orb orb-one"></div>
+          <div class="orb orb-two"></div>
+          <div class="visual-grid"></div>
+          <div class="document-card">
+            <div class="doc-top"><span></span><span></span><span></span><b>RESEARCH RECORD</b></div>
+            <div class="doc-lines"><i></i><i></i><i></i><i></i></div>
+            <div class="doc-checks">
+              <span class="check checked">✓</span><span class="check checked">✓</span>
+              <span class="check pending">?</span><span class="check pending">?</span>
+              <span class="check pending">?</span><span class="check pending">?</span>
+            </div>
+            <div class="doc-footer"><span>VERIFICATION IN PROGRESS</span><b>01 / 11</b></div>
+          </div>
+          <div class="float-chip chip-a"><span>↗</span> evidence trace</div>
+          <div class="float-chip chip-b"><span>◎</span> fail-closed</div>
+        </div>
+      </section>
+
+      <nav class="mode-tabs" aria-label="ابزارها">
+        <button class="mode-tab is-active" type="button" data-mode="sources" aria-selected="true">
+          <span class="tab-index">01</span><span class="tab-icon">⌕</span>
+          <span class="tab-copy"><b>اعتبارسنجی منابع</b><small>DOI · شواهد · رتبه‌بندی</small></span>
+        </button>
+        <button class="mode-tab" type="button" data-mode="draft" aria-selected="false">
+          <span class="tab-index">02</span><span class="tab-icon">≡</span>
+          <span class="tab-copy"><b>بررسی پیش‌نویس</b><small>ساختار · قواعد · اصلاح</small></span>
+        </button>
+      </nav>
+
+      <section class="workspace-grid">
+        <section class="panel input-panel" aria-label="ورودی">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">INPUT / CONFIGURATION</p>
+              <h2 id="input-title">رکوردهای منبع</h2>
+            </div>
+            <span class="step-count" id="input-step">01 <i>/</i> 02</span>
+          </div>
+
+          <form id="source-form" class="tool-form">
+            <label class="field-label" for="source-dois">DOI یا لینک DOI <span class="required">*</span></label>
+            <textarea id="source-dois" class="input-control code-input" rows="4" placeholder="10.3233/IDA-163209&#10;https://doi.org/10.xxxx/example" spellcheck="false"></textarea>
+            <div class="field-hint"><span class="hint-dot"></span> هر DOI در یک خط؛ حداکثر ۴ منبع در هر اجرا</div>
+
+            <div class="form-grid">
+              <div class="field">
+                <label class="field-label" for="source-category">دسته پژوهش</label>
+                <select id="source-category" class="input-control">
+                  <option value="concept">مفهومی (Concept)</option>
+                  <option value="challenge">چالش (Challenge)</option>
+                  <option value="application">کاربرد (Application)</option>
+                  <option value="methodology">روش‌شناسی (Methodology)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="field-label" for="source-cutoff">حداقل رتبه</label>
+                <select id="source-cutoff" class="input-control">
+                  <option value="A">A — سخت‌گیرانه</option>
+                  <option value="B" selected>B — پیش‌فرض</option>
+                  <option value="C">C</option>
+                  <option value="D">D — بدون حذف رتبه‌ای</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="source-keyword">فرمول کلیدواژه <span class="required">*</span></label>
+              <input id="source-keyword" class="input-control" type="text" maxlength="240" placeholder="Survey + hybrid recommender systems" autocomplete="off">
+              <div class="field-hint">ساختار الزامی: کلیدواژه مجاز + موضوع پژوهش. عبارت جست‌وجو را دقیق وارد کن.</div>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="source-area">حوزه و موضوع <span class="optional">اختیاری</span></label>
+              <input id="source-area" class="input-control" type="text" maxlength="160" placeholder="مثلاً Computer Science / Recommender Systems">
+            </div>
+
+            <details class="advanced-block">
+              <summary><span>ورودی حرفه‌ای: طرح کامل شواهد JSON</span><span class="advanced-mark">＋</span></summary>
+              <p>با واردکردن طرح کامل، داده‌های بالا نادیده گرفته می‌شوند. فیلدهای شاهد را طبق <code>references/evidence-records.md</code> تکمیل کن.</p>
+              <textarea id="source-plan" class="input-control code-input" rows="8" placeholder='[
+  {
+    "doi": "10.3233/IDA-163209",
+    "category": "concept",
+    "keyword": "Survey + hybrid recommender systems",
+    "area": "computer science",
+    "subject": "hybrid recommender systems"
+  }
+]' spellcheck="false"></textarea>
+            </details>
+
+            <div class="field access-field">
+              <label class="field-label" for="access-key">کلید دسترسی API <span class="optional">فقط اگر در سرور فعال شده</span></label>
+              <input id="access-key" class="input-control" type="password" placeholder="در صورت نیاز وارد کن؛ در مرورگر ذخیره نمی‌شود" autocomplete="off">
+            </div>
+
+            <button class="primary-button" id="source-submit" type="submit">
+              <span>اجرای اعتبارسنجی</span><b>←</b>
+            </button>
+            <p class="form-footnote">هر نتیجه فقط بر اساس شواهد دریافت‌شده است؛ ناقص‌بودن شواهد به معنی Pending است.</p>
+          </form>
+
+          <form id="draft-form" class="tool-form is-hidden">
+            <div class="field">
+              <label class="field-label" for="draft-text">متن کامل پیش‌نویس <span class="required">*</span></label>
+              <textarea id="draft-text" class="input-control draft-input" rows="14" placeholder="# عنوان
+عنوان مقاله را اینجا قرار بده.
+
+# چکیده
+متن چکیده...
+
+# کلیدواژه‌ها
+...
+
+# وابستگی سازمانی
+...
+
+# مقدمه
+...
+
+# پیشینه پژوهش
+...
+
+# روش‌شناسی
+...
+
+# یافته‌ها
+...
+
+# نتیجه‌گیری
+...
+
+# منابع
+..." spellcheck="true"></textarea>
+              <div class="field-hint">عنوان هر بخش را با Heading یا عنوان مستقل بنویس؛ فارسی و انگلیسی پشتیبانی می‌شود.</div>
+            </div>
+
+            <div class="form-grid">
+              <div class="field">
+                <label class="field-label" for="draft-language">زبان گزارش</label>
+                <select id="draft-language" class="input-control">
+                  <option value="fa" selected>فارسی</option>
+                  <option value="en">English</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="field-label" for="draft-manual">قضاوت دستی <span class="optional">JSON</span></label>
+                <input id="draft-manual" class="input-control code-input" type="text" placeholder='{"T2": false}' spellcheck="false">
+              </div>
+            </div>
+
+            <div class="field access-field">
+              <label class="field-label" for="draft-access-key">کلید دسترسی API <span class="optional">فقط اگر در سرور فعال شده</span></label>
+              <input id="draft-access-key" class="input-control" type="password" placeholder="در صورت نیاز وارد کن؛ در مرورگر ذخیره نمی‌شود" autocomplete="off">
+            </div>
+
+            <button class="primary-button" id="draft-submit" type="submit">
+              <span>بررسی پیش‌نویس</span><b>←</b>
+            </button>
+            <p class="form-footnote">قواعد دستی بدون قضاوت ثبت‌شده تأیید نمی‌شوند. ابزار متن مقاله را به‌جای نویسنده بازنویسی نمی‌کند.</p>
+          </form>
+        </section>
+
+        <section class="panel output-panel" aria-label="نتیجه">
+          <div class="panel-heading output-heading">
+            <div>
+              <p class="section-kicker">OUTPUT / VERIFICATION</p>
+              <h2>گزارش ارزیابی</h2>
+            </div>
+            <span class="output-state" id="output-state"><i></i> آماده اجرا</span>
+          </div>
+
+          <div class="empty-state" id="empty-state">
+            <div class="empty-graphic">
+              <div class="empty-ring ring-outer"></div>
+              <div class="empty-ring ring-inner"></div>
+              <span>AF</span>
+            </div>
+            <h3>هنوز گزارشی ساخته نشده</h3>
+            <p>ورودی را کامل کن و اجرا بزن. خروجی واقعی همین‌جا نمایش داده می‌شود؛ تأیید منبع بدون مدرک ممکن نیست.</p>
+            <div class="empty-note"><span>i</span> داده نمونه یا نتیجه نمایشی در این محیط استفاده نمی‌شود.</div>
+          </div>
+
+          <div class="results-view is-hidden" id="results-view">
+            <div class="summary-grid" id="summary-grid"></div>
+            <div class="results-toolbar">
+              <div><span class="results-label">RESULT SET</span><b id="results-title">نتیجه‌ها</b></div>
+              <div class="toolbar-actions">
+                <button class="utility-button" id="copy-output" type="button" disabled>کپی گزارش</button>
+                <button class="utility-button" id="download-output" type="button" disabled>دریافت JSON</button>
+              </div>
+            </div>
+            <div id="result-items" class="result-items"></div>
+            <details class="raw-output">
+              <summary>گزارش کامل متنی (Markdown)</summary>
+              <pre id="markdown-output" dir="auto"></pre>
+            </details>
+            <p class="result-disclaimer" id="result-disclaimer"></p>
+          </div>
+
+          <div class="error-state is-hidden" id="error-state" role="alert">
+            <span class="error-icon">!</span>
+            <h3>درخواست کامل نشد</h3>
+            <p id="error-message"></p>
+            <button class="utility-button" id="dismiss-error" type="button">بازگشت</button>
+          </div>
+        </section>
+      </section>
+
+      <section class="principles-strip">
+        <div><span class="principle-number">01</span><p><b>Evidence over confidence</b><small>هر تیک باید به مدرک قابل بررسی وصل باشد.</small></p></div>
+        <div><span class="principle-number">02</span><p><b>Fail-closed by design</b><small>داده ناقص Pending می‌ماند، نه Approved.</small></p></div>
+        <div><span class="principle-number">03</span><p><b>Human judgment stays human</b><small>قضاوت پژوهشی جعل یا خودکارسازی نمی‌شود.</small></p></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>ARTICLE FINDER <b>·</b> RELEASE 1.2.0</span>
+      <span>Evidence-first research workflow</span>
+      <a href="https://github.com/mk18dev/article-finder" target="_blank" rel="noreferrer">SOURCE REPOSITORY ↗</a>
+    </footer>
+  </div>
+</body>
+</html>

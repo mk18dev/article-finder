@@ -24,8 +24,12 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Compile scripts and tests
-        run: python -m compileall -q scripts tests
+      - name: Check browser JavaScript syntax
+        run: node --check app.js
+      - name: Validate Vercel configuration and static entry point
+        run: python -c "import json,pathlib; json.loads(pathlib.Path('vercel.json').read_text()); assert pathlib.Path('index.html').is_file(); assert pathlib.Path('styles.css').is_file(); assert pathlib.Path('app.js').is_file()"
+      - name: Compile scripts, API and tests
+        run: python -m compileall -q scripts api tests
       - name: Run the test suite
         run: python -m unittest discover -s tests -t tests -v
       - name: Build the skill package

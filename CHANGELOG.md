@@ -1,6 +1,17 @@
 # Changelog
 
-All notable changes to this skill. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning [SemVer](https://semver.org/).
+All notable changes to this skill and web app. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning [SemVer](https://semver.org/).
+
+## [1.2.0] — 2026-11-23
+
+### Web application and API
+
+- Added a Persian-first responsive web workspace for source verification and draft checking, backed by the existing Python modules.
+- Added a bounded, same-origin JSON API with per-request source/draft size limits, DOI normalization, optional bearer authentication, and no public PDF-fetch route.
+- Added Vercel Python-function configuration, response security headers, and a 90-second function limit.
+- Added API regression tests plus JavaScript syntax and deployment-config validation to the Python 3.10–3.13 CI matrix.
+- Documented Vercel setup, production API-key configuration, and the limits of submitted reviewer evidence.
+
 
 ## [1.1.0] — 2026-11-23
 
