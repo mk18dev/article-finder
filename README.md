@@ -156,7 +156,7 @@ Not affiliated with, or endorsed by, the deck's author or Islamic Azad Universit
 
 ## Web app and API
 
-The Persian-first web interface uses the same Python verification and draft-checking
+**Live application:** [article-finder-peach.vercel.app](https://article-finder-peach.vercel.app/) — Release 1.3.0.\n\nThe Persian-first web interface uses the same Python verification and draft-checking
 functions as the CLI; it does not introduce a second rules engine.
 
 - `/` serves the responsive web workspace.
