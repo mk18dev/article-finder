@@ -224,3 +224,16 @@ Add, per approved article, the one- or two-sentence extract in your own words, t
 > **#1 (Concept):** gives the field's standard definition and contrasts the two main viewpoints; use it to open the Research Background.
 >
 > Next step: collect the Challenge sources so the Introduction can state the problem.
+
+
+## Mode 3 and Mode 4 input fixtures
+
+These files are deliberately marked as placeholders and are not real research results.
+
+```bash
+python3 scripts/prisma_review.py examples/prisma-review.json --format report
+python3 scripts/synthesize_literature.py examples/literature-evidence.json --format markdown
+python3 scripts/verify_citations.py examples/citations.json --format markdown
+```
+
+A placeholder citation without a resolvable DOI remains Pending. A placeholder evidence bundle demonstrates structure only; it must never be copied into a real review.
