@@ -25,6 +25,7 @@ def valid_review():
                 "platform": "REST API",
                 "query": '"intervention X" AND "outcome Y"',
                 "date_run": "2026-11-23",
+                "search_url": "https://api.crossref.org/works?query=intervention",
                 "hits": 10,
                 "limits": "2018-2026; English",
             }
