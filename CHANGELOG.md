@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.3.0] — 2026-11-23
+
+### Source discovery
+
+- Added live Crossref bibliographic search to the web workspace.
+- Returns real DOI candidates with title, authors, year, publisher and venue metadata.
+- Captures exact query, Crossref result URL, matched DOI and UTC search timestamp in each candidate plan.
+- Allows up to four selected candidates to flow directly into the existing 11-gate verifier; discovery never grants approval or fabricates reviewer evidence.
+- Added unit and HTTP integration tests for discovery validation, malformed/duplicate records, upstream failures and evidence provenance.
+
+
 All notable changes to this skill and web app. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning [SemVer](https://semver.org/).
 
 ## [1.2.0] — 2026-11-23
