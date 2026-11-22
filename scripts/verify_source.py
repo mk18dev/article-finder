@@ -269,28 +269,60 @@ def identifiers_ok(work: Work, entry: dict[str, Any]) -> bool | None:
     return None
 
 
-def s6_gate(entry: dict[str, Any]) -> bool | None:
-    blacklist = str(entry.get("blacklist_status", "")).strip().lower()
-    if blacklist in {"listed", "blacklisted"}:
-        return False
-    blacklist_evidence = entry.get("blacklist_evidence")
-    if blacklist != "clear" or not isinstance(blacklist_evidence, dict) or not evidence_item_ok({
-        **blacklist_evidence,
-        "allow_legacy_blacklist_http": True,
-    }):
-        return None
-    accepted = {"scopus", "web of science", "wos", "isc", "dblp"}
-    for item in entry.get("indexing_evidence", []) or []:
-        if not isinstance(item, dict):
-            continue
-        name = str(item.get("index", "")).strip().lower()
-        if name in accepted and evidence_item_ok({
+def s6_gate(work: Work, entry: dict[str, Any]) -> bool | None:
+    def verified_record(item: Any) -> bool:
+        return isinstance(item, dict) and evidence_item_ok({
             "reviewed": item.get("verified"),
             "url": item.get("url"),
             "note": item.get("note"),
-        }):
-            return True
-    return None
+        })
+
+    if work.kind in {"journal", "conference"}:
+        if work.kind == "journal":
+            blacklist = str(entry.get("blacklist_status", "")).strip().lower()
+            if blacklist in {"listed", "blacklisted"}:
+                return False
+            blacklist_evidence = entry.get("blacklist_evidence")
+            if blacklist != "clear" or not isinstance(blacklist_evidence, dict) or not evidence_item_ok({
+                **blacklist_evidence,
+                "allow_legacy_blacklist_http": True,
+            }):
+                return None
+        accepted = {"scopus", "web of science", "wos", "isc", "dblp"}
+        for item in entry.get("indexing_evidence", []) or []:
+            if not isinstance(item, dict):
+                continue
+            name = str(item.get("index", "")).strip().lower()
+            if name in accepted and verified_record(item):
+                return True
+        return None
+
+    if work.kind == "thesis":
+        item = entry.get("thesis_repository_evidence")
+        if not isinstance(item, dict):
+            return None
+        repository = str(item.get("repository", item.get("index", ""))).strip().lower()
+        accepted = {"irandoc", "university repository", "institutional repository"}
+        return True if repository in accepted and verified_record(item) else None
+
+    if work.kind == "book":
+        item = entry.get("book_s6_evidence")
+        if not isinstance(item, dict):
+            return None
+        source = str(item.get("source", item.get("index", ""))).strip().lower()
+        citation_count = item.get("citation_count")
+        citation_count_valid = (
+            isinstance(citation_count, int) and not isinstance(citation_count, bool)
+            and citation_count >= 0
+        )
+        publisher_verified = item.get("publisher_verified") is True
+        accepted = {"google books", "amazon"}
+        return True if (
+            source in accepted and citation_count_valid and publisher_verified
+            and verified_record(item)
+        ) else None
+
+    return False
 
 
 def s11_gate(work: Work, entry: dict[str, Any], category: str) -> bool | None:
@@ -321,17 +353,26 @@ def tier_verified(entry: dict[str, Any]) -> bool:
 
 
 def s6_links(work: Work) -> list[str]:
+    title = urllib.parse.quote(work.title)
+    if work.kind == "thesis":
+        return ["[Irandoc](https://irandoc.ac.ir/)"]
+    if work.kind == "book":
+        isbn = work.isbns[0] if work.isbns else ""
+        query = urllib.parse.quote(isbn or work.title)
+        return [
+            f"[Google Books](https://books.google.com/books?q={query})",
+            f"[Amazon](https://www.amazon.com/s?k={query})",
+        ]
+    if work.kind == "conference":
+        return [f"[DBLP]({DBLP}{title})"]
     key = work.source_issn or (work.issns[0] if work.issns else "")
     links: list[str] = [f"[blacklist + IF]({IMPACTFACTOR})"]
-    if not key:
-        return links + [f"[DBLP]({DBLP}{urllib.parse.quote(work.title)})"] if work.kind == "conference" else links
     if key:
-        links.append(f"[SCImago]({SCI_MAGO}{key})")
-        links.append(f"[Clarivate MJL]({CLARIVATE}{key})")
-    if work.in_doaj or key:
-        links.append(f"[DOAJ]({DOAJ}{key}%22%7D%7D%7D)")
-    if work.kind == "conference":
-        links.append(f"[DBLP]({DBLP}{urllib.parse.quote(work.title)})")
+        links.extend([
+            f"[SCImago]({SCI_MAGO}{key})",
+            f"[Clarivate MJL]({CLARIVATE}{key})",
+            f"[DOAJ]({DOAJ}{key}%22%7D%7D%7D)",
+        ])
     return links
 
 
@@ -369,7 +410,7 @@ def decide(work: Work, entry: dict[str, Any]) -> dict[str, Any]:
         True if publisher_ok else None
     ) if work.kind in {"journal", "conference"} else judgement(entry, "S5")
 
-    s6 = s6_gate(entry)
+    s6 = s6_gate(work, entry)
     s7 = identifiers_ok(work, entry)
     s11 = s11_gate(work, entry, category)
     s4 = source_type_ok(work, entry)
@@ -404,8 +445,18 @@ def decide(work: Work, entry: dict[str, Any]) -> dict[str, Any]:
                else "search execution and result-to-DOI evidence not supplied"),
         "S4": f"Crossref type -> {work.kind or 'unmapped'}; degree -> {entry.get('degree', 'not recorded')}",
         "S5": f"Crossref publisher: {work.publisher or 'unknown'}",
-        "S6": f"blacklist status: {entry.get('blacklist_status', 'not checked')}; "
-              f"index evidence: {len(entry.get('indexing_evidence', []) or [])}",
+        "S6": (
+            f"blacklist status={entry.get('blacklist_status', 'not checked')}; "
+            f"index evidence={len(entry.get('indexing_evidence', []) or [])}"
+            if work.kind == "journal" else
+            f"conference index evidence={len(entry.get('indexing_evidence', []) or [])}"
+            if work.kind == "conference" else
+            f"thesis repository evidence={bool(entry.get('thesis_repository_evidence'))}"
+            if work.kind == "thesis" else
+            f"book S6 evidence={bool(entry.get('book_s6_evidence'))}; "
+            f"citation count={(entry.get('book_s6_evidence') or {}).get('citation_count', 'missing')}"
+            if work.kind == "book" else "unsupported source type"
+        ),
         "S7": (", ".join(work.issns) if work.kind == "journal" else
                ", ".join(work.isbns) if work.kind == "book" else
                f"conference edition: {entry.get('conference_edition', 'missing')}; "
@@ -417,7 +468,7 @@ def decide(work: Work, entry: dict[str, Any]) -> dict[str, Any]:
         "S10": j10.get("note", "category judgement needs evidence") if isinstance(j10, dict) else "category judgement needs evidence",
         "S11": f"reading evidence fields: {', '.join(reading.keys()) or 'none'}",
     }
-    if work.in_doaj:
+    if work.kind == "journal" and work.in_doaj:
         evidence["S6-DOAJ"] = "OpenAlex reports is_in_doaj=true; this alone does not complete S6"
 
     notes_en: list[str] = []
@@ -426,8 +477,21 @@ def decide(work: Work, entry: dict[str, Any]) -> dict[str, Any]:
         notes_en.append("S6 rejected: the source is marked as listed on an Iranian blacklist.")
         notes_fa.append("S6 رد شد: منبع به‌عنوان مورد فهرست سیاه ایران ثبت شده است.")
     elif s6 is None:
-        notes_en.append("S6 pending: record a checked blacklist result and verified index evidence.")
-        notes_fa.append("S6 در انتظار است: نتیجه بررسی فهرست سیاه و مدرک نمایه‌سازی را ثبت کن.")
+        if work.kind == "journal":
+            notes_en.append("S6 pending: record a checked blacklist result and a verified Scopus/WoS/ISC/DBLP record.")
+            notes_fa.append("S6 در انتظار است: نتیجه بررسی فهرست سیاه و مدرک نمایه‌سازی Scopus/WoS/ISC/DBLP را ثبت کن.")
+        elif work.kind == "conference":
+            notes_en.append("S6 pending: verify the conference proceedings in Scopus, Web of Science, ISC or DBLP.")
+            notes_fa.append("S6 در انتظار است: نمایه‌شدن مجموعه‌مقالات کنفرانس را در Scopus، Web of Science، ISC یا DBLP تأیید کن.")
+        elif work.kind == "thesis":
+            notes_en.append("S6 pending: verify the thesis record in Irandoc or an official university repository.")
+            notes_fa.append("S6 در انتظار است: رکورد پایان‌نامه را در ایرانداک یا مخزن رسمی دانشگاه تأیید کن.")
+        elif work.kind == "book":
+            notes_en.append("S6 pending: verify the Google Books/Amazon record, citation count and publisher.")
+            notes_fa.append("S6 در انتظار است: رکورد Google Books/Amazon، تعداد استناد و ناشر کتاب را تأیید کن.")
+        else:
+            notes_en.append("S6 pending: unsupported source type.")
+            notes_fa.append("S6 در انتظار است: نوع منبع پشتیبانی نمی‌شود.")
     if s4 is None:
         notes_en.append("S4 pending: the thesis degree must be recorded; undergraduate theses are rejected.")
         notes_fa.append("S4 در انتظار است: مقطع پایان‌نامه باید ثبت شود؛ پایان‌نامه کارشناسی رد می‌شود.")

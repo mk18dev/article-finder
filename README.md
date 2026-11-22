@@ -33,7 +33,7 @@ Zero approved is a normal, honest result. Read the next section for why.
 | S3 | Keyword | executed query, result URL, matching DOI and timestamp |
 | S4 | Source type | Crossref type; thesis degree is explicit and undergraduate is rejected |
 | S5 | Publisher / venue | Crossref publisher for journals/conferences; evidenced judgement for books/theses |
-| S6 | Indexing | checked blacklist result plus verified Scopus/WoS/ISC/DBLP evidence |
+| S6 | Source credibility | Journals: blacklist + index; conferences: proceedings index; theses: Irandoc/university repository; books: Google Books/Amazon + citations + publisher evidence |
 | S7 | Identifiers | journal ISSN + volume/issue; conference edition/venue; book ISBN; thesis repository record |
 | S8 | Specialization & year | explicit specialization boolean + evidence URL/note + category-specific year rule |
 | S9 | Tier ≥ cut-off | only a tier with reviewer evidence and a source URL can pass |

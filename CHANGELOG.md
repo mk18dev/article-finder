@@ -15,7 +15,7 @@ All notable changes to this skill. Format: [Keep a Changelog](https://keepachang
 ### Evidence and source validation
 
 - S1/S2/S10 now require documented reviewer judgements; S3 requires a matching executed-search record; S8 specialization and non-undergraduate thesis degree require reviewer evidence; tier A-D requires reviewer evidence.
-- S6 now hard-rejects a reported blacklist hit and requires both a documented clear blacklist check and a verified index record to pass.
+- S6 now applies source-specific evidence: journals require blacklist + index checks; conferences require proceedings indexing; theses require an Irandoc/university repository record; books require Google Books/Amazon, citation count and publisher confirmation.
 - S7 now uses source-type-specific evidence for journals, conference proceedings, books and theses; bachelor's theses are rejected, and book chapters are not treated as main books.
 - S11 now requires the reading depth defined by the source category and type; an abstract alone cannot pass.
 - Duplicate merge now surfaces contradictory steps and conflicting metadata instead of silently preferring one record.

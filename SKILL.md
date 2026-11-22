@@ -62,7 +62,7 @@ Run the steps in order. Stop at the first ❌ and note why. Details, the tier ru
 | S3 | Keyword | The executed query, result URL, matching DOI and search date are recorded |
 | S4 | Source type | Crossref type is supported; thesis degree has a review URL/note; undergraduate theses are rejected |
 | S5 | Publisher / venue | Journal/conference publisher matches the allowed list; books/theses have a reviewed judgement |
-| S6 | Indexing | Blacklist status is checked and evidenced; a hit rejects; a clear result still needs verified Scopus/WoS/ISC/DBLP evidence |
+| S6 | Source credibility | Journal: blacklist + index; conference: proceedings index; thesis: Irandoc/university repository; book: Google Books/Amazon + citation count + publisher evidence |
 | S7 | Identifiers | Journal ISSN + volume/issue; conference DOI + edition/venue; book ISBN + main-book evidence; thesis repository record |
 | S8 | Specialization & year | Specialization boolean and its review URL/note are present; category-specific year rule passes |
 | S9 | Tier | A-D tier has a reviewer evidence URL and basis; the render script compares it to the cut-off |

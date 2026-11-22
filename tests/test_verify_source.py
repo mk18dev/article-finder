@@ -274,10 +274,10 @@ class BlacklistTests(unittest.TestCase):
     def test_checklist_starts_with_blacklist_link(self) -> None:
         self.assertIn("impactfactor.ir", vs.s6_links(work())[0])
 
-    def test_conference_checklist_keeps_dblp(self) -> None:
+    def test_conference_checklist_keeps_dblp_without_journal_blacklist_link(self) -> None:
         links = " ".join(vs.s6_links(work(kind="conference", issns=[])))
-        self.assertIn("impactfactor.ir", links)
         self.assertIn("dblp", links)
+        self.assertNotIn("impactfactor.ir", links)
 
     def test_checklist_explains_evidence_fields(self) -> None:
         source = work()
@@ -363,5 +363,82 @@ class LegacyBehaviourRegressionTests(unittest.TestCase):
         self.assertIn("blacklist", content.lower())
 
 
+
+class SourceSpecificS6Tests(unittest.TestCase):
+    def test_thesis_s6_requires_irandoc_or_university_repository(self) -> None:
+        thesis = work(kind="thesis", issns=[])
+        evidence = {
+            "repository": "Irandoc", "verified": True,
+            "url": "https://irandoc.ac.ir/record/123",
+            "note": "Institutional thesis record was inspected",
+        }
+        self.assertIs(decide(thesis, {**ENTRY, "thesis_repository_evidence": evidence})["steps"]["S6"], True)
+
+    def test_thesis_s6_does_not_accept_journal_index_only(self) -> None:
+        thesis = work(kind="thesis", issns=[])
+        self.assertIs(decide(thesis)["steps"]["S6"], None)
+
+    def test_book_s6_requires_citations_and_publisher_confirmation(self) -> None:
+        book = work(kind="book", issns=[], isbns=["9780262033848"])
+        evidence = {
+            "source": "Google Books", "verified": True,
+            "url": "https://books.google.com/books?id=example",
+            "note": "Book record and publisher were inspected",
+            "citation_count": 27, "publisher_verified": True,
+        }
+        self.assertIs(decide(book, {**ENTRY, "book_s6_evidence": evidence})["steps"]["S6"], True)
+
+    def test_book_s6_is_pending_without_citation_count(self) -> None:
+        book = work(kind="book", issns=[], isbns=["9780262033848"])
+        evidence = {
+            "source": "Google Books", "verified": True,
+            "url": "https://books.google.com/books?id=example",
+            "note": "Book record and publisher were inspected",
+            "publisher_verified": True,
+        }
+        self.assertIs(decide(book, {**ENTRY, "book_s6_evidence": evidence})["steps"]["S6"], None)
+
+    def test_book_s6_is_pending_without_publisher_confirmation(self) -> None:
+        book = work(kind="book", issns=[], isbns=["9780262033848"])
+        evidence = {
+            "source": "Amazon", "verified": True,
+            "url": "https://www.amazon.com/dp/example",
+            "note": "Book record and citation count were inspected",
+            "citation_count": 12, "publisher_verified": False,
+        }
+        self.assertIs(decide(book, {**ENTRY, "book_s6_evidence": evidence})["steps"]["S6"], None)
+
+
+    def test_conference_s6_needs_indexing_but_not_journal_blacklist(self) -> None:
+        conference = work(kind="conference", issns=[], container="Proceedings of Tests")
+        evidence = [{
+            "index": "DBLP", "verified": True,
+            "url": "https://dblp.org/db/conf/example",
+            "note": "Conference proceedings record was inspected",
+        }]
+        self.assertIs(decide(conference, {**ENTRY, "indexing_evidence": evidence})["steps"]["S6"], True)
+
+    def test_conference_s6_without_index_record_is_pending(self) -> None:
+        conference = work(kind="conference", issns=[], container="Proceedings of Tests")
+        self.assertIsNone(decide(conference, {"category": "application"})["steps"]["S6"])
+
+    def test_thesis_s6_link_points_to_irandoc(self) -> None:
+        links = " ".join(vs.s6_links(work(kind="thesis", issns=[])))
+        self.assertIn("irandoc.ac.ir", links)
+
+    def test_book_s6_links_point_to_google_books_and_amazon(self) -> None:
+        links = " ".join(vs.s6_links(work(kind="book", issns=[], isbns=["9780262033848"])))
+        self.assertIn("books.google.com", links)
+        self.assertIn("amazon.com", links)
+
+    def test_book_s6_rejects_boolean_as_citation_count(self) -> None:
+        book = work(kind="book", issns=[], isbns=["9780262033848"])
+        evidence = {
+            "source": "Google Books", "verified": True,
+            "url": "https://books.google.com/books?id=example",
+            "note": "Book record and publisher were inspected",
+            "citation_count": True, "publisher_verified": True,
+        }
+        self.assertIsNone(decide(book, {**ENTRY, "book_s6_evidence": evidence})["steps"]["S6"])
 if __name__ == "__main__":
     unittest.main()

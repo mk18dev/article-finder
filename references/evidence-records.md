@@ -69,33 +69,44 @@ The query must exactly match the recorded keyword pair and DOI. The script
 checks the structure and match; it does not independently prove that a human
 actually ran the search.
 
-### S6 — blacklist and indexing
+### S6 — type-specific validation
 
-A blacklist hit is a hard rejection. A clear result only permits further
-checking; S6 passes only when a documented blacklist check and at least one
-verified index record are supplied.
+S6 follows a distinct source rule for each type. Example URLs below are
+placeholders; replace them with the exact record you actually inspected.
+
+**Journal:** a blacklist hit is a hard rejection. A clear result requires
+`blacklist_status: "clear"` and `blacklist_evidence`, plus at least one
+verified Scopus, Web of Science/WoS, ISC or DBLP record in
+`indexing_evidence`.
+
+**Conference:** verify the proceedings record in Scopus, Web of Science/WoS,
+ISC or DBLP using `indexing_evidence`. The journal blacklist check does not
+apply to conference proceedings.
+
+**Thesis:** use `thesis_repository_evidence` with repository
+`Irandoc`, `university repository`, or `institutional repository`, plus
+`verified: true`, a source URL and note.
+
+**Book:** use `book_s6_evidence` with source `Google Books` or `Amazon`,
+a non-negative integer `citation_count`, `publisher_verified: true`,
+`verified: true`, a source URL and note.
+
+Example book record:
 
 ```json
-"blacklist_status": "clear",
-"blacklist_evidence": {
-  "reviewed": true,
-  "url": "http://impactfactor.ir/",
-  "note": "Checked the relevant national and university blacklist"
-},
-"indexing_evidence": [
-  {
-    "index": "Scopus",
-    "verified": true,
-    "url": "https://example.org/replace-with-index-record",
-    "note": "Confirmed the journal title and coverage period"
-  }
-]
+"book_s6_evidence": {
+  "source": "Google Books",
+  "verified": true,
+  "url": "https://books.google.com/books?id=replace-with-real-record",
+  "note": "Book record, publisher and citation count were inspected",
+  "citation_count": 27,
+  "publisher_verified": true
+}
 ```
 
-Accepted index labels in this release: `Scopus`, `Web of Science`/`WoS`,
-`ISC`, and `DBLP`. DOAJ membership alone is not a substitute for one of
-these. The script validates the evidence shape, not the remote page's truth;
-the reviewer must actually inspect it.
+The script validates evidence fields, not the truth of the external page. A
+reviewer must inspect the record. DOAJ membership alone does not substitute
+for the journal/conference index evidence required by this gate.
 
 ### S7 — identifiers by source type
 

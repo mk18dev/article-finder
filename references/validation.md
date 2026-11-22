@@ -150,21 +150,16 @@ Missing or invalid ISSN, publisher not identifiable, Number inconsistent with Vo
 | S4 Source type | script | Crossref `type` mapped to journal / conference / book / thesis |
 | S5 Publisher | script, one-sided | Crossref `publisher`, matched against the slide's publisher list; a publisher outside that list stays ❓, never ❌ |
 | S7 Identifiers | script | ISSN checksums via `check_ids.py`; for a conference, edition + venue + DOI |
-| S8 Specialization & year | script, partly | Crossref year against the recency rule; specialization is declared in the plan |
-| S11 Extraction | script, partly | an OpenAlex abstract ticks Concept, Challenge and Application; a Methodology source always stays ❓ |
+| S8 Specialization & year | script, partly | Crossref year against the recency rule; specialization requires a reviewer record and evidence URL |
+| S11 Extraction | script, partly | reviewer reading records for abstract/introduction/conclusion, chapters 1-2, or full text according to category and source type |
 | S1, S2, S3, S10 | the model | judgments about the research, taken from the plan and reported as declared |
 | S6 Indexing | the user | no API decides it — see the ladder below |
 
-**Why S6 cannot be automated.** Scopus and Web of Science membership is exposed only through Clarivate and SciMago. In a live session these hosts refuse scripted clients (`scimagojr.com` HTTP 403 Cloudflare, `dblp.org` HTTP 202 Anubis, `mjl.clarivate.com` JavaScript-only). An agent that ticks S6 without opening one of those pages is guessing.
+**S6 is manually verified but machine-enforced by source type.** The CLI validates the required evidence record's shape; it does not claim to have inspected or authenticated the external page.
 
-**Fallback ladder for S6**, stop at the first rung that answers:
+- **Journal:** a reported blacklist hit rejects the source. Otherwise, a documented clear blacklist check plus a verified Scopus, Web of Science/WoS, ISC or DBLP record is required.
+- **Conference:** a verified proceedings index record in Scopus, Web of Science/WoS, ISC or DBLP is required. The journal blacklist check does not apply.
+- **Thesis:** a verified Irandoc or official university/institutional repository record is required.
+- **Book:** a Google Books/Amazon record, a non-negative citation count and explicit publisher confirmation are required.
 
-0. **Iranian blacklist first** — `impactfactor.ir`: the list of the two ministries and Islamic Azad University. A listing there is a rejection at S6 (§2), so check it before spending time on quartiles. This is the one rung that can only drop a source, never promote it.
-1. SCImago — `scimagojr.com/journalsearch.php?q=<ISSN>`: gives the SJR quartile, which also settles the tier.
-2. Clarivate Master Journal List — `mjl.clarivate.com/search-results?issn=<ISSN>`: gives SCIE / SSCI / ESCI coverage.
-3. DOAJ — `doaj.org`: open-access journals only, but a real record.
-4. DBLP — `dblp.org/search?q=<title>`: accepted for computer-science conferences.
-5. Nothing answers: S6 stays ❓ and the note names the page to open. The source is pending, not approved.
-
-`verify_source.py --s6 checklist.md` writes every link above for every source, so the user works from a list instead of re-deriving the URLs.
-
+DOAJ membership alone does not replace the journal/conference index evidence accepted by this release. The generated checklist links to the source-specific lookup pages. Reviewers must inspect those pages and record the evidence in the plan; a URL and note are an audit trail, not cryptographic proof of the page's contents.
