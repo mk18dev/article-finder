@@ -58,6 +58,12 @@ class VerdictTests(unittest.TestCase):
         self.assertEqual(verdict, "PENDING")
         self.assertEqual(rt.first_step(steps, None), "integrity")
 
+
+    def test_paratext_source_is_pending_for_eligibility_review(self) -> None:
+        steps, verdict = rt.evaluate(article(integrity_status="paratext"), "B")
+        self.assertIsNone(steps["S0"])
+        self.assertEqual(verdict, "PENDING")
+
     def test_missing_integrity_status_fails_closed(self) -> None:
         item = article()
         item.pop("integrity_status")
