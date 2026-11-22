@@ -20,6 +20,17 @@ APA_NARRATIVE_RE = re.compile(
 )
 
 
+REFERENCE_HEADING_RE = re.compile(
+    r"(?im)^\s*(?:#{1,6}\s*)?(?:references|bibliography|works cited|منابع|مراجع)\s*$"
+)
+IEEE_BRACKET_RE = re.compile(r"\[[^\]]*\d[^\]]*\]")
+
+
+def _body_text(text: str) -> str:
+    match = REFERENCE_HEADING_RE.search(text)
+    return text[:match.start()] if match else text
+
+
 def _references(document: Any) -> list[dict[str, Any]]:
     if isinstance(document, list):
         refs = document
@@ -86,6 +97,7 @@ def _expand_ieee(body: str) -> list[int]:
 
 
 def audit_ieee(text: str, references: list[dict[str, Any]]) -> dict[str, Any]:
+    text = _body_text(text)
     ref_numbers: dict[int, dict[str, Any]] = {}
     errors = []
     for index, reference in enumerate(references, 1):
@@ -100,11 +112,16 @@ def audit_ieee(text: str, references: list[dict[str, Any]]) -> dict[str, Any]:
         ref_numbers[number] = reference
     cited: list[int] = []
     malformed = []
+    valid_spans = set()
     for match in IEEE_RE.finditer(text):
+        valid_spans.add(match.span())
         try:
             cited.extend(_expand_ieee(match.group(1)))
         except ValueError as exc:
             malformed.append(str(exc))
+    for match in IEEE_BRACKET_RE.finditer(text):
+        if match.span() not in valid_spans:
+            malformed.append(f"unrecognized IEEE citation: {match.group(0)}")
     cited_set = set(cited)
     missing = sorted(cited_set - set(ref_numbers))
     uncited = sorted(set(ref_numbers) - cited_set)
@@ -123,6 +140,7 @@ def audit_ieee(text: str, references: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def audit_apa(text: str, references: list[dict[str, Any]]) -> dict[str, Any]:
+    text = _body_text(text)
     reference_keys: dict[tuple[str, str], list[int]] = defaultdict(list)
     invalid = []
     for index, reference in enumerate(references, 1):
@@ -134,11 +152,17 @@ def audit_apa(text: str, references: list[dict[str, Any]]) -> dict[str, Any]:
         reference_keys[(author, year)].append(index)
 
     citations: list[dict[str, str]] = []
+    malformed = []
     for match in APA_PAREN_RE.finditer(text):
         body = match.group(1)
+        found_pairs = 0
         for part in body.split(";"):
-            for author, year in APA_PAIR_RE.findall(part):
+            pairs = APA_PAIR_RE.findall(part)
+            found_pairs += len(pairs)
+            for author, year in pairs:
                 citations.append({"author": _author_key(author), "year": year.casefold(), "raw": part.strip()})
+        if not found_pairs:
+            malformed.append(f"unrecognized APA citation: ({body})")
     for match in APA_NARRATIVE_RE.finditer(text):
         citations.append({
             "author": _author_key(match.group(1)),
@@ -167,10 +191,11 @@ def audit_apa(text: str, references: list[dict[str, Any]]) -> dict[str, Any]:
     duplicate_dois = _duplicate_dois(references)
     return {
         "style": "APA",
-        "status": "pass" if not (invalid or unmatched or uncited or duplicate_keys or duplicate_dois) else "review",
+        "status": "pass" if not (invalid or unmatched or uncited or duplicate_keys or duplicate_dois or malformed) else "review",
         "in_text_citation_count": len(citations),
         "matched_reference_indices": sorted(matched_reference_indices),
         "unmatched_in_text_citations": unmatched,
+        "malformed_citations": malformed,
         "uncited_reference_indices": sorted(uncited),
         "duplicate_author_year_keys": duplicate_keys,
         "duplicate_dois": duplicate_dois,
