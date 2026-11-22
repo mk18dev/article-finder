@@ -5,6 +5,12 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      run_production_smoke:
+        description: Run live production checks after a deployment
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -40,7 +46,7 @@ jobs:
   production-smoke:
     name: production smoke test
     needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && inputs.run_production_smoke == true
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
