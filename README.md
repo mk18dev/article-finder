@@ -19,7 +19,7 @@ Zero approved is a normal, honest result. Read the next section for why.
 
 | Workflow | Input | Output |
 |---|---|---|
-| Discover sources | Course keyword + research topic | Crossref candidates with DOI and query provenance |
+| Discover sources | Course keyword + research topic | Crossref/OpenAlex CLI results with DOI and query provenance; web UI offers Crossref discovery |
 | Verify sources and citations | DOI + evidence plan + citation records | 11-gate checklist, APA/IEEE references and metadata mismatch/retraction flags |
 | Check a draft | Article draft | Section-by-section report against 76 writing rules |
 | Systematic/scoping review | Protocol + database search log + screening counts | Validated PRISMA-style counts, flow diagram and audit report |
@@ -32,7 +32,7 @@ Discovery returns candidates, never approvals. Reviewer evidence remains pending
 |---|---|---|---|
 | Input | Research topic and DOI candidates | Draft with one heading per section | Protocol, exact searches, and screening ledger |
 | Output | 11-gate source checklist + APA/IEEE bibliography | 76-rule section report + fix list | Search audit, reconciled counts, Mermaid flow |
-| Command | `verify_source.py` → `render_table.py` + `verify_citations.py` | `check_draft.py` | `prisma_review.py` |
+| Command | `search_databases.py` → `verify_source.py` → `render_table.py` + `verify_citations.py` | `check_draft.py` | `prisma_review.py` |
 
 ## The 11 gates (Mode 1)
 
@@ -144,7 +144,7 @@ The suite is network-free and additionally covers source evidence gates, citatio
 ```
 SKILL.md              the workflow an agent follows
 references/           the rule set, gates, rubric, reading rules, verification map
-scripts/              verify_source · verify_citations · prisma_review · render_table · fetch_pdf · check_draft · check_ids · web_api · http_util
+scripts/              search_databases · verify_source · verify_citations · prisma_review · render_table · fetch_pdf · check_draft · check_ids · web_api · http_util
 tests/                regression tests for every script
 examples/             fixtures whose real output the docs show
 tools/pack_skill.py   builds dist/article-finder.skill
