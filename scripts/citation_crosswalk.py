@@ -158,7 +158,13 @@ def audit_apa(text: str, references: list[dict[str, Any]]) -> dict[str, Any]:
 
     citations: list[dict[str, str]] = []
     malformed = []
+    narrative_matches = list(APA_NARRATIVE_RE.finditer(text))
     for match in APA_PAREN_RE.finditer(text):
+        # A year-only parenthetical belonging to "Smith (2020)" is narrative,
+        # not a malformed parenthetical citation.
+        if any(narrative.start() <= match.start() and narrative.end() == match.end()
+               for narrative in narrative_matches):
+            continue
         body = match.group(1)
         found_pairs = 0
         for part in body.split(";"):
@@ -168,7 +174,7 @@ def audit_apa(text: str, references: list[dict[str, Any]]) -> dict[str, Any]:
                 citations.append({"author": _author_key(author), "year": year.casefold(), "raw": part.strip()})
         if not found_pairs:
             malformed.append(f"unrecognized APA citation: ({body})")
-    for match in APA_NARRATIVE_RE.finditer(text):
+    for match in narrative_matches:
         citations.append({
             "author": _author_key(match.group(1)),
             "year": match.group(2).casefold(),
