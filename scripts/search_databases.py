@@ -159,6 +159,11 @@ def discover(query: str, limit: int = DEFAULT_LIMIT,
                 "status": "error",
                 "error": type(exc).__name__,
             })
+    for index, record in enumerate(records, 1):
+        record.setdefault(
+            "record_id",
+            f"{str(record.get('source_provider') or 'source').lower()}-{index}",
+        )
     unique, duplicates = deduplicate_records(records)
     return {
         "query": query.strip(),
