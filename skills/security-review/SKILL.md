@@ -13,6 +13,6 @@ Review `scripts/http_util.py`, `scripts/web_api.py`, `scripts/serve.py`, `api/in
 - Use constant-time comparison for bearer credentials and explicit same-origin/CSRF boundaries.
 - Keep PDF downloads local and separate from public API URL fetching.
 - Return sanitized errors; never leak stack traces, environment values, filesystem paths, or credentials.
-- Record public API mode explicitly. If `ARTICLE_FINDER_API_KEY` is unset, the API is public and must be treated as such.
+- Record public API mode explicitly. If `ARTICLE_FINDER_API_KEY` is unset on Vercel, the API fails closed unless `ARTICLE_FINDER_PUBLIC_MODE=1` is explicitly set. Local development is public by default.
 
 Output: findings with severity, affected file/line, reproducible test, and smallest safe fix.
