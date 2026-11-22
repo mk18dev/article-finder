@@ -167,7 +167,7 @@ Use when a user asks whether bibliography entries match their DOI, title, year, 
 - `scripts/prisma_review.py`: Mode 3 protocol/search-log validation, deduplication helpers, PRISMA count reconciliation and Mermaid flow output.
 - `scripts/synthesize_literature.py`: reviewer-extracted evidence matrix, thematic grouping, conflict flags and claim-to-source evidence map.
 - `scripts/http_util.py`: the shared request, retry and TLS handling used by network scripts.
-- `examples/`: the fixture files whose real output `references/output-example.md` shows.
+- `examples/`: `prisma-review.json`, `literature-evidence.json`, and `citations.json` are explicit placeholder inputs; never present their output as real research.
 - `tests/`: regression tests for every script.
 
 ## Tests
