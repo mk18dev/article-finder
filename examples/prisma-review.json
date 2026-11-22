@@ -1,0 +1,33 @@
+{
+  "protocol": {
+    "review_type": "systematic",
+    "question": "What evidence exists for the research question under review?",
+    "inclusion_criteria": [
+      "Directly addresses the prespecified research question",
+      "Meets the study-design and date criteria in the protocol"
+    ],
+    "exclusion_criteria": [
+      "Editorials and opinion pieces",
+      "Records outside the prespecified population or topic"
+    ],
+    "registration": null
+  },
+  "search_log": [
+    {
+      "database": "Crossref",
+      "platform": "REST API",
+      "query": "REPLACE WITH THE EXACT QUERY THAT WAS EXECUTED",
+      "date_run": "2026-11-23",
+      "hits": 0,
+      "limits": "REPLACE WITH THE ACTUAL LIMITS"
+    }
+  ],
+  "counts": {
+    "duplicates_removed": 0,
+    "records_removed_automation": 0,
+    "records_excluded_title_abstract": 0,
+    "reports_not_retrieved": 0,
+    "full_text_exclusions": {}
+  },
+  "records": []
+}
