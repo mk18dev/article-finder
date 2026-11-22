@@ -72,7 +72,8 @@ def search_crossref(query: str, limit: int) -> tuple[list[dict[str, Any]], dict[
         "query": query,
         "date_run": date.today().isoformat(),
         "searched_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "hits": int(message.get("total-results") or len(records)),
+        "hits": len(records),
+        "total_available": int(message.get("total-results") or len(records)),
         "limits": f"rows={limit}",
         "search_url": url,
         "status": "ok",
@@ -119,7 +120,8 @@ def search_openalex(query: str, limit: int) -> tuple[list[dict[str, Any]], dict[
         "query": query,
         "date_run": date.today().isoformat(),
         "searched_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "hits": int((payload.get("meta") or {}).get("count") or len(records)),
+        "hits": len(records),
+        "total_available": int((payload.get("meta") or {}).get("count") or len(records)),
         "limits": f"per-page={limit}",
         "search_url": url,
         "status": "ok",
@@ -184,7 +186,7 @@ def main() -> int:
             Path(args.output).write_text(output + "\n", encoding="utf-8")
         else:
             print(output)
-        return 0 if result["providers_succeeded"] else 2
+        return 0 if result["providers_succeeded"] and not result["errors"] else 2
     except (OSError, ValueError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
