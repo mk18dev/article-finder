@@ -5,6 +5,8 @@ description: Step-by-step research-paper workflow from the "Research method and 
 
 # Article Finder
 
+Release 1.1.0.
+
 Two jobs, one method, both from the user's research-methods slides (Niloofar Mirzaei Chahardeh, I.A.U.):
 
 1. **Find references** (slides Chapter 1, "Method of Search"): scope the topic, search with a fixed keyword formula, push every candidate through validation gates, rank it, file it under one of four categories.
@@ -55,26 +57,26 @@ Run the steps in order. Stop at the first ❌ and note why. Details, the tier ru
 
 | Step | Gate | Passes when |
 |---|---|---|
-| S1 | Area | Falls inside the declared area |
-| S2 | Subject | Directly serves the declared subject |
-| S3 | Keyword | Found through a course keyword + research keyword (record which) |
-| S4 | Source type | Identified as conference paper, journal paper, thesis or book (undergraduate theses are rejected here) |
-| S5 | Publisher / venue | Conference/journal: IEEE, Springer, ACM, Elsevier (journals also Taylor & Francis, John Wiley). Thesis: degree + university. Book: a main book, not a collection of articles; publisher known |
-| S6 | Indexing | Journal/conference: ISI (Web of Science), Scopus, ISC or DBLP, and not on the blacklist. Thesis: record on Irandoc or the university repository. Book: citation count and publisher confirmed (Google Books / Amazon) |
-| S7 | Identifiers | Journal: ISSN/EISSN/PISSN valid, volume/number/issue consistent. Conference: edition number + venue. Book: ISBN valid. Thesis: record identifier. Run `scripts/check_ids.py` |
-| S8 | Specialization & year | Specialized in the area; year fits the recency rule |
-| S9 | Tier | Tier A-D assigned and not below the cut-off (the render script computes this tick) |
-| S10 | Category | Assigned to Concept, Challenge, Application or Methodology |
-| S11 | Extraction | The category's reading rule was applied and the key point extracted (`references/reading.md`). For a **Methodology** source the abstract is not enough: the full text must be read, otherwise S11 stays ❓. Concept, Challenge and Application sources can be ticked from abstract + introduction + conclusion |
+| S1 | Area | Reviewer judgement has an evidence URL and note |
+| S2 | Subject | Reviewer judgement has an evidence URL and note |
+| S3 | Keyword | The executed query, result URL, matching DOI and search date are recorded |
+| S4 | Source type | Crossref type is supported; thesis degree has a review URL/note; undergraduate theses are rejected |
+| S5 | Publisher / venue | Journal/conference publisher matches the allowed list; books/theses have a reviewed judgement |
+| S6 | Indexing | Blacklist status is checked and evidenced; a hit rejects; a clear result still needs verified Scopus/WoS/ISC/DBLP evidence |
+| S7 | Identifiers | Journal ISSN + volume/issue; conference DOI + edition/venue; book ISBN + main-book evidence; thesis repository record |
+| S8 | Specialization & year | Specialization boolean and its review URL/note are present; category-specific year rule passes |
+| S9 | Tier | A-D tier has a reviewer evidence URL and basis; the render script compares it to the cut-off |
+| S10 | Category | Category judgement has an evidence URL and note |
+| S11 | Extraction | Reading evidence is recorded: abstract/intro/conclusion, chapters 1–2, or full text |
 
-If a source cannot be verified, try one alternative source (SJR when the Master Journal List will not load). If it still fails, mark ❓ and say exactly what the user should check and where.
+If a source cannot be verified, try one alternative source (SJR when the Master Journal List will not load). If it still fails, mark ❓ and say exactly what the user should check and where. Never convert an unverified page, inferred tier, or missing specialization into ✅.
 
 ### Phase D: Report
 
-1. Collect the DOIs you found and write a plan file: one entry per candidate with its category, provisional tier and the keyword pair that found it (schema in the docstring of `scripts/verify_source.py`). Then run `python3 scripts/verify_source.py plan.json -o results.json --s6 s6-checklist.md`. It fills in the title, authors, year, venue, volume/issue/pages, publisher and abstracts from Crossref and OpenAlex, validates every ISSN, and decides S4, S5, S7, S8 and S11 from that evidence. Judgment steps (S1, S2, S3, S10) come from your plan, and S6 stays ❓ because no public API exposes Scopus or Web of Science membership (`references/validation.md` §10).
-2. Run `python3 scripts/render_table.py results.json --lang fa` (`--lang en` for English, `--cutoff` to change the cut-off, `--evidence` to show the proof behind each tick, `--bibliography apa|ieee` to also emit the reference list). The script decides the verdict itself: approved only when all 11 steps are ✅. Duplicate records (same DOI, URL or normalised title) are merged before the count.
+1. Collect the DOIs you actually found and create a plan using `references/evidence-records.md`. The script retrieves Crossref/OpenAlex metadata and checks the evidence records supplied in the plan; it does **not** execute database searches or read papers for you. Record the real query, search-result URL, matching DOI and date; add the reviewed judgements, tier basis, blacklist check, index result and reading-depth evidence. Then run `python3 scripts/verify_source.py plan.json -o results.json --s6 s6-checklist.md`. Any missing or malformed evidence remains ❓; a blacklist hit rejects S6.
+2. Run `python3 scripts/render_table.py results.json --lang fa` (`--lang en` for English, `--cutoff` to change the cut-off, `--evidence` to show the proof behind each tick, `--bibliography apa|ieee` to also emit the reference list). The script decides the verdict itself: approved only when all 11 steps are ✅. Duplicate records (same DOI, URL or normalised title) are merged before the count. Missing evidence can be filled from another duplicate, but contradictory evidence or metadata is recorded and makes the affected gate pending.
 3. Paste its output. Then, for each approved article, add a one-to-two-sentence extract in your own words of the point that made it useful in its category.
-4. Hand the S6 checklist to the user as its own file: every row needs a human to open the SCImago, Clarivate or DBLP link and confirm the journal's record. Do not tick S6 by inference from the publisher.
+4. Hand the S6 checklist to the user as its own file: every row needs a human to open the blacklist and index links, confirm the relevant source record, and record both the blacklist result and index evidence in the plan. Do not tick S6 by inference from the publisher.
 5. Close with one natural next step (for instance "next, write the Research Background from the Challenge sources").
 
 ---
@@ -85,7 +87,7 @@ If a source cannot be verified, try one alternative source (SJR when the Master 
 python3 scripts/fetch_pdf.py results.json --out pdfs --report pdf-report.md
 ```
 
-It asks three open-access indexes in order — OpenAlex, Unpaywall, Semantic Scholar — and writes the first candidate that really is a PDF (best OA location, any location with a `pdf_url`, an OA URL ending in `.pdf`, the arXiv id). The PDF check is real: a file counts only if it starts with `%PDF-` and passes the size floor, because publishers answer with HTML error pages under HTTP 200.
+It asks OpenAlex, Unpaywall and Semantic Scholar, resolves arXiv ids, and writes the first candidate that is a real PDF. HTTP retrieval is fail-closed: HTTPS only, normal TLS certificate validation, public-IP preflight, redirect validation and an 80 MiB response cap. The resolver documents the remaining DNS-rebinding limitation; for hostile inputs, run it inside a network sandbox. Set `ARTICLE_FINDER_MAILTO` to a real contact address to query Unpaywall. The PDF check requires a `%PDF-` header and the size floor.
 
 - **Paywalled rows are the normal case, not a failure.** The report lists the legitimate route for each one — publisher page, Google Scholar PDF links, author page, institutional access, emailing the author. Hand that list to the user; do not fetch from Sci-Hub, LibGen or Z-Lib and do not offer them as a shortcut (`references/validation.md` §8). This is the author's line, not a tool limitation: those hosts serve copyrighted papers without permission, and a copy from them can be a stale or retracted version. The skill stays on the open-access indexes and the routes above.
 - `--dry-run` prints the candidate URLs without downloading, for when the user only wants to know what is reachable.

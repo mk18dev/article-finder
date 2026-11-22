@@ -16,20 +16,21 @@
       "tier": "A",
       "keyword": "Survey + topic X",
       "steps": {
-        "S1": true,
-        "S2": true,
-        "S3": true,
-        "S4": true,
-        "S5": true,
-        "S6": true,
-        "S7": true,
-        "S8": true,
-        "S10": true,
-        "S11": true
+        "S1": null,
+        "S2": null,
+        "S3": null,
+        "S4": null,
+        "S5": null,
+        "S6": null,
+        "S7": null,
+        "S8": null,
+        "S10": null,
+        "S11": null
       },
-      "evidence": {
-        "S6": "Scopus Q1 (SJR 2024)",
-        "S7": "ISSN valid (check_ids.py)"
+      "tier_verified": false,
+      "notes": {
+        "en": "Placeholder example only; no source, search or review evidence is supplied.",
+        "fa": "صرفاً نمونهٔ ساختاری است و هیچ مدرک واقعی برای تأیید منبع، جست‌وجو یا مطالعه ارائه نمی‌کند."
       }
     },
     {
@@ -44,15 +45,22 @@
       "tier": "D",
       "keyword": "Thesis + topic X",
       "steps": {
-        "S1": true,
-        "S2": true,
-        "S3": true,
-        "S4": false
+        "S1": null,
+        "S2": null,
+        "S3": null,
+        "S4": false,
+        "S5": null,
+        "S6": null,
+        "S7": null,
+        "S8": null,
+        "S10": null,
+        "S11": null
       },
       "notes": {
-        "en": "Undergraduate thesis",
-        "fa": "پایان‌نامهٔ کارشناسی"
-      }
+        "en": "Placeholder example only; no evidence record is supplied. Undergraduate thesis is rejected at S4.",
+        "fa": "صرفاً نمونهٔ ساختاری است و مستندات واقعی ندارد؛ پایان‌نامهٔ کارشناسی در S4 رد می‌شود."
+      },
+      "tier_verified": false
     },
     {
       "title": "Placeholder Application Paper",
@@ -68,21 +76,22 @@
       "tier": "A",
       "keyword": "Model + topic X",
       "steps": {
-        "S1": true,
-        "S2": true,
-        "S3": true,
-        "S4": true,
-        "S5": true,
+        "S1": null,
+        "S2": null,
+        "S3": null,
+        "S4": null,
+        "S5": null,
         "S6": null,
-        "S7": true,
-        "S8": true,
-        "S10": true,
-        "S11": true
+        "S7": null,
+        "S8": null,
+        "S10": null,
+        "S11": null
       },
       "notes": {
-        "en": "WoS status not verifiable here: check mjl.clarivate.com",
-        "fa": "وضعیت WoS از این سشن قابل تأیید نیست: mjl.clarivate.com را چک کن"
-      }
+        "en": "Placeholder example only; no source, search or review evidence is supplied.",
+        "fa": "صرفاً نمونهٔ ساختاری است و هیچ مدرک واقعی برای تأیید منبع، جست‌وجو یا مطالعه ارائه نمی‌کند."
+      },
+      "tier_verified": false
     }
   ]
 }

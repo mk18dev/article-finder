@@ -46,3 +46,19 @@ Slide rules:
 For the report, write one extract per approved source: the single most useful point in its category, in your own words (a short quoted phrase at most). If you could only access the abstract, say so, and do not tick S11 for a Methodology source: that category needs the full text, so mark it ❓.
 
 For Conceptual, Challenge and Application sources, the abstract + introduction + conclusion (or chapters 1-2 of a book or thesis) are enough to tick S11, because that is all the slides ask you to read.
+
+
+## Evidence record *(release 1.1.0)*
+
+The CLI does not infer that reading happened just because an abstract exists.
+For every required part, record a reviewer attestation with a source URL and a
+short note. See `references/evidence-records.md` for the exact plan schema.
+
+- Article, Concept/Challenge/Application: `abstract`, `introduction`,
+  `conclusion`.
+- Book/thesis, Concept/Challenge/Application: `chapter_1`, `chapter_2`.
+- Methodology: `full_text` for articles, and full text/all relevant chapters
+  for books and theses as applicable.
+
+A recorded URL and note are an audit trail, not machine proof that the material
+was actually read. Never mark a section reviewed unless you inspected it.

@@ -23,6 +23,7 @@ def article(**overrides) -> dict:
         "doi": "10.1000/a",
         "category": "concept",
         "tier": "A",
+        "tier_verified": True,
         "steps": {f"S{i}": True for i in range(1, 12) if i != 9},
     }
     base.update(overrides)
@@ -137,6 +138,37 @@ class RenderTests(unittest.TestCase):
     def test_evidence_block_only_when_approved(self) -> None:
         half = article(steps={**article()["steps"], "S6": None})
         self.assertNotIn("#### Evidence", rt.render([half], "en", "B", True, None))
+
+
+
+
+class EvidenceConflictTests(unittest.TestCase):
+    def test_conflicting_step_evidence_is_not_auto_merged(self) -> None:
+        first = article()
+        second = article(steps={**article()["steps"], "S6": False})
+        merged, count = rt.dedupe([first, second])
+        self.assertEqual(count, 1)
+        self.assertIsNone(merged[0]["steps"]["S6"])
+        self.assertTrue(merged[0]["evidence_conflicts"])
+        self.assertEqual(rt.evaluate(merged[0], "B")[1], "PENDING")
+
+    def test_conflicting_metadata_invalidates_related_gate(self) -> None:
+        first = article()
+        second = article(year=2020)
+        merged, _ = rt.dedupe([first, second])
+        self.assertIsNone(merged[0]["steps"]["S8"])
+        self.assertEqual(rt.evaluate(merged[0], "B")[1], "PENDING")
+
+    def test_tier_requires_review_evidence(self) -> None:
+        unverified = article(tier_verified=False)
+        self.assertIsNone(rt.evaluate(unverified, "B")[0]["S9"])
+        self.assertEqual(rt.evaluate(unverified, "B")[1], "PENDING")
+
+    def test_conflicts_are_visible_in_rendered_notes(self) -> None:
+        first = article()
+        second = article(steps={**article()["steps"], "S6": False})
+        output = rt.render([first, second], "en", "B", False, None)
+        self.assertIn("contradictory values", output)
 
 
 if __name__ == "__main__":

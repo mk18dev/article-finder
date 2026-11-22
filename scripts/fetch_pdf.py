@@ -108,28 +108,32 @@ def candidates(record: dict[str, Any]) -> list[str]:
             add(landing)
     add((record.get("open_access") or {}).get("oa_url"))
     add(arxiv_url(record))
-    return [url for url in urls if url.lower().startswith("http")]
+    return [url for url in urls if url.lower().startswith("https://")]
 
 
 def unique(urls: list[str]) -> list[str]:
     ordered: list[str] = []
     for url in urls:
-        if url.startswith("http") and url not in ordered:
+        if url.startswith("https://") and url not in ordered:
             ordered.append(url)
     return ordered
 
 
 def unpaywall_candidates(doi: str) -> list[str]:
-    record = fetch_json(f"https://api.unpaywall.org/v2/{doi}?email={MAILTO}")
+    if not MAILTO or "@" not in MAILTO:
+        raise ValueError("Set ARTICLE_FINDER_MAILTO to a real contact email to query Unpaywall")
+    record = fetch_json(
+        f"https://api.unpaywall.org/v2/{doi}?email={urllib.parse.quote(MAILTO, safe='@')}"
+    )
     urls: list[str] = []
     best = record.get("best_oa_location") or {}
     for key in ("url_for_pdf", "url"):
         value = str(best.get(key) or "")
-        if value.startswith("http") and value not in urls:
+        if value.startswith("https://") and value not in urls:
             urls.append(value)
     for location in record.get("oa_locations") or []:
         value = str((location or {}).get("url_for_pdf") or "")
-        if value.startswith("http") and value not in urls:
+        if value.startswith("https://") and value not in urls:
             urls.append(value)
     return unique(urls)
 
@@ -139,7 +143,7 @@ def semantic_scholar_candidates(doi: str) -> list[str]:
                         f"{doi}?fields=openAccessPdf,externalIds")
     urls: list[str] = []
     pdf = str((record.get("openAccessPdf") or {}).get("url") or "")
-    if pdf.startswith("http"):
+    if pdf.startswith("https://"):
         urls.append(pdf)
     arxiv = str((record.get("externalIds") or {}).get("ArXiv") or "")
     if arxiv:
@@ -161,7 +165,7 @@ def title_matches(query: str, candidate: str) -> bool:
 
 def arxiv_title_candidates(title: str) -> list[str]:
     query = urllib.parse.quote(f'ti:"{title}"')
-    payload = fetch_bytes(f"http://export.arxiv.org/api/query?search_query={query}&max_results=5")
+    payload = fetch_bytes(f"https://export.arxiv.org/api/query?search_query={query}&max_results=5")
     root = ET.fromstring(payload)
     urls: list[str] = []
     for entry in root.findall("a:entry", ATOM):
@@ -184,7 +188,7 @@ def core_candidates(doi: str) -> list[str]:
     for item in record.get("results") or []:
         for key_name in ("downloadUrl", "fullTextIdentifier"):
             value = str((item or {}).get(key_name) or "")
-            if value.startswith("http"):
+            if value.startswith("https://"):
                 urls.append(value)
     return unique(urls)
 
@@ -221,7 +225,7 @@ def pdf_links(payload: bytes, base: str) -> list[str]:
     links: list[str] = []
     for raw in PDF_LINK.findall(payload):
         url = urllib.parse.urljoin(base, raw.decode("utf-8", "ignore"))
-        if url.startswith("http") and url not in links:
+        if url.startswith("https://") and url not in links:
             links.append(url)
     return links[:3]
 
@@ -298,11 +302,11 @@ EMAIL = """Subject: Request for the full text of "{title}" (DOI {doi})
 
 Dear {salutation},
 
-I am compiling a literature review on hybrid recommender systems and the
-cold-start problem, and your paper "{title}" ({venue}, {year}) is directly
-relevant to it. The copy I can reach is behind a paywall.
+I am preparing a literature review and found your paper "{title}" ({venue},
+{year}) relevant to my research. The copy I can access appears to be behind
+a paywall.
 
-Would you be willing to share the published PDF, or the accepted manuscript?
+Would you be willing to share the published PDF or an accepted manuscript?
 I will cite the published version either way.
 
 Kind regards,

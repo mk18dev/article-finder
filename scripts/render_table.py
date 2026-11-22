@@ -22,8 +22,8 @@ Each article:
       "notes":    "Why it failed, or what the user must verify"
     }
 Step values: true = verified, false = checked and failed, null/missing = not verified.
-S9 (tier is not below the cut-off) is computed here from "tier" and the cut-off,
-so any value given for it is ignored.
+S9 is computed only when the input contains reviewer-verified tier evidence.
+A tier label without its evidence URL and basis remains pending.
 
 Verdict: APPROVED only if all 11 steps are true; REJECTED if any is false;
 otherwise PENDING. Only approved articles appear in the first table.
@@ -38,6 +38,7 @@ import argparse
 import json
 import re
 import sys
+import urllib.parse
 from typing import Any, Iterable
 
 STEPS: list[str] = [f"S{i}" for i in range(1, 12)]
@@ -97,17 +98,29 @@ def esc(text: object) -> str:
 
 def title_cell(article: dict[str, Any]) -> str:
     title = esc(article.get("title", "(untitled)"))
+    # Escape Markdown link-label delimiters from untrusted bibliographic metadata.
+    label = title.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
     year = article.get("year")
     suffix = f" ({year})" if year else ""
-    url = article.get("url")
-    return f"[{title}]({url}){suffix}" if url else f"{title}{suffix}"
+    raw_url = article.get("url")
+    if isinstance(raw_url, str) and raw_url.startswith("https://") and not any(
+        ch.isspace() for ch in raw_url
+    ):
+        url = urllib.parse.quote(raw_url, safe=":/?&=#%")
+        return f"[{label}]({url}){suffix}"
+    return f"{title}{suffix}"
 
 
 def notes_text(article: dict[str, Any], lang: str) -> str:
     notes = article.get("notes", "")
     if isinstance(notes, dict):
-        return str(notes.get(lang) or notes.get("en") or "")
-    return str(notes)
+        text = str(notes.get(lang) or notes.get("en") or "")
+    else:
+        text = str(notes)
+    conflicts = article.get("evidence_conflicts") or []
+    if conflicts:
+        text = (text + " | " if text else "") + "Duplicate evidence conflicts: " + "; ".join(map(str, conflicts))
+    return text
 
 
 def identity(article: dict[str, Any]) -> str:
@@ -122,23 +135,77 @@ def identity(article: dict[str, Any]) -> str:
 def dedupe(articles: Iterable[dict[str, Any]]) -> tuple[list[dict[str, Any]], int]:
     seen: dict[str, dict[str, Any]] = {}
     order: list[str] = []
+    duplicate_count = 0
+    metadata_steps = {
+        "title": ("S1", "S2", "S10", "S11"),
+        "year": ("S8",),
+        "type": ("S4", "S7", "S11"),
+        "publisher": ("S5",),
+        "venue": ("S5", "S7"),
+        "tier": ("S9",),
+    }
     for article in articles:
         key = identity(article)
-        if key in seen:
-            merged_steps = seen[key].setdefault("steps", {})
-            for step, value in article.get("steps", {}).items():
-                if merged_steps.get(step) is None and value is not None:
-                    merged_steps[step] = value
+        if key not in seen:
+            # Copy the top-level object and steps; never mutate caller-owned data.
+            first = dict(article)
+            first["steps"] = dict(article.get("steps") or {})
+            first["evidence_conflicts"] = list(article.get("evidence_conflicts") or [])
+            first["conflicting_steps"] = list(article.get("conflicting_steps") or [])
+            first["conflicting_values"] = dict(article.get("conflicting_values") or {})
+            seen[key] = first
+            order.append(key)
             continue
-        seen[key] = article
-        order.append(key)
-    return [seen[k] for k in order], len(articles) - len(order)
 
+        duplicate_count += 1
+        previous = seen[key]
+        previous_steps = previous.setdefault("steps", {})
+        conflicts = previous.setdefault("evidence_conflicts", [])
+        for step, value in (article.get("steps") or {}).items():
+            old = previous_steps.get(step)
+            if old is None and value is not None:
+                previous_steps[step] = value
+            elif old is not None and value is not None and old is not value:
+                conflicts.append(f"{step}: contradictory values {old!r} and {value!r}")
+                previous_steps[step] = None
+                if step not in previous.setdefault("conflicting_steps", []):
+                    previous["conflicting_steps"].append(step)
+
+        conflicting_values = previous.setdefault("conflicting_values", {})
+        for field, affected_steps in metadata_steps.items():
+            old_value = previous.get(field)
+            new_value = article.get(field)
+            if old_value not in (None, "") and new_value not in (None, "") and old_value != new_value:
+                values = conflicting_values.setdefault(field, [old_value])
+                if new_value not in values:
+                    values.append(new_value)
+                conflicts.append(f"{field}: conflicting metadata {values!r}")
+                for step in affected_steps:
+                    previous_steps[step] = None
+                    if step not in previous.setdefault("conflicting_steps", []):
+                        previous["conflicting_steps"].append(step)
+
+    return [seen[k] for k in order], duplicate_count
 
 def evaluate(article: dict[str, Any], cutoff: str) -> tuple[dict[str, bool | None], str]:
     steps: dict[str, bool | None] = {s: article.get("steps", {}).get(s) for s in STEPS}
     tier = str(article.get("tier", "")).upper()
-    steps["S9"] = TIER_RANK[tier] <= TIER_RANK[cutoff] if tier in TIER_RANK else None
+    steps["S9"] = (
+        TIER_RANK[tier] <= TIER_RANK[cutoff]
+        if tier in TIER_RANK and article.get("tier_verified") is True
+        else None
+    )
+    # A contradiction between duplicate records is never silently resolved.
+    conflicting_steps = set(article.get("conflicting_steps") or [])
+    if conflicting_steps:
+        for step in conflicting_steps:
+            if step in steps:
+                steps[step] = None
+    elif article.get("evidence_conflicts"):
+        # Unknown conflict scope: fail closed rather than trusting a tick.
+        for step in STEPS:
+            if steps[step] is True:
+                steps[step] = None
     if any(v is False for v in steps.values()):
         verdict = "REJECTED"
     elif any(v is None for v in steps.values()):

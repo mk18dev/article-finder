@@ -1,29 +1,11 @@
 #!/usr/bin/env python3
-"""Verify source records and build the article-finder results file.
+"""Verify source records and build an evidence-backed results file.
 
-Usage:
-    python3 verify_source.py plan.json [-o results.json] [--s6 s6-checklist.md]
-    python3 verify_source.py --doi 10.1145/2645710.2645757
-
-plan.json: a list of entries, one per candidate source:
-    [{"doi": "10.1145/...", "category": "concept|challenge|application|methodology",
-      "tier": "A|B|C|D", "keyword": "keyword pair that found it",
-      "specialized": true, "type_hint": "journal|conference"}]
-
-What the script decides by itself, from the Crossref record and the OpenAlex
-record: title, authors, year, venue, volume/issue/pages, publisher, ISSN list,
-abstract, citation count, and every step that follows from them (S4, S5, S7,
-S8, S11). ISSN checksums come from check_ids.py.
-
-What it cannot decide, and why: S1 area, S2 subject, S3 keyword and S10
-category are judgments about the research, so they are taken from the plan and
-reported as caller-declared. S6 indexing has no public API: Scopus and Web of
-Science expose membership only through Clarivate and SciMago, which block
-scripted clients. S6 therefore stays null (pending, never approved) and the
-checklist file lists the exact URL a human has to open for each source.
-
-A null step is "not verified", never "passed". `render_table.py` turns that
-into a pending row and refuses to approve it.
+The plan contains candidate DOIs plus explicit review records. Metadata is
+retrieved from Crossref/OpenAlex; reviewer-controlled gates remain pending
+until their evidence is recorded. An abstract alone never proves reading depth,
+an unrecorded specialization never passes, and a blacklist hit rejects S6.
+A null step is "not verified", never "passed".
 """
 from __future__ import annotations
 
@@ -41,14 +23,14 @@ from typing import Any
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
-from check_ids import issn_valid
+from check_ids import isbn10_valid, isbn13_valid, issn_valid
 from http_util import fetch_json
 
 RECENCY_YEARS = 5
 
 TRUSTED_PUBLISHERS: tuple[str, ...] = (
     "IEEE", "Springer", "ACM", "Association for Computing Machinery", "Elsevier",
-    "Taylor & Francis", "Wiley", "SAGE", "IOP", "MDPI", "Frontiers", "IOS Press",
+    "Taylor & Francis", "John Wiley", "Wiley",
 )
 COURSE_KEYWORDS: tuple[str, ...] = (
     "tutorial", "survey", "overview", "an introduction", "bibliography", "references",
@@ -60,13 +42,13 @@ STOPWORDS: frozenset[str] = frozenset({
     "towards", "toward", "based", "using", "their", "there", "which", "system",
     "systems", "approach", "model", "models", "study", "paper", "review",
 })
-FOUNDATIONAL_CATEGORIES: frozenset[str] = frozenset({"concept", "challenge"})
+FOUNDATIONAL_CATEGORIES: frozenset[str] = frozenset({"concept"})
 RECENT_CATEGORIES: frozenset[str] = frozenset({"application", "methodology"})
 
 CROSSREF_TYPE: dict[str, str | None] = {
     "journal-article": "journal",
     "proceedings-article": "conference",
-    "book-chapter": "book",
+    "book-chapter": "book_chapter",
     "book": "book",
     "monograph": "book",
     "dissertation": "thesis",
@@ -92,6 +74,7 @@ class Work:
     year: int | None
     authors: list[str]
     kind: str | None
+    isbns: list[str] = field(default_factory=list)
     abstract: str = ""
     cited_by: int | None = None
     source_name: str = ""
@@ -136,6 +119,7 @@ def crossref(doi: str) -> Work:
         container=(message.get("container-title") or [""])[0].strip(),
         publisher=str(message.get("publisher", "")).strip(),
         issns=[i for i in message.get("ISSN", []) if i],
+        isbns=[i for i in message.get("ISBN", []) if i],
         volume=str(message.get("volume", "")).strip(),
         issue=str(message.get("issue", "")).strip(),
         pages=str(message.get("page", "")).strip(),
@@ -181,17 +165,159 @@ def venue_text(work: Work) -> str:
 def recency_ok(work: Work, category: str) -> bool | None:
     if work.year is None:
         return None
+    current_year = date.today().year
+    if work.year > current_year:
+        return False
     if category in FOUNDATIONAL_CATEGORIES:
         return True
-    return work.year >= date.today().year - RECENCY_YEARS
+    if category in RECENT_CATEGORIES:
+        return work.year >= current_year - RECENCY_YEARS
+    return True if work.year >= current_year - RECENCY_YEARS else None
 
 
-def identifiers_ok(work: Work) -> bool | None:
-    if work.kind == "conference":
-        return bool(work.container and work.doi)
-    if not work.issns:
+def evidence_item_ok(item: Any) -> bool:
+    if not isinstance(item, dict) or item.get("reviewed") is not True:
+        return False
+    url = item.get("url")
+    note = item.get("note")
+    if not isinstance(url, str) or not isinstance(note, str) or len(url) > 4096:
+        return False
+    try:
+        parsed = urllib.parse.urlsplit(url)
+        host = parsed.hostname
+        port = parsed.port
+    except ValueError:
+        return False
+    valid_https = (
+        parsed.scheme.lower() == "https" and bool(host)
+        and parsed.username is None and parsed.password is None
+        and port in (None, 443)
+    )
+    legacy_blacklist_http = (
+        item.get("allow_legacy_blacklist_http") is True
+        and parsed.scheme.lower() == "http" and host == "impactfactor.ir"
+        and parsed.username is None and parsed.password is None
+        and port in (None, 80)
+    )
+    return (valid_https or legacy_blacklist_http) and len(note.strip()) >= 8
+
+
+def judgement(entry: dict[str, Any], step: str) -> bool | None:
+    judgements = entry.get("judgements")
+    if not isinstance(judgements, dict):
         return None
-    return all(issn_valid(i.replace("-", "")) for i in work.issns)
+    item = judgements.get(step)
+    if not isinstance(item, dict) or not evidence_item_ok({
+        "reviewed": item.get("reviewed"),
+        "url": item.get("evidence_url"),
+        "note": item.get("note"),
+    }):
+        return None
+    value = item.get("ok")
+    return value if isinstance(value, bool) else None
+
+
+def source_type_ok(work: Work, entry: dict[str, Any]) -> bool | None:
+    if work.kind not in {"journal", "conference", "book", "thesis"}:
+        return False
+    if work.kind == "thesis":
+        degree = str(entry.get("degree", "")).strip().lower()
+        if not degree:
+            return None
+        if degree in {"bachelor", "bachelors", "undergraduate", "bsc", "ba"}:
+            return False
+        if degree not in {"master", "masters", "msc", "ma", "phd", "doctoral", "doctorate"}:
+            return None
+        if not evidence_item_ok(entry.get("degree_evidence")):
+            return None
+    return True
+
+
+def identifiers_ok(work: Work, entry: dict[str, Any]) -> bool | None:
+    if work.kind == "journal":
+        if not work.issns:
+            return None
+        if not all(issn_valid(i.replace("-", "")) for i in work.issns):
+            return False
+        if not work.volume or not work.issue:
+            return None
+        return True
+    if work.kind == "conference":
+        if not work.doi or not work.container:
+            return False
+        if not entry.get("conference_edition") or not entry.get("conference_venue"):
+            return None
+        return True if evidence_item_ok(entry.get("conference_evidence")) else None
+    if work.kind == "book":
+        if entry.get("main_book") is False:
+            return False
+        if entry.get("main_book") is not True:
+            return None
+        if not work.isbns:
+            return None
+        if not all(isbn10_valid(i.replace("-", "").replace(" ", "")) or
+                   isbn13_valid(i.replace("-", "").replace(" ", "")) for i in work.isbns):
+            return False
+        return True if evidence_item_ok(entry.get("book_evidence")) else None
+    if work.kind == "thesis":
+        record_id = str(entry.get("record_id", "")).strip()
+        repository_url = str(entry.get("repository_url", "")).strip()
+        institution = str(entry.get("institution", "")).strip()
+        if not record_id or not institution or not repository_url.startswith("https://"):
+            return None
+        return True if evidence_item_ok(entry.get("thesis_evidence")) else None
+    return None
+
+
+def s6_gate(entry: dict[str, Any]) -> bool | None:
+    blacklist = str(entry.get("blacklist_status", "")).strip().lower()
+    if blacklist in {"listed", "blacklisted"}:
+        return False
+    blacklist_evidence = entry.get("blacklist_evidence")
+    if blacklist != "clear" or not isinstance(blacklist_evidence, dict) or not evidence_item_ok({
+        **blacklist_evidence,
+        "allow_legacy_blacklist_http": True,
+    }):
+        return None
+    accepted = {"scopus", "web of science", "wos", "isc", "dblp"}
+    for item in entry.get("indexing_evidence", []) or []:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("index", "")).strip().lower()
+        if name in accepted and evidence_item_ok({
+            "reviewed": item.get("verified"),
+            "url": item.get("url"),
+            "note": item.get("note"),
+        }):
+            return True
+    return None
+
+
+def s11_gate(work: Work, entry: dict[str, Any], category: str) -> bool | None:
+    reading = entry.get("reading_evidence")
+    if not isinstance(reading, dict):
+        return None
+    if category == "methodology":
+        required = ["full_text"]
+    elif work.kind in {"journal", "conference"}:
+        required = ["abstract", "introduction", "conclusion"]
+    elif work.kind in {"book", "thesis"}:
+        required = ["chapter_1", "chapter_2"]
+    else:
+        return None
+    return True if all(evidence_item_ok(reading.get(key)) for key in required) else None
+
+
+def tier_verified(entry: dict[str, Any]) -> bool:
+    tier = str(entry.get("tier", "")).upper()
+    evidence = entry.get("tier_evidence")
+    if not isinstance(evidence, dict):
+        return False
+    return tier in {"A", "B", "C", "D"} and evidence_item_ok({
+        "reviewed": evidence.get("verified"),
+        "url": evidence.get("url"),
+        "note": evidence.get("basis"),
+    })
 
 
 def s6_links(work: Work) -> list[str]:
@@ -210,53 +336,123 @@ def s6_links(work: Work) -> list[str]:
 
 
 def decide(work: Work, entry: dict[str, Any]) -> dict[str, Any]:
-    category = str(entry["category"]).lower()
+    category = str(entry.get("category", "")).lower()
     tier = str(entry.get("tier", "")).upper()
-    specialized = bool(entry.get("specialized", True))
-    trusted = publisher_trusted(work.publisher) if work.publisher else None
-    recency = recency_ok(work, category)
-
-    keyword = str(entry.get("keyword", ""))
+    tier_ok = tier_verified(entry)
+    keyword = str(entry.get("keyword", "")).strip()
     declared_area = str(entry.get("area", "")).strip()
-    subject = False if entry.get("subject") is False else subject_signal(keyword, work)
+    subject = str(entry.get("subject", "")).strip()
+
+    keyword_format_ok = keyword_gate(keyword)
+    search = entry.get("search_evidence") or {}
+    search_ok = (
+        keyword_format_ok
+        and isinstance(search, dict)
+        and str(search.get("query", "")).strip() == keyword
+        and str(search.get("doi", "")).strip().lower() == work.doi.lower()
+        and str(search.get("url", "")).startswith("https://")
+        and bool(str(search.get("searched_at", "")).strip())
+    )
+    recency = recency_ok(work, category)
+    specialized = entry.get("specialized")
+    specialization_evidence = entry.get("specialization_evidence")
+    if specialized is False or recency is False:
+        s8: bool | None = False
+    elif (specialized is not True or not evidence_item_ok(specialization_evidence)
+          or recency is None):
+        s8 = None
+    else:
+        s8 = True
+
+    publisher_ok = publisher_trusted(work.publisher) if work.publisher else None
+    s5: bool | None = (
+        True if publisher_ok else None
+    ) if work.kind in {"journal", "conference"} else judgement(entry, "S5")
+
+    s6 = s6_gate(entry)
+    s7 = identifiers_ok(work, entry)
+    s11 = s11_gate(work, entry, category)
+    s4 = source_type_ok(work, entry)
+    s10 = judgement(entry, "S10") if category in {
+        "concept", "challenge", "application", "methodology"
+    } else False
 
     steps: dict[str, bool | None] = {
-        "S1": True if declared_area else None,
-        "S2": subject,
-        "S3": keyword_gate(keyword),
-        "S4": work.kind is not None,
-        "S5": True if trusted else None,
-        "S6": None,
-        "S7": identifiers_ok(work),
-        "S8": None if recency is None else bool(recency and specialized),
-        "S10": category in {"concept", "challenge", "application", "methodology"},
-        "S11": None if category == "methodology" or not work.abstract else True,
+        "S1": judgement(entry, "S1") if declared_area else None,
+        "S2": judgement(entry, "S2") if subject else None,
+        "S3": True if search_ok else (False if not keyword_format_ok else None),
+        "S4": s4,
+        "S5": s5,
+        "S6": s6,
+        "S7": s7,
+        "S8": s8,
+        "S10": s10,
+        "S11": s11,
     }
 
+    judgements = entry.get("judgements") or {}
+    j1 = judgements.get("S1") if isinstance(judgements, dict) else None
+    j2 = judgements.get("S2") if isinstance(judgements, dict) else None
+    j10 = judgements.get("S10") if isinstance(judgements, dict) else None
+    reading = entry.get("reading_evidence")
+    if not isinstance(reading, dict):
+        reading = {}
     evidence = {
-        "S1": f"declared area: {declared_area or 'none given'}",
-        "S2": "keyword matches title/abstract" if subject else "no keyword token found in title/abstract",
-        "S3": f"course keyword + research keyword: {keyword or 'none given'}",
-        "S4": f"Crossref type -> {work.kind or 'unmapped'}",
+        "S1": j1.get("note", "area judgement needs evidence") if isinstance(j1, dict) else "area judgement needs evidence",
+        "S2": j2.get("note", "subject relevance needs evidence") if isinstance(j2, dict) else "subject relevance needs evidence",
+        "S3": (f"search query: {keyword}; DOI matched: {work.doi}" if search_ok
+               else "search execution and result-to-DOI evidence not supplied"),
+        "S4": f"Crossref type -> {work.kind or 'unmapped'}; degree -> {entry.get('degree', 'not recorded')}",
         "S5": f"Crossref publisher: {work.publisher or 'unknown'}",
-        "S7": ", ".join(work.issns) + " (check_ids.py)" if work.issns else "conference: edition/venue + DOI",
-        "S8": f"{work.year} vs {date.today().year - RECENCY_YEARS} cut-off ({category})",
-        "S11": "OpenAlex abstract" if work.abstract else "no abstract retrieved",
+        "S6": f"blacklist status: {entry.get('blacklist_status', 'not checked')}; "
+              f"index evidence: {len(entry.get('indexing_evidence', []) or [])}",
+        "S7": (", ".join(work.issns) if work.kind == "journal" else
+               ", ".join(work.isbns) if work.kind == "book" else
+               f"conference edition: {entry.get('conference_edition', 'missing')}; "
+               f"venue: {entry.get('conference_venue', 'missing')}" if work.kind == "conference" else
+               f"thesis record: {entry.get('record_id', 'missing')}"),
+        "S8": f"year={work.year}; specialized={specialized!r}; "
+              f"specialization evidence supplied={evidence_item_ok(specialization_evidence)}; "
+              f"recency={recency!r}",
+        "S10": j10.get("note", "category judgement needs evidence") if isinstance(j10, dict) else "category judgement needs evidence",
+        "S11": f"reading evidence fields: {', '.join(reading.keys()) or 'none'}",
     }
     if work.in_doaj:
-        evidence["S6-DOAJ"] = "OpenAlex reports is_in_doaj=true (not a substitute for Scopus/WoS)"
+        evidence["S6-DOAJ"] = "OpenAlex reports is_in_doaj=true; this alone does not complete S6"
 
-    notes_en = ["S6 pending: no public API reports Scopus/WoS membership; open the checklist links."]
-    notes_fa = ["S6 در انتظار: هیچ API عمومی عضویت Scopus/WoS را گزارش نمی‌کند؛ لینک‌های فهرست را باز کن."]
-    if trusted is False:
-        notes_en.append(f"Publisher is not on the slide's list ({work.publisher}); confirm it is recognised.")
-        notes_fa.append(f"ناشر در فهرست اسلاید نیست ({work.publisher})؛ معتبر بودنش را تأیید کن.")
-    if steps["S3"] is False:
-        notes_en.append("S3 failed: the keyword pair must be a course keyword plus the research keyword.")
-        notes_fa.append("S3 رد شد: جفت کلیدواژه باید «کلیدواژهٔ اسلاید + کلیدواژهٔ پژوهش» باشد.")
-    if category == "methodology":
-        notes_en.append("S11 stays pending for a methodology source: the full text is required, not the abstract.")
-        notes_fa.append("S11 برای منبع روش‌شناسی در انتظار می‌ماند: متن کامل لازم است، نه چکیده.")
+    notes_en: list[str] = []
+    notes_fa: list[str] = []
+    if s6 is False:
+        notes_en.append("S6 rejected: the source is marked as listed on an Iranian blacklist.")
+        notes_fa.append("S6 رد شد: منبع به‌عنوان مورد فهرست سیاه ایران ثبت شده است.")
+    elif s6 is None:
+        notes_en.append("S6 pending: record a checked blacklist result and verified index evidence.")
+        notes_fa.append("S6 در انتظار است: نتیجه بررسی فهرست سیاه و مدرک نمایه‌سازی را ثبت کن.")
+    if s4 is None:
+        notes_en.append("S4 pending: the thesis degree must be recorded; undergraduate theses are rejected.")
+        notes_fa.append("S4 در انتظار است: مقطع پایان‌نامه باید ثبت شود؛ پایان‌نامه کارشناسی رد می‌شود.")
+    if steps["S3"] is None:
+        notes_en.append("S3 pending: add the executed search query, result URL, DOI match and date.")
+        notes_fa.append("S3 در انتظار است: عبارت جست‌وجوشده، نشانی نتیجه، DOI منطبق و تاریخ را ثبت کن.")
+    if s7 is None:
+        notes_en.append("S7 pending: complete the source-type identifier and edition/record evidence.")
+        notes_fa.append("S7 در انتظار است: شناسه متناسب با نوع منبع و مدرک ویرایش/رکورد را کامل کن.")
+    if s8 is None:
+        notes_en.append("S8 pending: specialization must be explicitly reviewed; missing data is not a pass.")
+        notes_fa.append("S8 در انتظار است: تخصصی‌بودن باید صریح بررسی شود؛ داده مفقود تأیید محسوب نمی‌شود.")
+    if s11 is None:
+        notes_en.append("S11 pending: attach the reading record required for the source category and type.")
+        notes_fa.append("S11 در انتظار است: سابقه مطالعه متناسب با دسته و نوع منبع را ثبت کن.")
+    if s5 is None:
+        notes_en.append(f"Publisher/venue requires confirmation: {work.publisher or 'not recorded'}.")
+        notes_fa.append(f"ناشر/محل انتشار نیاز به تأیید دارد: {work.publisher or 'ثبت نشده'}.")
+    if not tier_ok:
+        notes_en.append("S9 pending: the A-D tier needs a reviewer note and a source URL.")
+        notes_fa.append("S9 در انتظار است: رتبه A تا D به توضیح ارزیاب و نشانی مدرک نیاز دارد.")
+    for key in ("S1", "S2", "S10"):
+        if steps[key] is None:
+            notes_en.append(f"{key} pending: add a documented research judgement.")
+            notes_fa.append(f"{key} در انتظار است: قضاوت پژوهشی مستند ثبت کن.")
     for note in work.notes:
         notes_en.append(note)
         notes_fa.append("رکورد OpenAlex در دسترس نبود." if note.startswith("OpenAlex") else note)
@@ -271,7 +467,8 @@ def decide(work: Work, entry: dict[str, Any]) -> dict[str, Any]:
         "url": f"https://doi.org/{work.doi}",
         "doi": work.doi,
         "category": category,
-        "tier": tier,
+        "tier": tier if tier_ok else "",
+        "tier_verified": tier_ok,
         "keyword": keyword,
         "cited_by": work.cited_by,
         "steps": steps,
@@ -297,8 +494,9 @@ def checklist(articles: list[dict[str, Any]], works: list[Work]) -> str:
         rows.append(f"| {index} | {article['title']} | {work.publisher} | {issns} | "
                     + " · ".join(s6_links(work)) + " |")
     rows.append("")
-    rows.append("Mark a row verified only after you see the journal's record on an index page, "
-                "then set `\"S6\": true` in the results file and re-run `render_table.py`.")
+    rows.append("After checking the blacklist, record blacklist_status as clear or listed "
+                "in the plan. For a positive index result, add indexing_evidence with index, "
+                "verified=true, source URL and a short note, then rerun verify_source.py.")
     return "\n".join(rows)
 
 
@@ -317,7 +515,7 @@ def main() -> int:
             "title": work.title, "authors": work.authors, "year": work.year,
             "venue": venue_text(work), "publisher": work.publisher, "issns": work.issns,
             "kind": work.kind, "abstract": work.abstract[:280], "cited_by": work.cited_by,
-            "doaj": work.in_doaj, "s6_links": s6_links(work),
+            "doaj": work.in_doaj, "isbns": work.isbns, "s6_links": s6_links(work),
         }, ensure_ascii=False, indent=2))
         return 0
 

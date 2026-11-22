@@ -1,31 +1,12 @@
 # Output example (placeholder data)
 
-Every block below is the **real output** of the commands above it, run on `examples/results.json` and `examples/draft.md`. All titles are placeholders; a real run must contain only sources found and verified in the session. Regenerate by running the commands in the same order.
+This file illustrates the output formats with placeholder data. The Mode 1 fixture is deliberately pending/rejected because it contains no review evidence; it is not a bibliography or a set of real research results. Regenerate the examples after code changes by running the commands in the same order.
 
 ## Mode 1: `examples/results.json`
 
-### Input shape
-
-```json
-{
-  "cutoff": "B",
-  "articles": [
-    {
-      "title": "Placeholder Survey on Topic X",
-      "authors": ["Doe, J.", "Roe, A. B."],
-      "year": 2024, "type": "journal", "venue": "Journal J, 12(3), 1-20",
-      "url": "https://example.org/a", "doi": "10.1000/x",
-      "category": "concept", "tier": "A", "keyword": "Survey + topic X",
-      "steps": {"S1": true, "S2": true, "S3": true, "S4": true, "S5": true,
-                "S6": true, "S7": true, "S8": true, "S10": true, "S11": true},
-      "evidence": {"S6": "Scopus Q1 (SJR 2024)", "S7": "ISSN valid (check_ids.py)"},
-      "notes": {"en": "why it failed", "fa": "دلیل رد شدن"}
-    }
-  ]
-}
-```
-
-Leave out `S9`: the script computes it from `tier` and the cut-off. Use `null` (or omit the key) for a step you could not verify, and `false` for a step that was checked and failed. `authors` and `notes` are optional; `notes` may be a string or an `{en, fa}` pair, and the renderer prints the column's language. Steps after the first ❌ may be omitted: they render as ❓ but the article is already rejected.
+The fixture intentionally contains no real review evidence. Its records must
+therefore remain pending or rejected; a placeholder DOI or source title is
+never presented as an approved reference.
 
 ### Command
 
@@ -38,36 +19,31 @@ python3 scripts/render_table.py examples/results.json --lang en --evidence --bib
 ```
 ### Approved sources (all steps ticked)
 
-| # | Article | Type | Tier | Category | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | [Placeholder Survey on Topic X](https://example.org/a) (2024) | Journal | A | Concept | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+None.
 
 **Steps:** 1 = Area · 2 = Subject · 3 = Keyword · 4 = Source type · 5 = Publisher/venue · 6 = Indexing · 7 = Identifiers · 8 = Specialization & year · 9 = Tier ≥ cut-off · 10 = Category · 11 = Extraction
-
-#### Evidence
-
-- #1 → 6: Scopus Q1 (SJR 2024); 7: ISSN valid (check_ids.py)
 
 ### Pending: needs your verification
 
 | # | Article | Step | Reason / what to check |
 |---|---|---|---|
-| 1 | [Placeholder Application Paper](https://example.org/b) (2024) | 6 Indexing ❓ | WoS status not verifiable here: check mjl.clarivate.com |
+| 1 | [Placeholder Survey on Topic X](https://example.org/a) (2024) | 1 Area ❓ | Placeholder example only; no source, search or review evidence is supplied. |
+| 2 | [Placeholder Application Paper](https://example.org/b) (2024) | 1 Area ❓ | Placeholder example only; no source, search or review evidence is supplied. |
 
 ### Rejected
 
 | # | Article | Step | Reason / what to check |
 |---|---|---|---|
-| 1 | Placeholder Undergraduate Thesis (2021) | 4 Source type ❌ | Undergraduate thesis |
+| 1 | Placeholder Undergraduate Thesis (2021) | 4 Source type ❌ | Placeholder example only; no evidence record is supplied. Undergraduate thesis is rejected at S4. |
 
-**Summary:** 1 approved · 1 pending · 1 rejected (Tier cut-off: B)
+**Summary:** 0 approved · 2 pending · 1 rejected (Tier cut-off: B)
 
 ### References
 
 1. Doe, J., & Roe, A. B. (2024). Placeholder Survey on Topic X. Journal J (Publisher P), 12(3), 1-20. https://doi.org/10.1000/x.
-3. Example, B. (2024). Placeholder Application Paper. Journal K (Publisher Q), 8(1), 44-59. https://doi.org/10.1000/y.
+2. Example, B. (2024). Placeholder Application Paper. Journal K (Publisher Q), 8(1), 44-59. https://doi.org/10.1000/y.
 
-**Included but still pending — verify before submitting:** 1
+**Included but still pending — verify before submitting:** 2
 ```
 
 ### Same file, Persian
@@ -76,29 +52,9 @@ python3 scripts/render_table.py examples/results.json --lang en --evidence --bib
 python3 scripts/render_table.py examples/results.json --lang fa
 ```
 
-```
-### منابع تأییدشده (همه مراحل تیک‌خورده)
-
-| # | منبع | نوع | رتبه | دسته | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | [Placeholder Survey on Topic X](https://example.org/a) (2024) | مقاله ژورنالی | A | مفهوم | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-
-**مراحل:** 1 = حوزه · 2 = موضوع · 3 = کلیدواژه · 4 = نوع منبع · 5 = ناشر/محل انتشار · 6 = نمایه‌سازی · 7 = شناسه‌ها (ISSN/ISBN) · 8 = تخصص و سال · 9 = رتبه ≥ حد نصاب · 10 = دسته‌بندی · 11 = استخراج
-
-### در انتظار بررسی شما
-
-| # | منبع | مرحله | دلیل / مورد بررسی |
-|---|---|---|---|
-| 1 | [Placeholder Application Paper](https://example.org/b) (2024) | 6 نمایه‌سازی ❓ | وضعیت WoS از این سشن قابل تأیید نیست: mjl.clarivate.com را چک کن |
-
-### ردشده
-
-| # | منبع | مرحله | دلیل / مورد بررسی |
-|---|---|---|---|
-| 1 | Placeholder Undergraduate Thesis (2021) | 4 نوع منبع ❌ | پایان‌نامهٔ کارشناسی |
-
-**خلاصه:** 1 تأییدشده · 1 در انتظار · 1 ردشده (حد نصاب رتبه: B)
-```
+The same fixture produces zero approved sources, two pending placeholders and
+one rejected undergraduate thesis. The titles and metadata are intentionally
+not real research results.
 
 ## Mode 2: `examples/draft.md`
 

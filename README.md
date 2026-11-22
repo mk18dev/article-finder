@@ -1,8 +1,10 @@
 # article-finder
 
+**Release 1.1.0** — evidence-backed gates, fail-closed HTTPS retrieval and conflict-aware duplicate handling.
+
 **A verification-first research-paper skill for AI agents.** It finds and vets sources for a paper, then checks a draft section by section — and it refuses to tick a box it cannot prove.
 
-Most "find me references" prompting produces confident fiction. This skill inverts that: every source needs a search you actually ran, a DOI that resolves, and an ISSN whose checksum passes. A source with one unverified gate stays **pending**, never approved. The scripts decide the verdict; the model cannot approve itself.
+Most "find me references" prompting produces confident fiction. This skill inverts that: a source needs a search record, a resolved DOI, source-type-specific identifiers and documented review evidence. Missing or contradictory evidence stays **pending**, never approved. The scripts decide the verdict; the model cannot approve itself.
 
 ```
 $ python3 scripts/render_table.py results.json --lang en
@@ -19,48 +21,58 @@ Zero approved is a normal, honest result. Read the next section for why.
 |---|---|---|
 | Input | a research topic | a draft, one heading per section |
 | Output | checklist table per source + APA/IEEE reference list | checklist table per section + fix list |
-| Decides | 11 gates (S1–S11) | 76 rules, 22 of them countable |
+| Decides | 11 gates (S1–S11) | 76 rules, 21 countable, 6 requiring a hint/reviewer |
 | Command | `verify_source.py` → `render_table.py` | `check_draft.py` |
 
 ## The 11 gates (Mode 1)
 
 | # | Gate | Decided by |
 |---|---|---|
-| S1 | Area | declared, and recorded as declared |
-| S2 | Subject | keyword token found in title/abstract |
-| S3 | Keyword | a course keyword + the research keyword (machine-checked) |
-| S4 | Source type | Crossref record type |
-| S5 | Publisher / venue | Crossref publisher, matched against the rubric |
-| S6 | Indexing | **a human** — see below |
-| S7 | Identifiers | ISSN checksum (`check_ids.py`) |
-| S8 | Specialization & year | Crossref year vs the recency rule |
-| S9 | Tier ≥ cut-off | computed from the tier and the cut-off |
-| S10 | Category | declared |
-| S11 | Extraction | an abstract ticks Concept/Challenge/Application; Methodology needs the full text |
+| S1 | Area | reviewer judgement with a source URL and note |
+| S2 | Subject | reviewer judgement with a source URL and note |
+| S3 | Keyword | executed query, result URL, matching DOI and timestamp |
+| S4 | Source type | Crossref type; thesis degree is explicit and undergraduate is rejected |
+| S5 | Publisher / venue | Crossref publisher for journals/conferences; evidenced judgement for books/theses |
+| S6 | Indexing | checked blacklist result plus verified Scopus/WoS/ISC/DBLP evidence |
+| S7 | Identifiers | journal ISSN + volume/issue; conference edition/venue; book ISBN; thesis repository record |
+| S8 | Specialization & year | explicit specialization boolean + evidence URL/note + category-specific year rule |
+| S9 | Tier ≥ cut-off | only a tier with reviewer evidence and a source URL can pass |
+| S10 | Category | reviewer judgement with a source URL and note |
+| S11 | Extraction | evidence of required reading: abstract/intro/conclusion, chapters 1–2, or full text |
 
-**S6 is the honest hole, and it stays a hole.** Scopus and Web of Science membership is exposed only through Clarivate and SCImago, which block scripted clients (`scimagojr.com` → HTTP 403, `dblp.org` → Anubis challenge, `mjl.clarivate.com` → JavaScript only). `verify_source.py` therefore leaves S6 `❓` and writes `s6-checklist.md` with the exact URL a human must open for every source. Ticking S6 by inference from the publisher is the failure mode this design exists to prevent.
+**S6 remains evidence-driven.** A blacklist hit rejects the source. Otherwise, S6 stays pending until the plan contains a documented blacklist check and at least one verified index record. OpenAlex's DOAJ flag or a publisher name alone is not proof of Scopus/WoS/ISC/DBLP membership. The generated checklist gives the reviewer the pages to inspect.
 
 ## Quickstart
 
 Requires **Python 3.10+** and nothing else. No third-party packages.
 
 ```bash
-# 1. Describe what you found, one entry per candidate
+# 1. Record each DOI you actually found and its review evidence.
+#    The complete schema is documented in references/evidence-records.md.
 cat > plan.json <<'JSON'
 [
-  {"doi": "10.3233/IDA-163209", "category": "concept", "tier": "B",
-   "keyword": "Survey + hybrid recommender systems", "area": "data science"}
+  {
+    "doi": "10.3233/IDA-163209",
+    "category": "concept",
+    "tier": "B",
+    "keyword": "Survey + hybrid recommender systems",
+    "area": "data science",
+    "subject": "hybrid recommender systems",
+    "specialized": true
+  }
 ]
 JSON
 
-# 2. Fill in every mechanical gate from Crossref + OpenAlex, and write the S6 checklist
+# 2. Add real search, reading, tier, judgement, blacklist and index evidence
+#    before expecting any of those gates to pass.
 python3 scripts/verify_source.py plan.json -o results.json --s6 s6-checklist.md
 
 # 3. Render the verdicts and the reference list
 python3 scripts/render_table.py results.json --lang en --evidence --bibliography apa
 python3 scripts/render_table.py results.json --lang fa     # Persian table, Persian numerals
 
-# 4. Fetch whatever open full text exists
+# 4. Optional: configure a real contact address for Unpaywall.
+export ARTICLE_FINDER_MAILTO="you@example.org"
 python3 scripts/fetch_pdf.py results.json --out pdfs --report pdf-report.md --draft-emails emails.md
 
 # 5. Check a draft against the writing rules
@@ -71,22 +83,24 @@ python3 scripts/check_draft.py draft.md --lang fa --manual manual.json
 ## What the tables look like
 
 ```
-### Approved sources (all steps ticked)
+### Pending: needs your verification
 
 | # | Article | Type | Tier | Category | 1 | 2 | 3 | ... | 11 |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 | [Placeholder Survey](https://doi.org/10.1000/x) (2024) | Journal | A | Concept | ✅ | ✅ | ✅ | ... | ✅ |
+| 1 | [Placeholder Survey](https://doi.org/10.1000/x) (2024) | Journal | A | Concept | ❓ | ❓ | ❓ | ... | ❓ |
 
-**Summary:** 1 approved · 1 pending · 1 rejected (Tier cut-off: B)
+**Summary:** 0 approved · 1 pending · 0 rejected (Tier cut-off: B)
 ```
 
-Full real output for both modes lives in [`references/output-example.md`](references/output-example.md) — it is generated from the fixtures in [`examples/`](examples), so it cannot go stale.
+Full output examples for both modes live in [`references/output-example.md`](references/output-example.md). Mode 1's fixtures are explicitly placeholders and never demonstrate an approved source.
 
 ## Downloading full text
 
 `fetch_pdf.py` asks OpenAlex, Unpaywall and Semantic Scholar, resolves arXiv ids, follows HTML→PDF links inside repository pages, and accepts a response as a PDF only if it starts with `%PDF-` and passes a size floor — because publishers answer with HTML error pages under HTTP 200.
 
 When a paper is not open, the report names the licensed route and `--draft-emails` writes a ready-to-send request to the corresponding author.
+
+**Transport safeguards:** remote fetches require HTTPS, normal TLS certificate verification, public-IP preflight, redirect revalidation and an 80 MiB response cap. Ambient proxy settings are disabled so they cannot bypass destination checks. DNS rebinding between preflight and connection remains a limitation; run untrusted inputs in a network sandbox or enforce an outbound firewall/egress policy. The legacy blacklist evidence page is a manual-review exception documented in `references/evidence-records.md`; it is not fetched by the downloader.
 
 **It never touches Sci-Hub, LibGen or Z-Lib, and no flag enables them.** Those hosts redistribute copyrighted papers without permission, and a copy from them can be a stale or retracted version. If you need a paywalled paper: publisher page, Google Scholar's PDF links, your library, or the author's inbox.
 
@@ -103,10 +117,10 @@ When a paper is not open, the report names the licensed route and `--draft-email
 ## Tests
 
 ```bash
-python3 -m unittest discover tests      # 121 tests, ~0.03s, no network
+python3 -m unittest discover -s tests -t tests -v
 ```
 
-The suite exists because four bug classes each silently produced a false ✅ or a false download:
+The suite is network-free and additionally covers source evidence gates, duplicate conflicts, URL/redirect policy, response-size limits and the original draft/PDF regressions. GitHub Actions runs it on Python 3.10–3.13.
 
 | Bug | What it did |
 |---|---|

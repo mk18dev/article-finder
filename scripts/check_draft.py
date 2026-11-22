@@ -301,11 +301,29 @@ def r_figures_range(t: str, ctx: dict[str, str]) -> tuple[bool | None, str]:
 
 
 def r_charts(t: str, ctx: dict[str, str]) -> tuple[bool | None, str]:
-    n = len(counts(t)["chart_labels"])
-    if n:
-        return True, T(f"{n} chart label(s)", f"{N(n)} برچسب نمودار")
-    return None, T("no chart label found; judge whether any figure is a chart",
-                   "برچسب نمودار پیدا نشد؛ خودت قضاوت کن")
+    """A chart label is not proof that a chart exists; require human review."""
+    summary = counts(t)
+    labels_found = sorted(summary["chart_labels"])
+    figures = summary["figures"]
+    if labels_found and figures:
+        detail = T(
+            f"{len(labels_found)} chart label(s) and {figures} image(s) found; inspect whether an image is actually a chart",
+            f"{N(len(labels_found))} برچسب نمودار و {N(figures)} تصویر یافت شد؛ بررسی کن که تصویر واقعاً نمودار باشد",
+        )
+    elif labels_found:
+        detail = T(
+            f"{len(labels_found)} chart label(s) found but no image; a mention is not a chart",
+            f"{N(len(labels_found))} برچسب نمودار پیدا شد اما تصویری نیست؛ صرف اشاره نمودار نیست",
+        )
+    elif figures:
+        detail = T(
+            f"{figures} image(s) found; judge whether any figure is a chart",
+            f"{N(figures)} تصویر پیدا شد؛ خودت بررسی کن کدام‌یک نمودار است",
+        )
+    else:
+        detail = T("no chart image or label found; inspect the rendered findings section",
+                   "نه تصویر و نه برچسب نمودار پیدا شد؛ بخش یافته‌های نهایی را بررسی کن")
+    return None, detail
 
 
 # ---- hints: return (None, detail) -------------------------------------------
@@ -422,7 +440,7 @@ RULES: list[Rule] = [
     ("R6", "findings", "auto", r_figures_range, "One to two figures", "۱ تا ۲ شکل"),
     ("R7", "findings", "hint", h_table_labels, "Table and figure information is summarized and explained in the text", "اطلاعات جدول‌ها و شکل‌ها در متن خلاصه و توضیح داده شده"),
     ("R8", "findings", "hint", h_table_labels, "Clear references to tables and figures appear before them", "ارجاع روشن به جدول‌ها و شکل‌ها پیش از آن‌ها آمده است"),
-    ("R9", "findings", "auto", r_charts, "Charts are used as well", "از نمودار هم استفاده شده است"),
+    ("R9", "findings", "hint", r_charts, "Charts are used as well", "از نمودار هم استفاده شده است"),
 
     ("C1", "conclusion", "auto", r_words("conclusion"), "1000-1500 words", "۱۰۰۰ تا ۱۵۰۰ کلمه"),
     ("C2", "conclusion", "auto", r_no_extras, "No figures, tables, or in-text references", "شکل، جدول و ارجاع درون‌متنی ندارد"),

@@ -238,7 +238,7 @@ Auto = the script decides it. Manual = Claude reads the draft and records a verd
 | R6 | 1-2 figures | auto |
 | R7 | tables and figures summarized in the text | hint |
 | R8 | references to tables and figures come first | hint |
-| R9 | charts used | auto |
+| R9 | charts used | hint (the presence and meaning of a chart needs human inspection) |
 | C1 | 1000-1500 words | auto |
 | C2 | no figures, tables, in-text references | auto |
 | C3 | main objective | manual |

@@ -106,6 +106,30 @@ class ReportTests(unittest.TestCase):
         self.assertIn("never used", text)
 
 
+
+class TransportPolicyTests(unittest.TestCase):
+    def test_http_pdf_candidate_is_dropped(self) -> None:
+        record = {"best_oa_location": {"pdf_url": "http://example.org/paper.pdf"}, "locations": []}
+        self.assertEqual(fp.candidates(record), [])
+
+    def test_non_https_nested_pdf_link_is_dropped(self) -> None:
+        html = b'<html><a href="http://example.org/paper.pdf">pdf</a></html>'
+        self.assertEqual(fp.pdf_links(html, "https://repo.example/"), [])
+
+    def test_author_email_is_topic_neutral(self) -> None:
+        source = fp.Source(title="A paper", doi="10.1000/a")
+        draft = fp.email_drafts([fp.Result(source, "paywalled")],
+                                contact=lambda doi: ("Family", "Journal"))
+        self.assertNotIn("hybrid recommender", draft.lower())
+        self.assertNotIn("cold-start", draft.lower())
+
+    def test_unpaywall_requires_contact_email(self) -> None:
+        from unittest.mock import patch
+        with patch.object(fp, "MAILTO", ""):
+            with self.assertRaises(ValueError):
+                fp.unpaywall_candidates("10.1000/a")
+
+
 if __name__ == "__main__":
     unittest.main()
 

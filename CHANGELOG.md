@@ -2,6 +2,35 @@
 
 All notable changes to this skill. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning [SemVer](https://semver.org/).
 
+## [1.1.0] — 2026-11-23
+
+### Security and retrieval
+
+- Removed the TLS-verification fallback. All remote requests use the platform's normal certificate validation; HTTP URLs are rejected.
+- Added destination-IP preflight and redirect revalidation, disabled implicit environment proxies, and applied the response-size cap to JSON metadata as well as PDF bytes.
+- Documented the DNS-rebinding race that remains between DNS preflight and socket connection; hostile inputs still require an isolated network/egress policy.
+- Switched the arXiv API query to HTTPS and required an explicit `ARTICLE_FINDER_MAILTO` for Unpaywall requests.
+- Made author-request email drafts topic-neutral instead of hardcoding a particular research topic.
+
+### Evidence and source validation
+
+- S1/S2/S10 now require documented reviewer judgements; S3 requires a matching executed-search record; S8 specialization and non-undergraduate thesis degree require reviewer evidence; tier A-D requires reviewer evidence.
+- S6 now hard-rejects a reported blacklist hit and requires both a documented clear blacklist check and a verified index record to pass.
+- S7 now uses source-type-specific evidence for journals, conference proceedings, books and theses; bachelor's theses are rejected, and book chapters are not treated as main books.
+- S11 now requires the reading depth defined by the source category and type; an abstract alone cannot pass.
+- Duplicate merge now surfaces contradictory steps and conflicting metadata instead of silently preferring one record.
+
+### Draft validation
+
+- Made the draft-chart rule reviewer-confirmed: a textual “Chart 1” label or an image alone no longer auto-approves the existence of a chart.
+
+### Tests, docs and CI
+
+- Added network-free transport, evidence-gate and duplicate-conflict regression tests.
+- Documented the evidence-plan schema and the boundaries of what the CLI actually verifies.
+- Pinned GitHub Actions dependencies to full commit SHAs and disabled checkout credential persistence.
+- Preserved the Python 3.10–3.13 matrix and standard-library-only runtime.
+
 ## [1.0.0] — first public release
 
 ### Mode 1 — find and vet references

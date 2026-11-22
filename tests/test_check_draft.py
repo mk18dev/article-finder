@@ -137,6 +137,16 @@ class CountingTests(unittest.TestCase):
         ok, _ = rule("## Findings\n\n![fig](a.png)\n", "R6", "en")
         self.assertIs(ok, True)
 
+    def test_chart_label_alone_does_not_pass(self) -> None:
+        ok, detail = rule("## Findings\n\nChart 1 shows the trend.\n", "R9", "en")
+        self.assertIsNone(ok)
+        self.assertIn("mention is not a chart", detail)
+
+    def test_chart_label_and_image_still_need_review(self) -> None:
+        ok, detail = rule("## Findings\n\nChart 1\n\n![plot](chart.png)\n", "R9", "en")
+        self.assertIsNone(ok)
+        self.assertIn("inspect whether an image is actually a chart", detail)
+
     def test_keyword_count(self) -> None:
         ok, _ = rule("## Keywords: A, B, C, D, E, F, G, H, I\n", "K1", "en")
         self.assertIs(ok, False)
