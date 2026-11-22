@@ -360,17 +360,19 @@ def build_report(review: dict[str, Any]) -> str:
         "",
         f'- Review type: {protocol["review_type"]}',
         f'- Research question: {protocol["question"]}',
+        f'- Screening policy: {"dual" if protocol["dual_screening"] else "single"}',
+        f'- Reviewers: {", ".join(protocol["reviewers"])}',
         "",
         "## Search log",
         "",
-        "| Database | Platform | Exact query | Date | Hits | Limits |",
-        "|---|---|---|---|---:|---|",
+        "| Database | Platform | Exact query | Date | Retrieved | Limits | Status | Search URL |",
+        "|---|---|---|---|---:|---|---|---|",
     ]
     for item in review["search_log"]:
         safe = lambda value: str(value).replace("|", "\\|").replace("\n", " ")
         lines.append("| " + " | ".join(safe(item.get(key, "")) for key in
-                     ("database", "platform", "query", "date_run", "hits", "limits")) + " |")
-    lines.extend(["", "## PRISMA counts", "", "| Stage | n |", "|---|---:|"])
+                     ("database", "platform", "query", "date_run", "hits", "limits", "status", "search_url")) + " |")
+    lines.extend(["", "Counts below are derived from raw retrieved records and reviewer-attributed screening decisions; supplied totals are never trusted as the source of truth.", "", "## PRISMA counts", "", "| Stage | n |", "|---|---:|"])
     for key, value in counts.items():
         lines.append(f"| {key.replace('_', ' ')} | {value} |")
     lines.extend(["", "## Flow diagram", "", "```mermaid", render_prisma_flow(counts), "```", ""])
