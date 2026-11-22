@@ -168,6 +168,8 @@ class SourceExecutionTests(unittest.TestCase):
             "tier_verified": True,
             "keyword": "Survey + hybrid recommender systems",
             "cited_by": 4,
+            "integrity_status": "not_flagged",
+            "crossref_updates": [],
             "steps": {f"S{i}": True for i in range(1, 12)},
             "evidence": {},
             "notes": {"en": "", "fa": ""},
