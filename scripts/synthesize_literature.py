@@ -198,7 +198,8 @@ def render_markdown(result: dict[str, Any]) -> str:
         lines.extend(["", "| Study | Year | Design | Direction | Finding extracted by reviewer | Limitations |",
                       "|---|---:|---|---|---|---|"])
         for study in item["studies"]:
-            safe = lambda value: str(value or "").replace("|", "\\|").replace("\n", " ")
+            def safe(value):
+                return str(value or "").replace("|", "\\|").replace("\n", " ")
             limitations = "; ".join(study.get("limitations") or [])
             lines.append("| " + " | ".join((
                 safe(study["title"]), safe(study.get("year")), safe(study.get("study_design")),
