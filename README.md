@@ -1,6 +1,6 @@
 # article-finder
 
-**Release 1.1.0** — evidence-backed gates, fail-closed HTTPS retrieval and conflict-aware duplicate handling.
+**Release 1.3.0** — evidence-backed gates, fail-closed HTTPS retrieval and conflict-aware duplicate handling.
 
 **A verification-first research-paper skill for AI agents.** It finds and vets sources for a paper, then checks a draft section by section — and it refuses to tick a box it cannot prove.
 
@@ -156,7 +156,7 @@ Not affiliated with, or endorsed by, the deck's author or Islamic Azad Universit
 
 ## Web app and API
 
-**Live application:** [article-finder-peach.vercel.app](https://article-finder-peach.vercel.app/) — Release 1.1.0.
+**Live application:** [article-finder-peach.vercel.app](https://article-finder-peach.vercel.app/) — Release 1.3.0.
 
 The Persian-first web interface uses the same Python verification and draft-checking
 functions as the CLI; it does not introduce a second rules engine.
