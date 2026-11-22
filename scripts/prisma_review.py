@@ -214,8 +214,11 @@ def _validate_stage_review(review: Any, protocol: dict[str, Any], prefix: str) -
         else:
             if str(adjudication.get("decision") or "").lower() not in {"include", "exclude"}:
                 errors.append(f"{prefix}.adjudication.decision must be include or exclude")
-            if not _nonempty(adjudication.get("reviewer_id")):
-                errors.append(f"{prefix}.adjudication.reviewer_id is required")
+            adjudicator_id = str(adjudication.get("reviewer_id") or "").strip()
+            if adjudicator_id not in reviewers:
+                errors.append(f"{prefix}.adjudication.reviewer_id must be declared in protocol.reviewers")
+            if adjudicator_id in {primary_id, second_id}:
+                errors.append(f"{prefix}.adjudication must be performed by a different reviewer")
             if not _valid_timestamp(adjudication.get("reviewed_at")):
                 errors.append(f"{prefix}.adjudication.reviewed_at must be timezone-aware ISO-8601")
             if not _nonempty(adjudication.get("note")):
