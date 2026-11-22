@@ -5,7 +5,7 @@ description: Audit DOI/title/year/author identity, flag Crossref correction and 
 
 # Citation Verification Skill — Article Finder 1.1.0
 
-Use `scripts/verify_citations.py` on a bibliography JSON file.
+Use `scripts/verify_citations.py` on a bibliography JSON file and `scripts/citation_crosswalk.py` on manuscript text plus a structured reference list.
 
 - Compare DOI, title, year, and first-author metadata with Crossref.
 - If DOI is absent, return candidate DOI matches as Pending; never auto-replace a citation.
@@ -13,6 +13,6 @@ Use `scripts/verify_citations.py` on a bibliography JSON file.
 - A metadata identity match does not establish that the source supports the cited claim.
 - No Crossref update record is not proof that no correction or retraction exists.
 - Confirm high-risk notices on the publisher page and preserve the notice DOI.
-- Do not silently delete or rewrite questionable citations; report the mismatch and request reviewer action.
+- Cross-check APA author-year or IEEE numeric citations against the reference list; report missing bibliography entries, uncited references, duplicate DOI and duplicate author-year keys.\n- Do not silently delete or rewrite questionable citations; report the mismatch and request reviewer action.
 
-Output: per-citation status, metadata comparison, update links, and limitations.
+Output: per-citation status, metadata comparison, update links, APA/IEEE crosswalk, and limitations.
