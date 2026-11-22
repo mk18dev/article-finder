@@ -222,6 +222,10 @@ def recency_ok(work: Work, category: str) -> bool | None:
 def evidence_item_ok(item: Any) -> bool:
     if not isinstance(item, dict) or item.get("reviewed") is not True:
         return False
+    reviewer_id = str(item.get("reviewer_id") or "").strip()
+    locator = str(item.get("locator") or "").strip()
+    if not reviewer_id or not locator or not _valid_search_timestamp(item.get("reviewed_at")):
+        return False
     url = item.get("url")
     note = item.get("note")
     if not isinstance(url, str) or not isinstance(note, str) or len(url) > 4096:
@@ -253,6 +257,9 @@ def judgement(entry: dict[str, Any], step: str) -> bool | None:
     item = judgements.get(step)
     if not isinstance(item, dict) or not evidence_item_ok({
         "reviewed": item.get("reviewed"),
+        "reviewer_id": item.get("reviewer_id"),
+        "reviewed_at": item.get("reviewed_at"),
+        "locator": item.get("locator"),
         "url": item.get("evidence_url"),
         "note": item.get("note"),
     }):
@@ -319,6 +326,9 @@ def s6_gate(work: Work, entry: dict[str, Any]) -> bool | None:
             isinstance(item, dict)
             and evidence_item_ok({
                 "reviewed": item.get("verified"),
+                "reviewer_id": item.get("reviewer_id"),
+                "reviewed_at": item.get("reviewed_at"),
+                "locator": item.get("locator"),
                 "url": item.get("url"),
                 "note": item.get("note"),
             })
@@ -407,6 +417,9 @@ def tier_verified(entry: dict[str, Any]) -> bool:
         return False
     return tier in {"A", "B", "C", "D"} and evidence_item_ok({
         "reviewed": evidence.get("verified"),
+        "reviewer_id": evidence.get("reviewer_id"),
+        "reviewed_at": evidence.get("reviewed_at"),
+        "locator": evidence.get("locator"),
         "url": evidence.get("url"),
         "note": evidence.get("basis"),
     })
