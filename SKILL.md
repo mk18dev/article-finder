@@ -49,7 +49,7 @@ Search with `This Word + Your Research Keyword`. The slide's keyword words: Tuto
 
 Practical pairing *(skill)*: Survey / Overview / Tutorial / Introduction / Taxonomy / Concept / Books surface Concept and Challenge sources; Method / Technique / Algorithm / Model / Approach surface Methodology; Thesis / Bibliography / References / Archive surface extra leads.
 
-Good starting sites from the slides: IEEE Xplore, SpringerLink, ScienceDirect, Google Scholar. When a site cannot be fetched, search with `site:` filters instead. Run the searches for all four categories in parallel. Record which keyword found each article (that is step S3).
+Good starting sites from the slides: IEEE Xplore, SpringerLink, ScienceDirect, Google Scholar. When a site cannot be fetched, search with `site:` filters instead. Run the searches for all four categories in parallel. For reproducible multi-database retrieval, run `python3 scripts/search_databases.py` with the exact keyword query and save its JSON output. It queries Crossref and OpenAlex, records each query/date/URL/retrieved count, and deduplicates candidates. Preserve provider failures and rerun them before describing the search as systematic. The web workspace's Crossref discovery is supplementary single-provider search, not a substitute for this workflow. Record which keyword found each article (that is step S3).
 
 ### Phase C: Gate every candidate
 
@@ -140,6 +140,7 @@ Do not describe a review as PRISMA-compliant solely because a diagram was genera
 - `references/slide-coverage.md`: all 60 pages and all 53 numbered steps mapped to the file and the phase that implements each one.
 - `scripts/check_ids.py`: offline ISSN / ISBN-10 / ISBN-13 checksum validator.
 - `scripts/verify_source.py`: builds `results.json` from DOIs (Crossref + OpenAlex + `check_ids.py`) and writes the S6 checklist.\n- `scripts/verify_citations.py`: compares citation identity with Crossref metadata and flags recorded corrections/retractions.
+- `scripts/search_databases.py`: searches Crossref and OpenAlex, saves exact query provenance and deduplicates candidate records.
 - `scripts/fetch_pdf.py`: downloads the open full text and reports the licensed route for everything else.
 - `scripts/render_table.py`: Mode 1 checklist tables, verdicts, duplicate merge, APA/IEEE reference list.
 - `scripts/check_draft.py`: Mode 2 checklist tables for a draft.
