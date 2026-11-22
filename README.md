@@ -156,6 +156,9 @@ The suite is network-free and additionally covers source evidence gates, citatio
 ```
 SKILL.md              the main workflow an agent follows
 VERSION               canonical release version
+requirements.txt      pinned safe-XML runtime dependency
+requirements-browser.txt pinned Playwright browser-test dependency
+requirements-quality.txt pinned Ruff, Bandit and pip-audit tools
 skills/               nine specialized research and engineering playbooks
 references/           the rule set, gates, rubric, reading rules, verification map
 scripts/              search_databases · verify_source · verify_citations · citation_crosswalk · prisma_review · synthesize_literature · render_table · fetch_pdf · check_draft · check_ids · web_api · http_util
@@ -219,4 +222,4 @@ python -m scripts.serve
 ```
 
 The local web/API is available at `http://127.0.0.1:8000/` (or the configured
-`PORT`). Vercel deployment configuration is maintained in `vercel.json`. The current Vercel project is not Git-linked, so pushes to `main` do not auto-deploy; deploy the tested `main` commit manually, or connect the repository in Vercel after granting the Vercel GitHub App access. GitHub Actions tests Python 3.10–3.13, browser behavior, lint, security and package contents on pushes to `main`; the live Vercel smoke suite is a separate manual workflow dispatch (`run_production_smoke=true`) and requires the matching API key secret.
+`PORT`). Vercel deployment configuration is maintained in `vercel.json`. The current Vercel project is not Git-linked, so pushes to `main` do not auto-deploy; do not deploy until the user explicitly authorizes a release; the Vercel project remains intentionally outside automatic Git deployments. GitHub Actions tests Python 3.10–3.13, browser behavior, lint, security and package contents on pushes to `main`; the live Vercel smoke suite is a separate manual workflow dispatch (`run_production_smoke=true`) and requires the matching API key secret.
