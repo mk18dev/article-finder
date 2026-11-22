@@ -202,4 +202,4 @@ The local web/API is available at `http://127.0.0.1:8000/` (or the configured
 `PORT`). Vercel deployment configuration is maintained in `vercel.json`.
 GitHub Actions tests Python 3.10–3.13 and, on pushes to `main`, waits for the
 production deployment before checking the live health endpoint, static assets,
-Crossref discovery and draft-check API.
+Crossref discovery, 11-gate source verification and 76-rule draft-check API.
