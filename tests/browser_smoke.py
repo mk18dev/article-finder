@@ -28,6 +28,7 @@ def main() -> int:
         assert response is not None and response.status == 200
         assert page.locator("html").get_attribute("lang") == "fa"
         assert page.locator("html").get_attribute("dir") == "rtl"
+        page.wait_for_function("document.querySelector('#engine-status span')?.textContent.includes('موتور API متصل است')", timeout=10_000)
         assert page.locator(".mode-tab").count() == 2
         assert page.locator("#source-form").is_visible()
         assert_no_horizontal_overflow(page)
