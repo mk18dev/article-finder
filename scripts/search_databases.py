@@ -162,6 +162,7 @@ def discover(query: str, limit: int = DEFAULT_LIMIT,
     unique, duplicates = deduplicate_records(records)
     return {
         "query": query.strip(),
+        "raw_records": records,
         "records": unique,
         "duplicates": duplicates,
         "search_log": search_log,
