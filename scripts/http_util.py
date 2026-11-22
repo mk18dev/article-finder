@@ -69,7 +69,11 @@ def validate_remote_url(url: str) -> str:
         raise ValueError("credentials in URLs are not allowed")
     if port not in (None, 443):
         raise ValueError("only HTTPS port 443 is allowed")
-    host = host.rstrip(".").encode("idna").decode("ascii").lower()
+    try:
+        ipaddress.ip_address(host)
+        host = host.lower()
+    except ValueError:
+        host = host.rstrip(".").encode("idna").decode("ascii").lower()
     if not host or host == "localhost" or host.endswith(".localhost"):
         raise ValueError("local hostnames are not allowed")
     _resolve_public_addresses(host)
