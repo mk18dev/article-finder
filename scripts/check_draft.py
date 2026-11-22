@@ -26,7 +26,6 @@ import argparse
 import datetime
 import json
 import re
-import sys
 from typing import Any, Callable, Iterable
 
 ZW = "\u200c"
