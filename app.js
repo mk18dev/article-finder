@@ -280,7 +280,10 @@
     try {
       const response = await fetch("/api", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(getKey() ? { Authorization: "Bearer " + getKey() } : {}),
+        },
         credentials: "same-origin",
         cache: "no-store",
         body: JSON.stringify({
