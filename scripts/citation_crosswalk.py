@@ -43,6 +43,8 @@ def _author_key(value: Any) -> str:
     text = str(value or "").strip()
     if not text:
         return ""
+    text = re.sub(r"\s+et\s+al\.?$", "", text, flags=re.I)
+    text = re.split(r"\s*(?:&|and)\s*", text, maxsplit=1, flags=re.I)[0]
     if "," in text:
         family = text.split(",", 1)[0]
     else:
