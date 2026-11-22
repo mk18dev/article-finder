@@ -1,16 +1,18 @@
 ---
 name: article-finder
-description: Step-by-step research-paper workflow from the "Research method and presentation" course slides. Mode 1 finds, validates, ranks and categorizes references (journal papers, conference papers, theses, books) and returns a checklist table where every approved source has all 11 steps ticked ✅. Mode 2 checks an article draft section by section (title, abstract, keywords, affiliation, introduction, research background, methodology, findings, conclusion, references) against the course's writing rules and returns a ticked table. Use this skill whenever the user wants to find, collect, vet, rank or filter sources for a paper, thesis or literature review, asks whether a journal or conference is credible or ISI/Scopus/ISC indexed, wants help writing or reviewing an article's sections or word counts, or writes in Persian about «پیدا کردن مقاله»، «منبع»، «پیشینه پژوهش»، «اعتبارسنجی ژورنال/کنفرانس»، «نوشتن مقاله»، «چکیده»، «مقدمه» — even if they never say "skill" or "checklist".
+description: Evidence-first research workflow for source discovery and 11-gate verification, scientific draft review, systematic/scoping reviews with PRISMA screening, thematic literature synthesis, and citation identity audits. Use when finding or vetting sources, checking indexing, reviewing article sections, running Crossref/OpenAlex searches, screening studies, reconciling PRISMA counts, mapping claims to evidence, or auditing DOI/title/year/author/retraction metadata.
 ---
 
 # Article Finder
 
 Release 1.1.0.
 
-Two jobs, one method, both from the user's research-methods slides (Niloofar Mirzaei Chahardeh, I.A.U.):
+Four connected workflows, grounded in the user's research-methods slides (Niloofar Mirzaei Chahardeh, I.A.U.):
 
 1. **Find references** (slides Chapter 1, "Method of Search"): scope the topic, search with a fixed keyword formula, push every candidate through validation gates, rank it, file it under one of four categories.
-2. **Write the article** (slides Chapter 2, "Writing an Article"): check each section of a draft against the course's rules.
+2. **Write and check the article** (slides Chapter 2, "Writing an Article"): check each section of a draft against the course's rules.
+3. **Systematic/scoping review**: run reproducible Crossref/OpenAlex searches, manage screening and PRISMA counts, and synthesize reviewer-extracted evidence.
+4. **Citation identity audit**: compare DOI/title/year/author metadata and flag recorded Crossref updates; never infer claim support from metadata.
 
 Either way the output is a table where an approved item has every step ticked. The deck numbers its own method steps **1-53** (page 6 = step 1, page 60 = step 53); `references/slide-coverage.md` maps every page and every step number to the file and the phase that implements it, so a user who says "step 22" lands on the full-text download (Phase E) and "step 8" on the keyword formula (Phase B). Where the slides give no number or definition (tier cut-offs, recency, and similar), this skill sets a default and says so; the user can override it. `references/slide-coverage.md` maps all 60 slides to the files below.
 
@@ -128,11 +130,27 @@ Use this mode when the user asks for a systematic or scoping review, reproducibl
 
 Do not describe a review as PRISMA-compliant solely because a diagram was generated. Complete the relevant PRISMA checklist and report protocol deviations, missing full texts, single-reviewer limitations, and any unregistered post hoc changes.
 
+ 
+---
+ 
+## Mode 4: Citation identity audit
+
+Use when a user asks whether bibliography entries match their DOI, title, year, first author, or have a recorded correction/retraction.
+
+1. Prepare a JSON list of citation objects with `doi`, `title`, optional `year`, and optional `first_author`.
+2. Run `python3 scripts/verify_citations.py citations.json --format markdown`.
+3. Treat `verified` as bibliographic identity agreement only. It does not prove the cited work supports the manuscript claim.
+4. Keep DOI-less candidate matches Pending until a reviewer confirms the correct work.
+5. Inspect correction, retraction, and withdrawal notices at the publisher; no Crossref update record is not proof that none exists.
+6. Never silently rewrite or delete a questionable reference. Return the mismatch and ask for reviewer action.
+
 
 ---
 
 ## Bundled files
 
+- `VERSION`: canonical release version (1.1.0).
+- `skills/`: specialized playbooks for search, OpenAlex, source verification, PRISMA screening, literature synthesis, citation verification, scientific writing, security, and CI/CD.
 - `references/course-background.md`: research concept, types, prerequisites, area/subject/reference, keywords (slides 1-14).
 - `references/validation.md`: gates for each source type, tier rubric, where to verify, the worked example, full-text policy, and §10 on which gates a script can decide.
 - `references/reading.md`: reading and extraction rules for the four categories. Read before S11.
@@ -140,7 +158,8 @@ Do not describe a review as PRISMA-compliant solely because a diagram was genera
 - `references/output-example.md`: JSON inputs and rendered outputs for both modes (placeholder data).
 - `references/slide-coverage.md`: all 60 pages and all 53 numbered steps mapped to the file and the phase that implements each one.
 - `scripts/check_ids.py`: offline ISSN / ISBN-10 / ISBN-13 checksum validator.
-- `scripts/verify_source.py`: builds `results.json` from DOIs (Crossref + OpenAlex + `check_ids.py`) and writes the S6 checklist.\n- `scripts/verify_citations.py`: compares citation identity with Crossref metadata and flags recorded corrections/retractions.
+- `scripts/verify_source.py`: builds `results.json` from DOIs (Crossref + OpenAlex + `check_ids.py`) and writes the S6 checklist.
+- `scripts/verify_citations.py`: compares citation identity with Crossref metadata and flags recorded corrections/retractions.
 - `scripts/search_databases.py`: searches Crossref and OpenAlex, saves exact query provenance and deduplicates candidate records.
 - `scripts/fetch_pdf.py`: downloads the open full text and reports the licensed route for everything else.
 - `scripts/render_table.py`: Mode 1 checklist tables, verdicts, duplicate merge, APA/IEEE reference list.
