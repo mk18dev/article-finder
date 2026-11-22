@@ -36,6 +36,7 @@ All notable changes to this skill and web app. Format: [Keep a Changelog](https:
 ### Quality gates
 
 - Expanded the network-free test suite to 311 test methods across Python 3.10–3.13.
+- Added Ruff lint, Bandit security scanning and pip-audit for pinned runtime/browser/quality dependencies.
 - Added a Playwright browser smoke job for RTL rendering, mode switching and 320px/390px mobile plus desktop overflow checks.
 - Added package-content validation for all nine specialist skills and explicit exclusion of PDFs, caches and build output.
 - Production smoke remains manual and requires explicit authorization; this release cycle does not promote a Vercel deployment.
