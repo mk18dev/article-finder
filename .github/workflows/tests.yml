@@ -78,6 +78,17 @@ jobs:
             --data '{"action":"discover_sources","keyword":"Survey + recommender systems","category":"concept","limit":1}' \
             "$BASE_URL/api" -o /tmp/discovery.json
           python -c "import json; d=json.load(open('/tmp/discovery.json')); assert d['ok'] and d['mode']=='discovery' and d['provider']=='Crossref' and isinstance(d['candidates'],list) and isinstance(d['plan'],list); print('Crossref production discovery returned', len(d['candidates']), 'candidate(s)')"
+      - name: Exercise production 11-gate source verification
+        env:
+          BASE_URL: https://article-finder-peach.vercel.app
+        run: |
+          set -euo pipefail
+          jq -c '{action:"verify_sources",entries:.plan,cutoff:"B",language:"en"}' /tmp/discovery.json > /tmp/verify.json
+          curl --fail --silent --show-error --max-time 60 \
+            -H 'Content-Type: application/json' \
+            --data-binary @/tmp/verify.json \
+            "$BASE_URL/api" -o /tmp/verification.json
+          python -c "import json; d=json.load(open('/tmp/verification.json')); n=len(d['results'])+len(d['errors']); assert d['ok'] and d['mode']=='sources' and n==1; print('Production source verification processed', n, 'candidate(s); verdict:', d['results'][0]['verdict'] if d['results'] else 'metadata-error')"
       - name: Exercise production draft-check API
         env:
           BASE_URL: https://article-finder-peach.vercel.app
