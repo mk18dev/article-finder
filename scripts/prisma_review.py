@@ -15,7 +15,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
-REVIEW_TYPES = {"systematic", "scoping", "narrative"}
+REVIEW_TYPES = {"systematic", "scoping"}
 DECISIONS = {"include", "exclude", "pending"}
 REQUIRED_COUNTS = (
     "duplicates_removed",
@@ -57,28 +57,41 @@ def record_key(record: dict[str, Any]) -> tuple[str, str]:
     return ("record", str(record.get("record_id") or id(record)))
 
 
+def _metadata_conflicts(canonical: dict[str, Any], duplicate: dict[str, Any]) -> list[dict[str, Any]]:
+    conflicts = []
+    for field in ("title", "year", "authors", "venue", "publisher"):
+        left, right = canonical.get(field), duplicate.get(field)
+        if left in (None, "", []) or right in (None, "", []):
+            continue
+        left_key = normalize_title(left) if field == "title" else str(left).strip().casefold()
+        right_key = normalize_title(right) if field == "title" else str(right).strip().casefold()
+        if left_key != right_key:
+            conflicts.append({"field": field, "canonical": left, "duplicate": right})
+    return conflicts
+
+
 def deduplicate_records(records: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Keep the first occurrence; return explicit duplicate-to-canonical links."""
-    seen: dict[tuple[str, str], str] = {}
+    """Keep a stable canonical record and preserve duplicate links and metadata conflicts."""
+    seen: dict[tuple[str, str], dict[str, Any]] = {}
     unique: list[dict[str, Any]] = []
     duplicates: list[dict[str, Any]] = []
     for index, raw in enumerate(records, 1):
         if not isinstance(raw, dict):
             raise ValueError(f"record {index} must be an object")
         item = dict(raw)
+        item.setdefault("record_id", f"record-{index:06d}")
         key = record_key(item)
-        canonical_id = seen.get(key)
-        if canonical_id is None:
-            canonical_id = str(item.get("record_id") or f"record-{index}")
-            seen[key] = canonical_id
-            item.setdefault("record_id", canonical_id)
+        canonical = seen.get(key)
+        if canonical is None:
+            seen[key] = item
             unique.append(item)
         else:
             duplicates.append({
-                "record_id": str(item.get("record_id") or f"record-{index}"),
-                "duplicate_of": canonical_id,
+                "record_id": str(item["record_id"]),
+                "duplicate_of": str(canonical["record_id"]),
                 "key_type": key[0],
                 "key": key[1],
+                "metadata_conflicts": _metadata_conflicts(canonical, item),
             })
     return unique, duplicates
 
@@ -90,7 +103,7 @@ def validate_protocol(review: dict[str, Any]) -> list[str]:
         return ["protocol must be an object"]
     kind = str(protocol.get("review_type") or "").strip().lower()
     if kind not in REVIEW_TYPES:
-        errors.append("protocol.review_type must be systematic, scoping, or narrative")
+        errors.append("protocol.review_type must be systematic or scoping")
     if not _nonempty(protocol.get("question")):
         errors.append("protocol.question is required")
     if kind in {"systematic", "scoping"}:
@@ -238,7 +251,11 @@ def derive_counts(review: dict[str, Any]) -> dict[str, int]:
     assessed_records = [item for item in screened_records if item.get("full_text_status") == "retrieved"]
     full_reviews = [item["full_text_review"] for item in assessed_records]
     full_excluded = sum(1 for item in full_reviews if str(item.get("decision")).lower() == "exclude")
-    included = sum(1 for item in full_reviews if str(item.get("decision")).lower() == "include")
+    included_records = [
+        record for record, item in zip(assessed_records, full_reviews)
+        if str(item.get("decision")).lower() == "include"
+    ]
+    included = len({str(record.get("study_id") or record.get("record_id")) for record in included_records})
     return {
         "records_identified": identified,
         "duplicates_removed": len(duplicates),
@@ -249,7 +266,7 @@ def derive_counts(review: dict[str, Any]) -> dict[str, int]:
         "reports_not_retrieved": not_retrieved,
         "reports_assessed": len(assessed_records),
         "reports_excluded_full_text": full_excluded,
-        "studies_included": included,
+        "studies_included": included,\n        "reports_of_included_studies": len(included_records),
     }
 
 
