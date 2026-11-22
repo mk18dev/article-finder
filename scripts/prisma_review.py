@@ -453,13 +453,19 @@ def build_report(review: dict[str, Any]) -> str:
         "",
         "## Search log",
         "",
-        "| Database | Platform | Exact query | Date | Retrieved | Limits | Status | Search URL |",
-        "|---|---|---|---|---:|---|---|---|",
+        "| Source type | Database/register | Platform | Exact query | Date | Retrieved | Limits | Status | Search URL |",
+        "|---|---|---|---|---|---:|---|---|---|",
     ]
     for item in review["search_log"]:
         safe = lambda value: str(value).replace("|", "\\|").replace("\n", " ")
         lines.append("| " + " | ".join(safe(item.get(key, "")) for key in
-                     ("database", "platform", "query", "date_run", "hits", "limits", "status", "search_url")) + " |")
+                     ("source_type", "database", "platform", "query", "date_run", "hits", "limits", "status", "search_url")) + " |")
+    other_methods = review.get("other_methods_log") or []
+    if other_methods:
+        lines.extend(["", "## Other-methods search log", "", "| Method | Exact date | Retrieved | Limits | Status | Search URL |", "|---|---|---:|---|---|---|"])
+        for item in other_methods:
+            lines.append("| " + " | ".join(safe(item.get(key, "")) for key in
+                         ("method", "date_run", "hits", "limits", "status", "search_url")) + " |")
     lines.extend(["", "Counts below are derived from raw retrieved records and reviewer-attributed screening decisions; supplied totals are never trusted as the source of truth.", "", "## PRISMA counts", "", "| Stage | n |", "|---|---:|"])
     for key, value in counts.items():
         lines.append(f"| {key.replace('_', ' ')} | {value} |")
