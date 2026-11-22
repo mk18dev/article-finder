@@ -143,6 +143,7 @@ Use when a user asks whether bibliography entries match their DOI, title, year, 
 4. Keep DOI-less candidate matches Pending until a reviewer confirms the correct work.
 5. Inspect correction, retraction, and withdrawal notices at the publisher; no Crossref update record is not proof that none exists.
 6. Never silently rewrite or delete a questionable reference. Return the mismatch and ask for reviewer action.
+7. For APA/IEEE manuscript consistency, run `python3 scripts/citation_crosswalk.py manuscript.txt references.json --style APA` or `--style IEEE`. Resolve missing in-text references, uncited bibliography entries, duplicate DOI, duplicate author-year keys, and ambiguous matches manually.
 
 
 ---
