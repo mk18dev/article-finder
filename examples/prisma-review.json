@@ -1,32 +1,42 @@
 {
   "protocol": {
     "review_type": "systematic",
-    "question": "What evidence exists for the research question under review?",
+    "question": "PLACEHOLDER — state the population, intervention/exposure, comparator and outcome.",
     "inclusion_criteria": [
-      "Directly addresses the prespecified research question",
-      "Meets the study-design and date criteria in the protocol"
+      "PLACEHOLDER — define eligible study designs and population.",
+      "PLACEHOLDER — define eligible outcomes and date/language limits."
     ],
     "exclusion_criteria": [
-      "Editorials and opinion pieces",
-      "Records outside the prespecified population or topic"
+      "PLACEHOLDER — define excluded designs and publication types."
     ],
     "registration": null,
-    "reviewers": [
-      "reviewer-1"
-    ],
-    "dual_screening": false,
-    "single_reviewer_justification": "Template only; replace with the actual screening arrangement."
+    "reviewers": ["REVIEWER_1", "REVIEWER_2"],
+    "dual_screening": true
   },
   "search_log": [
     {
       "database": "Crossref",
       "platform": "REST API",
-      "query": "REPLACE WITH THE EXACT QUERY THAT WAS EXECUTED",
+      "query": "PLACEHOLDER — exact query as executed",
       "date_run": "2026-11-23",
-      "search_url": "https://api.crossref.org/works?query=REPLACE",
+      "search_url": "https://api.crossref.org/works?query=PLACEHOLDER",
       "hits": 0,
-      "limits": "REPLACE WITH THE ACTUAL LIMITS"
+      "limits": "PLACEHOLDER — date, language, document type",
+      "status": "ok"
     }
   ],
+  "counts": {
+    "records_identified": 0,
+    "duplicates_removed": 0,
+    "records_removed_automation": 0,
+    "records_screened": 0,
+    "records_excluded_title_abstract": 0,
+    "reports_sought": 0,
+    "reports_not_retrieved": 0,
+    "reports_assessed": 0,
+    "reports_excluded_full_text": 0,
+    "studies_included": 0,
+    "reports_of_included_studies": 0
+  },
   "records": []
 }
