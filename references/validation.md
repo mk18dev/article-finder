@@ -151,9 +151,10 @@ Missing or invalid ISSN, publisher not identifiable, Number inconsistent with Vo
 | S5 Publisher | script, one-sided | Crossref `publisher`, matched against the slide's publisher list; a publisher outside that list stays ❓, never ❌ |
 | S7 Identifiers | script, partly | ISSN/ISBN checksums; journal volume-number-issue formula plus reviewer evidence from an official publisher host; conference edition + venue + DOI; thesis/book record IDs |
 | S8 Specialization & year | script, partly | Crossref year against the recency rule; specialization requires a reviewer record and evidence URL |
-| S9 Tier | reviewer + renderer | A-D tier, rubric/basis, reviewer evidence URL; \`render_table.py\` computes pass/fail against the selected cutoff |
+| S9 Tier | reviewer + renderer | A-D tier, rubric/basis, reviewer evidence URL; `render_table.py` computes pass/fail against the selected cutoff |
 | S10 Category | model/reviewer | category judgement, taken from the plan and reported as declared |
 | S11 Extraction | script, partly | reviewer reading records for abstract/introduction/conclusion, chapters 1-2, or full text according to category and source type |
+| Integrity (S0) | script, partly | OpenAlex `is_retracted`/`is_paratext` and Crossref `update-to`; retraction rejects, correction/paratext/unknown remains pending |
 | S1, S2, S3 | model/reviewer | research judgements and exact search provenance, reported as declared |
 | S6 Indexing | user/reviewer | official-host allowlist + reviewed record; no API independently certifies index status — see the ladder below |
 
