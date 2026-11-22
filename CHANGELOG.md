@@ -15,6 +15,31 @@ All notable changes to this skill and web app. Format: [Keep a Changelog](https:
 - Added a separate manual production smoke workflow for static assets, health, Crossref discovery, source verification and draft checking. It is intentionally gated until the matching v1.1.0 production deployment is authorized.
 - v1.1.0 has not been deployed to production in this release cycle; the existing Vercel deployment is not evidence that this source revision is live.
 
+### Systematic review and literature analysis
+
+- Added Crossref + OpenAlex multi-provider search with exact query URLs, timestamps, provider-level failures, raw records, stable record IDs and duplicate links.
+- Added a reviewer-attributed PRISMA-style ledger: dual screening, independent adjudication, full-text exclusion reasons, database/register/other-method identification streams, and counts derived from raw records.
+- Included-study counts are based on unique study IDs; reports of included studies remain a separate count.
+- Added thematic literature synthesis with reviewer-extracted study fields, evidence locators, conflict flags, quality-appraisal evidence and claim-to-source maps. It does not invent effect sizes or perform meta-analysis.
+
+### Citation integrity
+
+- Added Crossref DOI/title/year/author identity checks and correction/retraction/withdrawal flags; uncertain records remain Pending.
+- Added APA/IEEE in-text-to-bibliography crosswalk checks for missing, uncited, duplicate and malformed citations.
+- Identity agreement is explicitly not treated as proof that a source supports a manuscript claim.
+
+### Specialized skills
+
+- Added nine focused playbooks for systematic search, OpenAlex retrieval, source verification, PRISMA screening, literature synthesis, citation verification, scientific writing, security review and CI/CD release.
+- The skill package now includes canonical `VERSION`, all specialized playbooks, and package-manifest regression tests.
+
+### Quality gates
+
+- Expanded the network-free test suite to 303 tests across Python 3.10–3.13.
+- Added a Playwright browser smoke job for RTL rendering, mode switching and 320px/390px mobile plus desktop overflow checks.
+- Added package-content validation for all nine specialist skills and explicit exclusion of PDFs, caches and build output.
+- Production smoke remains manual and requires explicit authorization; this release cycle does not promote a Vercel deployment.
+
 ### Web application and API
 
 - Added a Persian-first responsive web workspace for source verification and draft checking, backed by the existing Python modules.
