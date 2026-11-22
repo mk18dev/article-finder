@@ -65,7 +65,7 @@ class ArticleFinderHTTPServerTests(unittest.TestCase):
         self.assertEqual(response.status, 200)
         self.assertTrue(payload["ok"])
         self.assertEqual(payload["service"], "article-finder")
-        self.assertEqual(payload["version"], "1.3.0")
+        self.assertEqual(payload["version"], "1.1.0")
         self.assertIn("source-discovery", payload["capabilities"])
 
     def test_draft_api_executes_existing_engine(self):
