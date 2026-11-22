@@ -34,6 +34,13 @@ class CandidateTests(unittest.TestCase):
         urls = fp.candidates(record())
         self.assertNotIn("https://example.org/a", urls)
 
+    def test_arxiv_feed_rejects_entity_expansion(self) -> None:
+        from defusedxml.common import EntitiesForbidden
+
+        payload = b'<!DOCTYPE feed [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><feed>&xxe;</feed>'
+        with self.assertRaises(EntitiesForbidden):
+            fp.ET.fromstring(payload)
+
     def test_arxiv_id_becomes_pdf_url(self) -> None:
         urls = fp.candidates(record(ids={"arxiv": "https://arxiv.org/abs/2301.12345"}))
         self.assertIn("https://arxiv.org/pdf/2301.12345", urls)
