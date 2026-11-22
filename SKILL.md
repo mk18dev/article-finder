@@ -14,7 +14,7 @@ Four connected workflows, grounded in the user's research-methods slides (Niloof
 3. **Systematic/scoping review**: run reproducible Crossref/OpenAlex searches, manage screening and PRISMA counts, and synthesize reviewer-extracted evidence.
 4. **Citation identity audit**: compare DOI/title/year/author metadata and flag recorded Crossref updates; never infer claim support from metadata.
 
-Either way the output is a table where an approved item has every step ticked. The deck numbers its own method steps **1-53** (page 6 = step 1, page 60 = step 53); `references/slide-coverage.md` maps every page and every step number to the file and the phase that implements it, so a user who says "step 22" lands on the full-text download (Phase E) and "step 8" on the keyword formula (Phase B). Where the slides give no number or definition (tier cut-offs, recency, and similar), this skill sets a default and says so; the user can override it. `references/slide-coverage.md` maps all 60 slides to the files below.
+Source and draft workflows return checklist tables. Systematic reviews and citation audits return structured reports with explicit evidence, limitations, and Pending states. The deck numbers its own method steps **1-53** (page 6 = step 1, page 60 = step 53); `references/slide-coverage.md` maps every page and every step number to the file and the phase that implements it, so a user who says "step 22" lands on the full-text download (Phase E) and "step 8" on the keyword formula (Phase B). Where the slides give no number or definition (tier cut-offs, recency, and similar), this skill sets a default and says so; the user can override it. `references/slide-coverage.md` maps all 60 slides to the files below.
 
 ## Ground rules
 
@@ -155,7 +155,7 @@ Use when a user asks whether bibliography entries match their DOI, title, year, 
 - `references/validation.md`: gates for each source type, tier rubric, where to verify, the worked example, full-text policy, and §10 on which gates a script can decide.
 - `references/reading.md`: reading and extraction rules for the four categories. Read before S11.
 - `references/writing-article.md`: all Chapter 2 rules and the rule IDs for `check_draft.py`.
-- `references/output-example.md`: JSON inputs and rendered outputs for both modes (placeholder data).
+- `references/output-example.md`: JSON inputs and rendered outputs for source and draft workflows (placeholder data).
 - `references/slide-coverage.md`: all 60 pages and all 53 numbered steps mapped to the file and the phase that implements each one.
 - `scripts/check_ids.py`: offline ISSN / ISBN-10 / ISBN-13 checksum validator.
 - `scripts/verify_source.py`: builds `results.json` from DOIs (Crossref + OpenAlex + `check_ids.py`) and writes the S6 checklist.
@@ -166,7 +166,7 @@ Use when a user asks whether bibliography entries match their DOI, title, year, 
 - `scripts/check_draft.py`: Mode 2 checklist tables for a draft.
 - `scripts/prisma_review.py`: Mode 3 protocol/search-log validation, deduplication helpers, PRISMA count reconciliation and Mermaid flow output.
 - `scripts/synthesize_literature.py`: reviewer-extracted evidence matrix, thematic grouping, conflict flags and claim-to-source evidence map.
-- `scripts/http_util.py`: the shared request, retry and TLS handling the three network scripts use.
+- `scripts/http_util.py`: the shared request, retry and TLS handling used by network scripts.
 - `examples/`: the fixture files whose real output `references/output-example.md` shows.
 - `tests/`: regression tests for every script.
 
