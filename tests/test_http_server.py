@@ -9,6 +9,7 @@ from http.server import ThreadingHTTPServer
 from unittest.mock import patch
 
 from scripts.serve import ArticleFinderHandler
+from scripts.web_api import handler as VercelAPIHandler
 
 
 class ArticleFinderHTTPServerTests(unittest.TestCase):
@@ -131,6 +132,47 @@ class ArticleFinderHTTPServerTests(unittest.TestCase):
                                             "Authorization": "Bearer railway-test-secret"})
         self.assertEqual(denied.status, 401)
         self.assertEqual(allowed.status, 400)
+
+
+class VercelFunctionRootTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.server = ThreadingHTTPServer(("127.0.0.1", 0), VercelAPIHandler)
+        cls.server.daemon_threads = True
+        cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
+        cls.thread.start()
+        cls.base = f"http://127.0.0.1:{cls.server.server_port}"
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.server.shutdown()
+        cls.server.server_close()
+        cls.thread.join(timeout=2)
+
+    def test_vercel_function_root_is_health_endpoint(self):
+        response = urllib.request.urlopen(self.base + "/", timeout=3)
+        payload = json.loads(response.read())
+        self.assertEqual(response.status, 200)
+        self.assertTrue(payload["ok"])
+        self.assertIn("source-discovery", payload["capabilities"])
+
+    def test_vercel_function_root_accepts_api_post(self):
+        body = json.dumps({
+            "action": "check_draft",
+            "language": "fa",
+            "draft": "# عنوان\\nاین یک متن آزمایشی برای مسیر ریشه تابع است.\\n\\n## چکیده\\nمتن آزمایشی.",
+        }).encode("utf-8")
+        request = urllib.request.Request(
+            self.base + "/",
+            data=body,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        response = urllib.request.urlopen(request, timeout=3)
+        payload = json.loads(response.read())
+        self.assertEqual(response.status, 200)
+        self.assertEqual(payload["mode"], "draft")
+
 
 
 if __name__ == "__main__":
