@@ -25,7 +25,7 @@ import os
 import re
 import time
 import urllib.parse
-import xml.etree.ElementTree as ET
+from defusedxml import ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
