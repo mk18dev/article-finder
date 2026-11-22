@@ -154,64 +154,48 @@ Code is MIT (see [`LICENSE`](LICENSE)). The rule set paraphrases a course deck b
 
 Not affiliated with, or endorsed by, the deck's author or Islamic Azad University.
 
-## Web app and deployment
+## Web app and API
 
-The Persian-first web interface runs the same Python verification and draft-checking
+The Persian-first web interface uses the same Python verification and draft-checking
 functions as the CLI; it does not introduce a second rules engine.
 
 - `/` serves the responsive web workspace.
 - `GET /api` reports API health and supported actions.
-- `POST /api` accepts `{"action":"verify_sources", ...}` or
-  `{"action":"check_draft", ...}` and returns structured JSON plus Markdown.
+- `POST /api` accepts `discover_sources`, `verify_sources`, or `check_draft`
+  and returns structured JSON plus Markdown.
+- `discover_sources` performs a real Crossref bibliographic search and records
+  the exact query URL, matched DOI and UTC timestamp. It returns candidates,
+  never approvals.
 - `scripts/web_api.py` contains the bounded API and delegates to the existing
   verification/checking modules.
-- `scripts/serve.py` is the standard-library production HTTP server used by Railway.
-  It serves only the known static assets and routes `/api` to the same API handler.
-- `railway.json` configures Railpack, the start command, the `/api` health check
-  and restart policy. No third-party Python package or Node build is required.
-- `api/index.py` and `vercel.json` remain available for the Vercel adapter.
-
-The hosted API exposes source discovery through Crossref, source verification and draft checking. Discovery records the exact Crossref query URL, matching DOI and UTC timestamp; it does not approve a candidate.\n\nThe hosted API never exposes `fetch_pdf.py`: arbitrary PDF fetching remains a
-local CLI workflow, not a public URL-fetch endpoint.
-
-### Railway deployment
-
-Connect the GitHub repository `mk18dev/article-finder` to a Railway service,
-use the repository root and deploy branch `main`. Railway reads `railway.json`
-and starts the app with:
-
-```bash
-python -m scripts.serve
-```
-
-Railway injects `PORT`; the server binds to `0.0.0.0` and exposes `/api`
-as its health-check route. Git pushes to `main` trigger subsequent deployments.
-Keep the GitHub Actions test workflow green; a successful build alone is not
-a substitute for the HTTP/API smoke tests.
-
-Set `ARTICLE_FINDER_API_KEY` in Railway's service variables if bearer
-authentication is required. The browser's key field sends it in the
-`Authorization: Bearer ...` header and does not save it. If the variable is
-absent, the API is public; enable authentication before broad public exposure.
+- `scripts/serve.py` is a standard-library HTTP server for local use and
+  self-managed hosting. It serves only known static assets and routes `/api`
+  to the same API handler.
+- `api/index.py` and `vercel.json` provide the Vercel function adapter.
+- The hosted API never exposes `fetch_pdf.py`; arbitrary PDF fetching remains
+  a local CLI workflow, not a public URL-fetch endpoint.
 
 ### API boundaries
 
-The API accepts at most four source records per request and a draft of at most
-180,000 characters. Cross-origin browser POSTs are rejected and no CORS access
-is granted. POSTs are JSON-only and limited to 512 KiB. Missing or unverified
-research evidence remains pending; the service does not claim that a reviewer
-attestation or an indexing record is true merely because it was submitted.
-Remote metadata requests on the hosted server use bounded timeouts and retries.
+The API accepts at most four source records or discovery candidates per request
+and a draft of at most 180,000 characters. Cross-origin browser POSTs are
+rejected and no CORS access is granted. POSTs are JSON-only and limited to
+512 KiB. Missing or unverified research evidence remains pending; the service
+does not claim that a reviewer attestation or an indexing record is true merely
+because it was submitted. Remote metadata requests use bounded timeouts and
+retries. Set `ARTICLE_FINDER_API_KEY` in the hosting environment to require
+Bearer authentication; the browser sends the key only for the current request
+and does not persist it. Without this variable, API access is public.
 
 ### Local development
 
-Run the offline suite and start the same HTTP server used by Railway:
+Run the offline suite and start the standard-library HTTP server:
 
 ```bash
 python -m unittest discover -s tests -t tests -v
 python -m scripts.serve
 ```
 
-The local web/API is then available at `http://127.0.0.1:8000/` (or the
-configured `PORT`). The Vercel adapter remains independently available for
-Vercel-specific local testing.
+The local web/API is available at `http://127.0.0.1:8000/` (or the configured
+`PORT`). Vercel deployment configuration is maintained separately in
+`vercel.json`; a successful CI run does not by itself prove a hosted release.
