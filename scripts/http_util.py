@@ -87,6 +87,7 @@ class _PinnedHTTPSConnection(http.client.HTTPSConnection):
             raise OSError("HTTPS proxy tunneling is disabled")
         last_error: OSError | None = None
         for address in self._pinned_addresses:
+            sock = None
             try:
                 sock = socket.create_connection(
                     (address, self.port), self.timeout, self.source_address
@@ -94,6 +95,8 @@ class _PinnedHTTPSConnection(http.client.HTTPSConnection):
                 self.sock = self._context.wrap_socket(sock, server_hostname=self.host)
                 return
             except OSError as exc:
+                if sock is not None:
+                    sock.close()
                 last_error = exc
         if last_error:
             raise last_error
