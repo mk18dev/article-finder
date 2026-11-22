@@ -79,6 +79,16 @@ class HttpSecurityTests(unittest.TestCase):
             self.assertEqual(hu.validate_remote_url("https://example.org:443/a.pdf"),
                              "https://example.org/a.pdf")
 
+
+    def test_public_ipv4_mapped_ipv6_is_normalized_before_dial(self):
+        with patch("http_util.socket.getaddrinfo", return_value=answer("::ffff:8.8.8.8")):
+            self.assertEqual(hu._resolve_public_addresses("example.org"), ("8.8.8.8",))
+
+    def test_private_ipv4_mapped_ipv6_is_rejected(self):
+        with patch("http_util.socket.getaddrinfo", return_value=answer("::ffff:127.0.0.1")):
+            with self.assertRaises(ValueError):
+                hu._resolve_public_addresses("example.org")
+
     def test_pinned_connection_uses_validated_ip_and_original_tls_hostname(self):
         sock = Mock()
         context = Mock()
