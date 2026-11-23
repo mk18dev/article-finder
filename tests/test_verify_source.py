@@ -43,10 +43,12 @@ ENTRY = {
     "issues_per_year": 6,
     "journal_number_evidence": {**evidence("Journal volume and issue numbering inspected"), "url": "https://link.springer.com/journal/10618", "locator": "Volume 12, Issue 4, No. 70"},
     "tier": "B",
+    "quartile": "Q3",
+    "quartile_source": "SJR",
     "tier_evidence": {
         "verified": True,
         "reviewer_id": "reviewer-1", "reviewed_at": "2026-11-23T10:00:00Z", "locator": "ranking table",
-        "url": "https://evidence.example/tier",
+        "url": "https://www.scimagojr.com/journalsearch.php?q=0924-1868",
         "basis": "Ranking reviewed against the stated rubric",
     },
     "keyword": "Method + test",
