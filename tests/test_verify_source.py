@@ -204,6 +204,10 @@ class PublisherTests(unittest.TestCase):
     def test_trusted_publisher_legal_suffix_is_normalized(self) -> None:
         self.assertTrue(vs.publisher_trusted("Elsevier B.V."))
 
+    def test_mit_press_is_a_trusted_academic_publisher(self) -> None:
+        self.assertTrue(vs.publisher_trusted("MIT Press"))
+        self.assertTrue(vs.publisher_trusted("The MIT Press"))
+
 
 
 class SearchAndJudgementTests(unittest.TestCase):
