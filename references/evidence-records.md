@@ -43,7 +43,7 @@ Every entry starts with:
 - Journal tier inputs: `quartile` (`Q1`-`Q4`) and `quartile_source` (`SJR` or `JCR`). The evidence URL must match that source when using quartile rules.
 - Conference tier inputs: `conference_scope` (`international` or `national`) and boolean `conference_series_established`.
 - Thesis tier inputs: `derived_papers_status` (`found` or `none`), reviewed `derived_papers_review`, optional `derived_papers` with verified DOI records and tier, `university_reputable`, and `university_evidence`.
-- Book tier inputs: `main_book`, `relevant_chapters` plus `relevant_chapters_evidence`, and `book_s6_evidence` with publisher verification, integer citation count, and a separate matching reviewer-attributed `citation_evidence` record from OpenAlex. The configurable default thresholds (50 strong / 10 modest) live in `scripts/tier-policy.json`.
+- Book tier inputs: `main_book`, `relevant_chapters` plus `relevant_chapters_evidence`, and `book_s6_evidence` with publisher verification, integer citation count, and a separate matching reviewer-attributed `citation_evidence` record from OpenAlex. The configurable default thresholds (50 strong / 10 modest) live in `scripts/tier-policy.json`. Legacy book records without `citation_evidence` remain readable but intentionally stay Pending at S6 until migrated; they are never silently promoted.
 - `area` and `subject`: labels only; S1/S2 need matching records under
   `judgements`.
 - `degree_evidence`: thesis degree confirmation with a reviewer URL and note;
