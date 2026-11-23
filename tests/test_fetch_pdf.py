@@ -131,7 +131,7 @@ class ReportTests(unittest.TestCase):
 
     def test_download_records_provider_source_final_url_and_utc_time(self) -> None:
         source = fp.Source(title="A", doi="10.1000/a", year=2024)
-        payload = b"%PDF-1.7\\n" + b"0" * fp.MIN_PDF_BYTES
+        payload = b"%PDF-1.7\n" + b"0" * fp.MIN_PDF_BYTES
         response = type("Response", (), {
             "body": payload,
             "final_url": "https://cdn.example/paper.pdf",

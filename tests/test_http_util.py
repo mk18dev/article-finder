@@ -163,6 +163,14 @@ class HttpSecurityTests(unittest.TestCase):
         self.assertEqual(opened.call_count, 2)
         sleep.assert_called_once_with(1)
 
+    def test_timeout_retry_stops_at_configured_attempt_limit(self):
+        with patch.object(hu, "_open", side_effect=TimeoutError("timed out")) as opened, \\
+             patch.object(hu.time, "sleep") as sleep:
+            with self.assertRaises(TimeoutError):
+                hu.fetch_response("https://example.org/paper.pdf")
+        self.assertEqual(opened.call_count, hu.RETRIES)
+        self.assertEqual(sleep.call_count, hu.RETRIES - 1)
+
     def test_https_redirect_to_private_dns_is_blocked(self):
         handler = hu._SafeRedirectHandler()
         with patch.object(hu.socket, "getaddrinfo", return_value=answer("10.0.0.9")):
