@@ -210,7 +210,7 @@ JSON/shape errors return 400, semantic payload validation returns 422,
 authentication failures return 401, oversized bodies return 413, and unsupported
 media types return 415. The API does not emit 429 because no shared/distributed
 rate limiter is configured; a process-local counter would not be a reliable
-Vercel-wide security control. Missing or unverified research evidence remains pending; the service
+Vercel-wide security control. Each Python process also caps simultaneous POST processing at four requests and rejects excess work with HTTP 503; this is a local resource guard, not a cross-instance quota or distributed rate limit. Missing or unverified research evidence remains pending; the service
 does not claim that a reviewer attestation or an indexing record is true merely
 because it was submitted. Remote metadata requests use bounded timeouts and
 retries. On Vercel, `ARTICLE_FINDER_API_KEY` is required by default; the browser sends this Article Finder access key only for the current request and does not persist it. It is not an LLM/provider key. Set the same secret as a Sensitive Production environment variable in Vercel and as the GitHub Actions repository secret `ARTICLE_FINDER_API_KEY` before running production smoke. Do not set `ARTICLE_FINDER_PUBLIC_MODE=1` unless the API is intentionally meant to be public. Local development remains public by default. The health endpoint reports the active auth mode.
