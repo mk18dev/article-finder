@@ -131,7 +131,12 @@ def verify_metadata(citation: dict[str, Any], message: dict[str, Any]) -> dict[s
     expected_title = str(citation.get("title") or "")
     similarity = title_similarity(expected_title, actual_title)
     actual_year = publication_year(message)
-    expected_year = citation.get("year")
+    expected_year_raw = citation.get("year")
+    expected_year_text = str(expected_year_raw or "").translate(
+        str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+    )
+    expected_year_match = re.fullmatch(r"\\d{4}", expected_year_text)
+    expected_year = int(expected_year_match.group(0)) if expected_year_match else None
     actual_author = first_author_family(message.get("author"))
     containers = message.get("container-title") or []
     actual_venue = str(containers[0]) if containers else ""
@@ -139,7 +144,7 @@ def verify_metadata(citation: dict[str, Any], message: dict[str, Any]) -> dict[s
     expected_venue = str(citation.get("venue") or citation.get("journal") or citation.get("container_title") or "").strip()
     expected_publisher = str(citation.get("publisher") or "").strip()
     expected_author_raw = str(citation.get("first_author") or "").strip()
-    expected_author_raw = expected_author_raw.split(",", 1)[0] if "," in expected_author_raw else expected_author_raw
+    expected_author_raw = re.split(r"[,،]", expected_author_raw, maxsplit=1)[0]
     expected_author = normalize_text(expected_author_raw)
     status_update, updates = update_status(message)
 
