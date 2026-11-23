@@ -6,17 +6,20 @@ import argparse
 import json
 import re
 import sys
+import unicodedata
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
 IEEE_RE = re.compile(r"\[(\d+(?:\s*[-–]\s*\d+)?(?:\s*,\s*\d+(?:\s*[-–]\s*\d+)?)*)\]")
-APA_PAREN_RE = re.compile(r"\(([^()]{0,240}(?:19|20)\d{2}[a-z]?[^()]*)\)")
+APA_PAREN_RE = re.compile(r"\\(([^()]{0,240}(?:13|14|19|20)\\d{2}[a-z]?[^()]*)\\)", re.UNICODE)
 APA_PAIR_RE = re.compile(
-    r"([A-Z][A-Za-z'’.-]+(?:\s+et\s+al\.|\s*(?:&|and)\s+[A-Z][A-Za-z'’.-]+)?),?\s*((?:19|20)\d{2}[a-z]?)"
+    r"([^\\W\\d_][^\\d,;()]{0,80}?),?\\s*((?:13|14|19|20)\\d{2}[a-z]?)",
+    re.UNICODE,
 )
 APA_NARRATIVE_RE = re.compile(
-    r"\b([A-Z][A-Za-z'’.-]+(?:\s+et\s+al\.|\s*(?:&|and)\s+[A-Z][A-Za-z'’.-]+)?)\s+\(((?:19|20)\d{2}[a-z]?)\)"
+    r"([^\\W\\d_][^\\d()]{0,80}?)\\s+\\(((?:13|14|19|20)\\d{2}[a-z]?)\\)",
+    re.UNICODE,
 )
 
 
@@ -56,21 +59,28 @@ def _doi(value: Any) -> str:
 
 
 def _author_key(value: Any) -> str:
-    text = str(value or "").strip()
+    text = unicodedata.normalize("NFKC", str(value or "")).strip()
+    text = text.translate(str.maketrans({"ي": "ی", "ى": "ی", "ك": "ک", "ـ": ""}))
+    text = text.replace("\\u200c", "").replace("\\u200f", "").replace("\\u200e", "")
     if not text:
         return ""
-    text = re.sub(r"\s+et\s+al\.?$", "", text, flags=re.I)
-    text = re.split(r"\s*(?:&|and)\s*", text, maxsplit=1, flags=re.I)[0]
-    if "," in text:
-        family = text.split(",", 1)[0]
+    text = re.sub(r"\\s+et\\s+al\\.?$", "", text, flags=re.I)
+    text = re.split(r"\\s*(?:&|and|و)\\s*", text, maxsplit=1, flags=re.I)[0]
+    if re.search(r"[,،]", text):
+        family = re.split(r"[,،]", text, maxsplit=1)[0]
     else:
-        family = text.split()[-1]
-    return re.sub(r"[^a-z]", "", family.casefold())
+        family = text.split()[-1] if text.split() else ""
+    return re.sub(r"[^\\w]", "", family.casefold(), flags=re.UNICODE)
+
 
 
 def _year(value: Any) -> str:
-    match = re.search(r"(?:19|20)\d{2}[a-z]?", str(value or ""))
+    normalized = unicodedata.normalize("NFKC", str(value or "")).translate(
+        str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+    )
+    match = re.search(r"(?:13|14|19|20)\\d{2}[a-z]?", normalized, flags=re.I)
     return match.group(0).casefold() if match else ""
+
 
 
 def _reference_author(reference: dict[str, Any]) -> str:
@@ -224,8 +234,15 @@ def _duplicate_dois(references: list[dict[str, Any]]) -> list[dict[str, Any]]:
             for doi, indices in seen.items() if len(indices) > 1]
 
 
+def _normalize_digits(text: str) -> str:
+    return unicodedata.normalize("NFKC", text).translate(
+        str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+    )
+
+
 def audit(text: str, document: Any, style: str) -> dict[str, Any]:
     references = _references(document)
+    text = _normalize_digits(text)
     normalized = style.strip().upper()
     if normalized == "IEEE":
         return audit_ieee(text, references)
