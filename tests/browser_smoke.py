@@ -6,7 +6,7 @@ import json
 import os
 from pathlib import Path
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 BASE_URL = os.environ.get("ARTICLE_FINDER_BASE_URL", "http://127.0.0.1:8000")
 INJECTED_TITLE = '<img src=x onerror=alert(1)> Evidence Record'
@@ -232,9 +232,8 @@ def main() -> int:
             raise AssertionError("Initial resource transfer exceeded 1 MB: " + json.dumps(performance))
         assert page.locator("html").get_attribute("lang") == "fa"
         assert page.locator("html").get_attribute("dir") == "rtl"
-        page.wait_for_function(
-            "document.querySelector('#engine-status span')?.textContent.includes('موتور API متصل است')",
-            timeout=10_000,
+        expect(page.locator("#engine-status span")).to_contain_text(
+            "موتور API متصل است", timeout=10_000
         )
         assert page.locator(".mode-tab").count() == 2
         assert page.locator("#source-form").is_visible()
@@ -272,10 +271,7 @@ def main() -> int:
         )
 
         page.locator("#copy-output").click()
-        page.wait_for_function(
-            "document.querySelector('#copy-output').textContent.includes('کپی')",
-            timeout=5_000,
-        )
+        expect(page.locator("#copy-output")).to_have_text("کپی شد", timeout=5_000)
         with page.expect_download() as download_info:
             page.locator("#download-output").click()
         download = download_info.value
