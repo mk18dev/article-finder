@@ -60,9 +60,10 @@ def _valid_iso_date(value: Any) -> bool:
 
 def normalize_doi(value: Any) -> str:
     raw = str(value or "").strip()
-    raw = re.sub(r"^https?://(?:dx\.)?doi\.org/", "", raw, flags=re.I)
-    raw = re.sub(r"^doi:\s*", "", raw, flags=re.I)
-    return raw.strip().rstrip(" .").casefold()
+    raw = re.sub(r"^https?://(?:dx\\.)?doi\\.org/", "", raw, flags=re.I)
+    raw = re.sub(r"^doi:\\s*", "", raw, flags=re.I)
+    normalized = raw.strip().rstrip(" .").casefold()
+    return normalized if re.fullmatch(r"10\\.\\d{4,9}/\\S+", normalized, flags=re.I) else ""
 
 
 def normalize_title(value: Any) -> str:
