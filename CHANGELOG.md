@@ -31,12 +31,15 @@ All notable changes to this skill and web app. Format: [Keep a Changelog](https:
 - Added a reviewer-attributed PRISMA-style ledger: dual screening, independent adjudication, full-text exclusion reasons, database/register/other-method identification streams, and counts derived from raw records.
 - Included-study counts are based on unique study IDs; reports of included studies remain a separate count.
 - Added thematic literature synthesis with reviewer-extracted study fields, evidence locators, conflict flags, quality-appraisal evidence and claim-to-source maps. It does not invent effect sizes or perform meta-analysis.
+- Hardened PRISMA provenance: exact calendar dates, valid HTTPS origins, valid DOI deduplication keys, and a report-level duplicate-resolution ledger with metadata conflicts.
+- Hardened synthesis evidence: every provided claim excerpt must be reviewed, linked to exactly one declared study, use a valid HTTPS origin, and include a non-empty locator; unknown and duplicate evidence links are rejected.
 
 ### Citation integrity
 
 - Added Crossref DOI/title/year/author identity checks and correction/retraction/withdrawal flags; uncertain records remain Pending.
 - Added APA/IEEE in-text-to-bibliography crosswalk checks for missing, uncited, duplicate and malformed citations.
 - Identity agreement is explicitly not treated as proof that a source supports a manuscript claim.
+- IEEE crosswalk now rejects non-positive, fractional, boolean, or malformed bibliography identifiers instead of coercing them into citation numbers.
 
 ### Specialized skills
 
@@ -45,7 +48,8 @@ All notable changes to this skill and web app. Format: [Keep a Changelog](https:
 
 ### Quality gates
 
-- Expanded the network-free test suite to 454 test cases across Python 3.10–3.13; final CI evidence is recorded on the current main commit.
+- The baseline CI run on commit `3315c76816249316d6698b795954b2c10ef6e66c` passed the Python 3.10–3.13 test jobs, static quality/security, Chromium, and WebKit; Firefox and production smoke were cancelled in that run and are not counted as passes.
+- Added 21 regression/acceptance tests across citation identity, IEEE numbering, PRISMA provenance and duplicate traceability, synthesis evidence, and the 76-rule matrix. The latest main revision requires a fresh complete CI read-back before phase acceptance.
 - Added Ruff lint, Bandit security scanning and pip-audit for pinned runtime/browser/quality dependencies.
 - Added a Playwright browser smoke job for RTL rendering, mode switching and 320px/390px mobile plus desktop overflow checks.
 - Added package-content validation for all nine specialist skills and explicit exclusion of PDFs, caches and build output.
@@ -79,6 +83,7 @@ All notable changes to this skill and web app. Format: [Keep a Changelog](https:
 ### Draft validation
 
 - Made the draft-chart rule reviewer-confirmed: a textual “Chart 1” label or an image alone no longer auto-approves the existence of a chart.
+- Added an acceptance matrix covering all 76 rules, source-step mapping, fail-closed missing sections, manual verdicts, and hint-rule human confirmation.
 
 ### Tests, docs and CI
 
