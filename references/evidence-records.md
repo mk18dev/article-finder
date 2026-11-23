@@ -72,12 +72,15 @@ S6 follows a distinct source rule for each type. Example URLs below are
 placeholders; replace them with the exact record you actually inspected.
 
 **Journal:** a blacklist hit is a hard rejection. A clear result requires two
-independent entries in `blacklist_checks`: `authority: "msrt"` and
+independent reviewer checks in `blacklist_checks`: `authority: "msrt"` and
 `authority: "iau"`. Each entry must include `status: "clear"` or `"listed"`,
 `query_type: "ISSN"`, a `query_value` matching the record's ISSN, a
 `list_version`, reviewer ID, timezone-aware timestamp, HTTPS URL, locator and
 note. A verified `listed` result from either official authority rejects S6,
-even if the journal has a high tier. A missing, inaccessible, malformed or
+even if the journal has a high tier. The IAU evaluation portal provides current
+1405 evaluation/revocation status; it is not treated as a separate complete
+blacklist download. If the current official invalid-list record cannot be
+located, record the check as unavailable and leave S6 pending. A missing, inaccessible, malformed or
 unverified result stays pending. After both checks are clear, at least one
 verified Scopus, Web of Science/WoS, ISC, DBLP or DOAJ record is required in
 `indexing_evidence`.
@@ -111,10 +114,9 @@ Example book record:
 ```
 
 The script validates evidence fields and official-host boundaries, not the truth
-of the external page. MSRT blacklist evidence must use `journals.msrt.ir`,
-`msrt.ir`, or `rppc.msrt.ir`; IAU evidence must use `eval.journals.iau.ir`,
-`iau.ac.ir`, or `rvp.iau.ir`. The generated checklist links to the MSRT portal,
-the IAU invalid-journals portal, and the IAU 1405 evaluation portal. Journal
+of the external page. MSRT blacklist evidence must use `journals.msrt.ir` or `msrt.ir`; IAU evidence must use `eval.journals.iau.ir`
+or `iau.ac.ir`. The generated checklist links to the MSRT portal,
+the IAU 1405 evaluation/revocation-status portal. Journal
 indexing URLs must use official provider domains: Scopus (`scopus.com`), Web of
 Science (`mjl.clarivate.com` or `webofscience.com`), ISC (`isc.gov.ir`), DBLP
 (`dblp.org`), or DOAJ (`doaj.org`). A URL such as
