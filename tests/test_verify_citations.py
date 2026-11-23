@@ -79,6 +79,29 @@ class CitationVerificationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             normalize_doi("https://evil.example/10.1234/example")
 
+    def test_rejects_unsafe_doi_resolver_components(self):
+        for value in (
+            "http://doi.org/10.1234/example",
+            "https://user@doi.org/10.1234/example",
+            "https://doi.org:444/10.1234/example",
+            "https://doi.org/10.1234/example?query=1",
+            "https://doi.org/10.1234/example#fragment",
+        ):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    normalize_doi(value)
+
+    def test_first_author_mismatch_is_not_verified(self):
+        citation = dict(self.citation, first_author="Jones")
+        result = verify_metadata(citation, self.message)
+        self.assertEqual(result["status"], "mismatch")
+        self.assertTrue(any("first-author" in item for item in result["mismatches"]))
+
+    def test_missing_expected_title_stays_pending(self):
+        citation = dict(self.citation)
+        citation.pop("title")
+        self.assertEqual(verify_metadata(citation, self.message)["status"], "pending")
+
     def test_full_first_author_name_matches_crossref_family(self):
         citation = dict(self.citation, first_author="Jane Smith")
         result = verify_metadata(citation, self.message)
