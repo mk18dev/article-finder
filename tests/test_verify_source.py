@@ -193,7 +193,11 @@ class PublisherTests(unittest.TestCase):
         book = work(kind="book", issns=[], isbns=["9780262033848"], publisher="Unknown Press")
         entry = {**ENTRY, "judgements": {
             **ENTRY["judgements"],
-            "S5": {**evidence("Publisher failed the project review"), "ok": False},
+            "S5": {
+                **evidence("Publisher failed the project review"),
+                "ok": False,
+                "evidence_url": "https://evidence.example/publisher-review",
+            },
         }}
         self.assertIs(decide(book, entry)["steps"]["S5"], False)
 
