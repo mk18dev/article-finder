@@ -49,15 +49,21 @@ jobs:
         run: python -c "import json,pathlib; json.loads(pathlib.Path('vercel.json').read_text()); assert pathlib.Path('api/index.py').is_file(); assert pathlib.Path('scripts/serve.py').is_file(); assert pathlib.Path('index.html').is_file(); assert pathlib.Path('styles.css').is_file(); assert pathlib.Path('app.js').is_file()"
       - name: Compile scripts, API and tests
         run: python -m compileall -q scripts api tests
-      - name: Run the test suite with branch coverage
+      - name: Run the test suite with enforced branch coverage
         run: |
-          coverage run --branch --source=scripts,api -m unittest discover -s tests -t tests -v
-          coverage report -m
-          coverage xml -o coverage.xml
-      - name: Build the skill package
-        run: python tools/pack_skill.py
-      - name: Check the package contains the skill
-        run: python -c "import zipfile,sys; n=zipfile.ZipFile('dist/article-finder.skill').namelist(); print(len(n),'entries'); sys.exit(0 if 'article-finder/SKILL.md' in n else 1)"
+          mkdir -p dist/test-results
+          coverage run --branch --source=scripts,api -m unittest discover -s tests -t tests -v 2>&1 | tee dist/test-results/unittest.log
+          coverage report -m --fail-under=80 2>&1 | tee dist/test-results/coverage-report.txt
+          coverage xml -o dist/test-results/coverage.xml
+      - name: Upload test and coverage evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: article-finder-tests-py${{ matrix.python-version }}-${{ github.sha }}
+          path: |
+            dist/test-results/
+          if-no-files-found: warn
+          retention-days: 30
 
   static-quality:
     name: static quality and security
@@ -150,11 +156,68 @@ jobs:
       - name: Test RTL, mode switching, XSS handling and responsive layouts
         env:
           ARTICLE_FINDER_BROWSER: ${{ matrix.browser }}
-        run: python tests/browser_smoke.py
+        run: |
+          mkdir -p dist/test-results
+          python tests/browser_smoke.py 2>&1 | tee "dist/test-results/browser-smoke-${{ matrix.browser }}.log"
+      - name: Upload browser smoke evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: article-finder-browser-${{ matrix.browser }}-${{ github.sha }}
+          path: |
+            dist/test-results/
+            /tmp/article-finder-server.log
+          if-no-files-found: warn
+          retention-days: 30
+
+  package-acceptance:
+    name: clean package build and install acceptance
+    needs: [test, static-quality, browser-smoke]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install pinned runtime dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Build package twice and prove byte-for-byte reproducibility
+        run: |
+          set -euo pipefail
+          mkdir -p dist/package-evidence
+          python tools/pack_skill.py --out dist/article-finder.skill
+          python tools/pack_skill.py --out "$RUNNER_TEMP/article-finder-second.skill"
+          sha256sum dist/article-finder.skill "$RUNNER_TEMP/article-finder-second.skill" | tee dist/package-evidence/package-sha256.txt
+          cmp --silent dist/article-finder.skill "$RUNNER_TEMP/article-finder-second.skill"
+      - name: Validate archive and install into a clean consumer skills directory
+        run: |
+          python tools/verify_skill_package.py --archive dist/article-finder.skill --extract-to "$RUNNER_TEMP/consumer-skills"
+          test -f "$RUNNER_TEMP/consumer-skills/article-finder/SKILL.md"
+          test "$(cat "$RUNNER_TEMP/consumer-skills/article-finder/VERSION")" = "1.1.0"
+      - name: Run the packaged test suite from the installed archive
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/consumer-skills/article-finder"
+          python -m compileall -q scripts tests
+          python -m unittest discover -s tests -t tests -v 2>&1 | tee "$RUNNER_TEMP/package-install-tests.log"
+      - name: Save package and installation evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: article-finder-package-${{ github.sha }}
+          path: |
+            dist/article-finder.skill
+            dist/package-evidence/
+            ${{ runner.temp }}/package-install-tests.log
+          if-no-files-found: warn
+          retention-days: 30
 
   production-smoke:
     name: production smoke test
-    needs: [test, browser-smoke, static-quality]
+    needs: [test, browser-smoke, static-quality, package-acceptance]
     if: github.event_name == 'workflow_dispatch' && inputs.run_production_smoke == true
     runs-on: ubuntu-latest
     timeout-minutes: 5
