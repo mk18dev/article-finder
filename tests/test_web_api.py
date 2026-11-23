@@ -51,6 +51,10 @@ class SourceInputTests(unittest.TestCase):
             api.normalize_doi("https://doi.org:444/10.1234/test")
         with self.assertRaises(api.RequestError):
             api.normalize_doi("http://doi.org/10.1234/test")
+        with self.assertRaises(api.RequestError):
+            api.normalize_doi("https://doi.org/10.1234/a%00b")
+        with self.assertRaises(api.RequestError):
+            api.normalize_doi("https://doi.org/10.1234/a%0d%0ab")
 
     def test_requires_supported_category_and_search_keyword(self):
         payload = self.payload()

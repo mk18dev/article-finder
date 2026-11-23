@@ -98,6 +98,7 @@ def normalize_doi(value: Any) -> str:
         if parsed.query or parsed.fragment:
             raise RequestError("نشانی DOI نباید query یا fragment داشته باشد.")
         raw = urllib.parse.unquote(parsed.path.lstrip("/"))
+        raw = _string(raw, "DOI", 200, required=True)
     elif lowered.startswith("doi:"):
         raw = raw[4:].strip()
     if "?" in raw or "#" in raw or not DOI_RE.fullmatch(raw) or len(raw) > 200:

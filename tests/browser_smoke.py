@@ -66,23 +66,55 @@ def main() -> int:
         "mode": "sources",
         "version": "1.1.0",
         "language": "fa",
-        "summary": {"approved": 0, "pending": 1, "rejected": 0, "errors": 0},
-        "results": [{
-            "article": {
-                "title": INJECTED_TITLE,
-                "doi": candidate["doi"],
-                "url": candidate["url"],
-                "type": "journal",
-                "year": 2024,
-                "tier": "B",
-                "notes": {"fa": "علت Pending: شواهد بازبین هنوز ثبت نشده است.", "en": "Pending: reviewer evidence is not recorded yet."},
+        "summary": {"approved": 1, "pending": 1, "rejected": 1, "errors": 1},
+        "results": [
+            {
+                "article": {
+                    "title": INJECTED_TITLE,
+                    "doi": candidate["doi"],
+                    "url": candidate["url"],
+                    "type": "journal",
+                    "year": 2024,
+                    "tier": "B",
+                    "notes": {"fa": "علت Pending: شواهد بازبین هنوز ثبت نشده است.", "en": "Pending: reviewer evidence is not recorded yet."},
+                },
+                "steps": {"S1": True},
+                "verdict": "pending",
+                "verified_steps": 1,
+                "total_steps": 11,
             },
-            "steps": {"S1": True},
-            "verdict": "pending",
-            "verified_steps": 1,
-            "total_steps": 11,
-        }],
-        "errors": [],
+            {
+                "article": {
+                    "title": "Approved evidence record",
+                    "doi": "10.1234/approved",
+                    "url": "https://doi.org/10.1234/approved",
+                    "type": "journal",
+                    "year": 2024,
+                    "tier": "A",
+                    "notes": {"fa": "علت Approved: شواهد لازم ثبت و بررسی شده‌اند.", "en": "Required evidence was recorded and reviewed."},
+                },
+                "steps": {"S1": True, "S2": True},
+                "verdict": "approved",
+                "verified_steps": 11,
+                "total_steps": 11,
+            },
+            {
+                "article": {
+                    "title": "Rejected evidence record",
+                    "doi": "10.1234/rejected",
+                    "url": "https://doi.org/10.1234/rejected",
+                    "type": "journal",
+                    "year": 2024,
+                    "tier": "D",
+                    "notes": {"fa": "علت Rejected: شاهد معتبر با معیار پذیرش تطبیق ندارد.", "en": "The submitted evidence does not meet the acceptance criteria."},
+                },
+                "steps": {"S1": False},
+                "verdict": "rejected",
+                "verified_steps": 1,
+                "total_steps": 11,
+            },
+        ],
+        "errors": [{"doi": "10.1234/provider-error", "message": "سرویس فراداده در دسترس نیست."}],
         "table_markdown": "# E2E verification report",
         "disclaimer": "Test response; not a real verification.",
     }
@@ -319,9 +351,20 @@ def main() -> int:
         page.locator("#source-submit").click()
         page.locator(".source-result").wait_for(state="visible")
         assert page.locator(".source-title").inner_text() == INJECTED_TITLE
-        assert page.locator(".source-notes").is_visible()
-        page.locator(".source-notes summary").click()
-        assert "شواهد بازبین هنوز ثبت نشده" in page.locator(".source-notes").inner_text()
+        assert page.locator(".verdict-badge.pending").count() == 1
+        assert page.locator(".verdict-badge.approved").count() == 1
+        assert page.locator(".verdict-badge.rejected").count() == 1
+        assert page.locator(".source-notes").count() == 3
+        note_texts = []
+        for details in page.locator(".source-notes").all():
+            details.locator("summary").click()
+            note_texts.append(details.inner_text())
+        assert any("شواهد بازبین هنوز ثبت نشده" in note for note in note_texts)
+        assert any("شواهد لازم ثبت و بررسی شده‌اند" in note for note in note_texts)
+        assert any("با معیار پذیرش تطبیق ندارد" in note for note in note_texts)
+        assert page.locator(".error-list").is_visible()
+        assert "سرویس فراداده در دسترس نیست" in page.locator(".error-list").inner_text()
+        assert "Test response; not a real verification." in page.locator("#result-disclaimer").inner_text()
         assert page.locator("#result-items img").count() == 0
         assert page.locator("#results-view").is_visible()
         if browser_name == "chromium":
