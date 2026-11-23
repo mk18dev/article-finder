@@ -112,6 +112,18 @@ def _expand_ieee(body: str) -> list[int]:
     return result
 
 
+def _reference_number(value: Any) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    normalized = unicodedata.normalize("NFKC", str(value)).translate(
+        str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+    )
+    if not re.fullmatch(r"\\d+", normalized):
+        return None
+    number = int(normalized)
+    return number if number > 0 else None
+
+
 def audit_ieee(text: str, references: list[dict[str, Any]]) -> dict[str, Any]:
     text = _normalize_digits(text)
     text = _body_text(text)
@@ -119,10 +131,9 @@ def audit_ieee(text: str, references: list[dict[str, Any]]) -> dict[str, Any]:
     errors = []
     for index, reference in enumerate(references, 1):
         raw = reference.get("ref_id", reference.get("number", index))
-        try:
-            number = int(raw)
-        except (TypeError, ValueError):
-            errors.append(f"reference {index} has a non-numeric ref_id")
+        number = _reference_number(raw)
+        if number is None:
+            errors.append(f"reference {index} has a non-positive integer ref_id")
             continue
         if number in ref_numbers:
             errors.append(f"duplicate bibliography number: {number}")
