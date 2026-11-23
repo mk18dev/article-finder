@@ -95,6 +95,36 @@ class LiteratureSynthesisTests(unittest.TestCase):
         data["studies"][1]["study_id"] = "S1"
         self.assertTrue(any("duplicate study_id" in error for error in validate_bundle(data)))
 
+    def test_claim_evidence_requires_valid_https_origin_and_locator(self):
+        for url, locator in (
+            ("https://", "Results, p. 4"),
+            ("http://publisher.example/paper", "Results, p. 4"),
+            ("https://user@publisher.example/paper", "Results, p. 4"),
+            ("https://publisher.example:444/paper", "Results, p. 4"),
+            ("https://publisher.example/paper", ""),
+        ):
+            with self.subTest(url=url, locator=locator):
+                data = bundle()
+                data["claims"][0]["source_evidence"][0]["url"] = url
+                data["claims"][0]["source_evidence"][0]["locator"] = locator
+                self.assertTrue(any("reviewed HTTPS evidence" in error for error in validate_bundle(data)))
+
+    def test_claim_evidence_must_be_unique_and_linked(self):
+        data = bundle()
+        data["claims"][0]["source_evidence"].append(dict(
+            data["claims"][0]["source_evidence"][0], study_id="UNKNOWN"
+        ))
+        self.assertTrue(any("study_id must identify a study linked" in error for error in validate_bundle(data)))
+
+        data = bundle()
+        data["claims"][0]["source_evidence"].append(dict(data["claims"][0]["source_evidence"][0]))
+        self.assertTrue(any("duplicate source evidence" in error for error in validate_bundle(data)))
+
+    def test_claim_study_ids_must_be_unique(self):
+        data = bundle()
+        data["claims"][0]["study_ids"] = ["S1", "S1"]
+        self.assertTrue(any("study_ids must not contain duplicates" in error for error in validate_bundle(data)))
+
 
 if __name__ == "__main__":
     unittest.main()
