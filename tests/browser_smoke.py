@@ -171,7 +171,8 @@ def main() -> int:
             device_scale_factor=1,
             accept_downloads=True,
         )
-        context.grant_permissions(["clipboard-read", "clipboard-write"], origin=BASE_URL)
+        if browser_name == "chromium":
+            context.grant_permissions(["clipboard-read", "clipboard-write"], origin=BASE_URL)
         page = context.new_page()
         page.on("pageerror", lambda error: page_errors.append(str(error)))
         page.route("**/api", api_route)
