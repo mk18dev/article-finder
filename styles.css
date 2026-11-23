@@ -278,9 +278,9 @@ textarea.input-control { resize: vertical; line-height: 1.8; }
 .hint-dot { display: inline-block; width: 5px; height: 5px; margin-left: 4px; border-radius: 50%; background: #a69bff; vertical-align: middle; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .advanced-block { border: 1px solid #e8e9f1; border-radius: 10px; background: #fcfcfe; overflow: hidden; }
-.advanced-block summary { box-sizing: border-box; min-height: 32px; line-height: 32px; padding: 6px 12px; display: flex; align-items: center; justify-content: space-between; color: #59657a; font-size: 10px; font-weight: 700; cursor: pointer; list-style: none; }
+.advanced-block > summary.advanced-summary { box-sizing: border-box; display: block; min-height: 44px; padding: 8px 12px; line-height: 28px; color: #59657a; font-size: 10px; font-weight: 700; cursor: pointer; list-style: none; }
 .advanced-block summary::-webkit-details-marker { display: none; }
-.advanced-mark { color: var(--violet); font-size: 17px; font-weight: 400; }
+.advanced-mark { float: left; color: var(--violet); font-size: 17px; font-weight: 400; }
 .advanced-block[open] .advanced-mark { transform: rotate(45deg); }
 .advanced-block p { margin: 0; padding: 0 12px 9px; color: #5f6b7c; font-size: 9px; }
 .advanced-block code { direction: ltr; color: #5949c5; font: 9px Consolas, monospace; }
