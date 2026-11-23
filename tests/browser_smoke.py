@@ -23,6 +23,9 @@ def assert_no_horizontal_overflow(page) -> None:
 
 def main() -> int:
     page_errors: list[str] = []
+    console_errors: list[str] = []
+    api_route_hits: list[dict] = []
+    api_requests: list[str] = []
     calls: list[dict] = []
     draft_requests = 0
 
@@ -120,6 +123,8 @@ def main() -> int:
     def api_route(route):
         nonlocal draft_requests
         request = route.request
+        if urlsplit(request.url).path.rstrip("/") == "/api":
+            api_route_hits.append({"method": request.method, "url": request.url})
         if urlsplit(request.url).path.rstrip("/") != "/api":
             route.continue_()
             return
@@ -193,6 +198,12 @@ def main() -> int:
             context.grant_permissions(["clipboard-read", "clipboard-write"], origin=BASE_URL)
         page = context.new_page()
         page.on("pageerror", lambda error: page_errors.append(str(error)))
+        page.on("console", lambda message: console_errors.append(message.text) if message.type == "error" else None)
+        page.on(
+            "request",
+            lambda request: api_requests.append(request.url)
+            if urlsplit(request.url).path.rstrip("/") == "/api" else None,
+        )
         page.route("**/*", api_route)
         if browser_name == "chromium":
             axe_bundle = Path("node_modules/axe-core/axe.min.js")
@@ -252,9 +263,15 @@ def main() -> int:
             raise AssertionError("Initial resource transfer exceeded 1 MB: " + json.dumps(performance))
         assert page.locator("html").get_attribute("lang") == "fa"
         assert page.locator("html").get_attribute("dir") == "rtl"
-        expect(page.locator("#engine-status span")).to_contain_text(
-            "موتور API متصل است", timeout=10_000
-        )
+        try:
+            expect(page.locator("#engine-status span")).to_contain_text(
+                "موتور API متصل است", timeout=10_000
+            )
+        except AssertionError as error:
+            raise AssertionError(
+                f"{error}; page_errors={page_errors}; console_errors={console_errors}; "
+                f"api_route_hits={api_route_hits}; api_requests={api_requests}"
+            ) from error
         assert page.locator(".mode-tab").count() == 2
         assert page.locator("#source-form").is_visible()
         assert_no_horizontal_overflow(page)
