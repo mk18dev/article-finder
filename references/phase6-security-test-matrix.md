@@ -5,7 +5,7 @@
 | Gate | Required behavior | Implementation | Regression evidence |
 |---|---|---|---|
 | PH6-01 | HTTPS-only, valid TLS, port 443, no URL credentials | `scripts/http_util.py:validate_remote_url`, `_open` | `test_rejects_http`, `test_rejects_credentials`, `test_rejects_nonstandard_port`, `test_tls_context_requires_certificate_and_hostname_verification` |
-| PH6-02 | Every DNS answer must be public; mixed public/private answers fail closed | `_resolve_public_addresses` | `test_blocks_private_dns_result`, `test_blocks_mixed_public_and_private_dns_results`, IPv4-mapped IPv6 tests |
+| PH6-02 | Every DNS answer must be globally reachable; mixed public/private, reserved, multicast and ORCHIDv2 special-purpose answers fail closed | `_resolve_public_addresses` | `test_blocks_private_dns_result`, `test_blocks_mixed_public_and_private_dns_results`, `test_blocks_reserved_ipv6_nat64_result`, `test_blocks_ipv6_multicast_even_when_global`, `test_blocks_orchidv2_ipv6_identifier_range`, IPv4-mapped IPv6 tests |
 | PH6-03 | Pin the validated destination IP at connect time; preserve original host for SNI; block rebinding | `_PinnedHTTPSConnection`, `_PinnedHTTPSHandler` | `test_pinned_connection_uses_validated_ip_and_original_tls_hostname`, `test_pinned_connection_falls_back_only_to_validated_addresses`, `test_dns_rebinding_between_preflight_and_connect_is_blocked` |
 | PH6-04 | Revalidate each redirect; block HTTP, loopback, private and reserved destinations | `_SafeRedirectHandler` | `test_revalidates_redirect_destinations`, `test_https_redirect_to_private_dns_is_blocked` |
 | PH6-05 | Ignore ambient proxy variables | `ProxyHandler({})` in `_open` | `test_ambient_proxy_environment_is_not_used` |
