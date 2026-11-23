@@ -43,14 +43,30 @@ def redact_url(url: str) -> str:
         sensitive = {
             "access_token", "api_key", "apikey", "auth", "authorization",
             "credential", "email", "key", "password", "secret", "signature",
-            "sig", "token", "x-amz-credential", "x-amz-signature",
+            "sig", "token", "code", "x-amz-credential", "x-amz-signature",
             "x-goog-signature",
         }
         query = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
+        def is_sensitive(name: str) -> bool:
+            key = name.casefold().replace("-", "_")
+            return key in sensitive or any(
+                part in key for part in (
+                    "token", "key", "auth", "secret", "password",
+                    "signature", "credential", "email", "code",
+                )
+            )
         safe_query = urllib.parse.urlencode([
-            (name, "[REDACTED]" if name.casefold() in sensitive else value)
+            (name, "[REDACTED]" if is_sensitive(name) else value)
             for name, value in query
         ])
+        if parsed.username is not None or parsed.password is not None:
+            host = parsed.hostname
+            if not host:
+                return "[invalid URL]"
+            authority = f"[{host}]" if ":" in host else host
+            if parsed.port is not None:
+                authority = f"{authority}:{parsed.port}"
+            parsed = parsed._replace(netloc=authority)
         return urllib.parse.urlunsplit(parsed._replace(query=safe_query, fragment=""))
     except (TypeError, ValueError):
         return "[invalid URL]"
