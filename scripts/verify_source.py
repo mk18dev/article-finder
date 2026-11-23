@@ -46,10 +46,13 @@ INDEX_DOMAINS: dict[str, tuple[str, ...]] = {
 }
 BLACKLIST_DOMAINS: dict[str, tuple[str, ...]] = {
     "msrt": ("journals.msrt.ir", "msrt.ir"),
+    "mohme": ("research.behdasht.gov.ir", "behdasht.gov.ir"),
     "iau": ("eval.journals.iau.ir", "iau.ac.ir"),
 }
 MSRT_PORTAL = "https://journals.msrt.ir/"
+MOHME_PORTAL = "https://research.behdasht.gov.ir/"
 IAU_EVALUATION_PORTAL = "https://eval.journals.iau.ir/"
+IMPACTFACTOR = "https://impactfactor.ir/"
 SEARCH_DOMAINS: tuple[str, ...] = (
     "crossref.org", "openalex.org", "scholar.google.com", "pubmed.ncbi.nlm.nih.gov",
     "semanticscholar.org", "arxiv.org", "ieeexplore.ieee.org", "dl.acm.org",
@@ -538,7 +541,9 @@ def s6_links(work: Work) -> list[str]:
     key = work.source_issn or (work.issns[0] if work.issns else "")
     links: list[str] = [
         f"[MSRT journal portal]({MSRT_PORTAL})",
+        f"[MOHME journal database]({MOHME_PORTAL})",
         f"[IAU evaluation / revoked-credit status]({IAU_EVALUATION_PORTAL})",
+        f"[ImpactFactor secondary report — verify officially]({IMPACTFACTOR})",
     ]
     if key:
         links.extend([
@@ -758,8 +763,8 @@ def checklist(articles: list[dict[str, Any]], works: list[Work]) -> str:
         rows.append(f"| {index} | {article['title']} | {work.publisher} | {issns} | "
                     + " · ".join(s6_links(work)) + " |")
     rows.append("")
-    rows.append("For each journal, record two independent blacklist_checks: one for authority=msrt "
-                "and one for authority=iau. Each check must include status=clear/listed, ISSN query, "
+    rows.append("For each journal, record three independent blacklist_checks: authority=msrt, "
+                "authority=mohme and authority=iau. Each check must include status=clear/listed, ISSN query, "
                 "list_version, reviewer_id, reviewed_at, URL, locator and note. Any verified listed "
                 "result hard-rejects S6. Missing or inaccessible lists remain pending. For a positive "
                 "index result, add indexing_evidence with index, verified=true, source URL and note, "
