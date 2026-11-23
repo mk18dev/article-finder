@@ -23,14 +23,14 @@
 |---|---|---|---|
 | PH8-01 | documented threat model for API, providers, PDF and untrusted content | VERIFIED | this file |
 | PH8-02 | pinned dependencies and vulnerability audit | VERIFIED | requirements.txt, requirements-browser.txt, requirements-quality.txt; CI pip-audit covers all three manifests |
-| PH8-03 | Ruff, Bandit, pip-audit and secret scanning | CI PENDING | Ruff/Bandit/pip-audit plus pinned Gitleaks action are configured in the workflow; exact-SHA CI result is required before verification |
+| PH8-03 | Ruff, Bandit, pip-audit and secret scanning | CI PENDING | Ruff/Bandit/pip-audit plus pinned Gitleaks v2.3.9 with full-history checkout are configured; exact-SHA CI result is required before verification |
 | PH8-04 | request/response, timeout, retry, concurrency and resource limits | PARTIAL | request/draft/count/body/response limits, four per-process POST slots, and five-second DNS wait with at most two bounded daemon workers; no distributed rate limiter |
 | PH8-05 | sensitive-data redaction in logs and retrieval reports | VERIFIED IN CODE; CI PENDING | http_util.redact_url; retrieval errors omit exception text; targeted regression test added |
 | PH8-06 | safe path, archive, XML and untrusted HTML handling | PARTIAL | no archive extraction path exists; title slug + atomic writes; defusedxml is pinned; HTML input is bounded and PDF links are HTTPS-filtered; further parser fuzzing not evidenced |
 | PH8-07 | caller rate-limit behavior and provider outage behavior | PARTIAL | process capacity overflow returns 503; this is not a caller quota; provider outage is covered by deterministic mocked tests, not live uptime evidence |
 | PH8-08 | privacy and retention of user-submitted drafts | VERIFIED IN CODE | API does not persist drafts; request logging does not include body, DOI or authorization data; CLI outputs are written only to user-selected local paths |
 | PH8-09 | no execution of article/page-derived instructions or content | VERIFIED BY DESIGN REVIEW | retrieved content is parsed as data; no dynamic code execution path is part of the workflow; browser XSS regression coverage remains in Phase 7 |
-| PH8-10 | SBOM or complete dependency/license inventory | CI PENDING / PARTIAL | three CycloneDX SBOMs (runtime, browser, quality) are generated and uploaded as a 30-day CI artifact; automated license inventory remains absent |
+| PH8-10 | SBOM or complete dependency/license inventory | CI PENDING / PARTIAL | three CycloneDX SBOMs (runtime, browser, quality) plus a pip-licenses 5.5.5 mixed-metadata license inventory are generated and uploaded as a 30-day CI artifact; CI verification and human review of UNKNOWN/non-SPDX labels remain required |
 | PH8-11 | zero open Critical/High findings and independent security review | OPEN | no independent reviewer sign-off or dedicated secret-scan evidence is available; Phase 6 DNS/egress review remains a dependency |
 
 ## Changes applied in this phase
@@ -45,5 +45,5 @@
 
 - Mocked provider failures establish deterministic error handling only; they do not establish live provider availability.
 - A green CI run on the exact main SHA is required before this matrix can be treated as verified.
-- Phase 8 must remain IN PROGRESS / BLOCKED FOR ACCEPTANCE until the Gitleaks and SBOM workflow pass on the exact HEAD, a license inventory decision is recorded, the bounded DNS-worker failure mode is reviewed, and independent security review has evidence.
+- Phase 8 must remain IN PROGRESS / BLOCKED FOR ACCEPTANCE until Gitleaks, SBOM and license-inventory steps pass on the exact HEAD, the bounded DNS-worker failure mode is reviewed, and independent security review has evidence.
 - Phase 10 production smoke is not part of this phase and remains separate.
