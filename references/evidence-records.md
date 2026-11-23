@@ -71,16 +71,18 @@ actually ran the search.
 S6 follows a distinct source rule for each type. Example URLs below are
 placeholders; replace them with the exact record you actually inspected.
 
-**Journal:** a blacklist hit is a hard rejection. A clear result requires two
-independent reviewer checks in `blacklist_checks`: `authority: "msrt"` and
-`authority: "iau"`. Each entry must include `status: "clear"` or `"listed"`,
+**Journal:** a blacklist hit is a hard rejection. A clear result requires three
+independent reviewer checks in `blacklist_checks`: `authority: "msrt"`,
+`authority: "mohme"`, and `authority: "iau"`. Each entry must include `status: "clear"` or `"listed"`,
 `query_type: "ISSN"`, a `query_value` matching the record's ISSN, a
 `list_version`, reviewer ID, timezone-aware timestamp, HTTPS URL, locator and
 note. A verified `listed` result from either official authority rejects S6,
 even if the journal has a high tier. The IAU evaluation portal provides current
 1405 evaluation/revocation status; it is not treated as a separate complete
-blacklist download. If the current official invalid-list record cannot be
-located, record the check as unavailable and leave S6 pending. A missing, inaccessible, malformed or
+blacklist download. The MOHME database linked by the IAU portal may be an older
+snapshot; verify its list version before marking clear. If a current official
+list cannot be located or is stale, record the check as unavailable and leave
+S6 pending. A missing, inaccessible, malformed or
 unverified result stays pending. After both checks are clear, at least one
 verified Scopus, Web of Science/WoS, ISC, DBLP or DOAJ record is required in
 `indexing_evidence`.
@@ -114,8 +116,7 @@ Example book record:
 ```
 
 The script validates evidence fields and official-host boundaries, not the truth
-of the external page. MSRT blacklist evidence must use `journals.msrt.ir` or `msrt.ir`; IAU evidence must use `eval.journals.iau.ir`
-or `iau.ac.ir`. The generated checklist links to the MSRT portal,
+of the external page. MSRT blacklist evidence must use `journals.msrt.ir` or `msrt.ir`; MOHME evidence must use `research.behdasht.gov.ir` or `behdasht.gov.ir`; IAU evidence must use `eval.journals.iau.ir` or `iau.ac.ir`. The generated checklist links to the MSRT portal,
 the IAU 1405 evaluation/revocation-status portal. Journal
 indexing URLs must use official provider domains: Scopus (`scopus.com`), Web of
 Science (`mjl.clarivate.com` or `webofscience.com`), ISC (`isc.gov.ir`), DBLP
