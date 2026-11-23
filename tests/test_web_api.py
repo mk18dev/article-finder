@@ -4,7 +4,7 @@ import io
 import urllib.error
 import unittest
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from scripts import web_api as api
 
