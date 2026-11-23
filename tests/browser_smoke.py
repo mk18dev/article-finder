@@ -280,8 +280,25 @@ def main() -> int:
         assert page.locator(".mode-tab").count() == 2
         assert page.locator("#source-form").is_visible()
         assert_no_horizontal_overflow(page)
-        advanced_summary_box = page.locator(".advanced-block summary").bounding_box()
-        assert advanced_summary_box and advanced_summary_box["height"] >= 24, advanced_summary_box
+        advanced_summary = page.locator(".advanced-block summary")
+        advanced_summary_box = advanced_summary.bounding_box()
+        if not advanced_summary_box or advanced_summary_box["height"] < 24:
+            advanced_summary_style = advanced_summary.evaluate("""element => {
+                const style = getComputedStyle(element);
+                return {
+                    inline: element.getAttribute("style"),
+                    height: style.height,
+                    minHeight: style.minHeight,
+                    lineHeight: style.lineHeight,
+                    padding: style.padding,
+                    display: style.display,
+                    rect: element.getBoundingClientRect().toJSON()
+                };
+            }""")
+            raise AssertionError(
+                f"Advanced summary touch target is too small: box={advanced_summary_box}, "
+                f"computed={advanced_summary_style}"
+            )
 
         page.locator("#access-key").fill("browser-e2e-key")
         page.locator("#discovery-keyword").fill("Survey + recommender systems")
