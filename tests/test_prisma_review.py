@@ -1,6 +1,7 @@
 import unittest
 
 from scripts.prisma_review import (
+    build_report,
     deduplicate_records,
     derive_counts,
     normalize_doi,
@@ -308,6 +309,43 @@ class PrismaReviewTests(unittest.TestCase):
         self.assertIn("Studies included (n=2)", flow)
         self.assertIn("Reports of included studies (n=2)", flow)
         self.assertIn("flowchart TD", flow)
+
+    def test_search_url_requires_real_https_origin(self):
+        review = valid_review()
+        review["search_log"][0]["search_url"] = "https://"
+        self.assertTrue(any("valid HTTPS URL" in error for error in validate_review(review)))
+
+        review = valid_review()
+        review["search_log"][0]["search_url"] = "https://user@example.org/search"
+        self.assertTrue(any("valid HTTPS URL" in error for error in validate_review(review)))
+
+    def test_search_date_requires_exact_iso_calendar_date(self):
+        review = valid_review()
+        review["search_log"][0]["date_run"] = "20261123"
+        self.assertTrue(any("YYYY-MM-DD" in error for error in validate_review(review)))
+
+        review = valid_review()
+        review["search_log"][0]["date_run"] = "2026-02-30"
+        self.assertTrue(any("YYYY-MM-DD" in error for error in validate_review(review)))
+
+    def test_other_methods_url_and_date_are_validated(self):
+        review = valid_review()
+        review["other_methods_log"] = [{
+            "method": "citation searching",
+            "date_run": "2026-11-23",
+            "search_url": "https://",
+            "hits": 0,
+            "limits": "none",
+            "status": "ok",
+        }]
+        self.assertTrue(any("valid HTTPS URL" in error for error in validate_review(review)))
+
+    def test_report_preserves_duplicate_links_and_metadata_conflicts(self):
+        report = build_report(valid_review())
+        self.assertIn("Duplicate-resolution ledger", report)
+        self.assertIn("r9", report)
+        self.assertIn("r1", report)
+        self.assertIn("Conflicting Duplicate Title", report)
 
 
 if __name__ == "__main__":
