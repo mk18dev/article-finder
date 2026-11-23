@@ -92,14 +92,26 @@ State which quartile source you used (SJR vs JCR); they can differ (see section 
 | Question | Source (as printed on the slides) |
 |---|---|
 | Is the journal ISI-indexed? Master Journal List | https://mjl.clarivate.com/ |
-| Impact factor and list presence (Persian-language site) | http://impactfactor.ir/ |
+| Impact factor and list presence (Persian-language site; secondary aggregator only) | https://impactfactor.ir/ |
 | SJR | https://www.scimagojr.com |
 | DOAJ | https://doaj.org |
 | Persian theses | https://irandoc.ac.ir/ |
 | Books | https://books.google.com · https://www.amazon.com |
 | Good sites (page 26) | IEEE https://ieeexplore.ieee.org · Springer https://link.springer.com · Elsevier https://www.sciencedirect.com/search · Google Scholar https://scholar.google.com/ |
 
-*(skill)* Computer-science venues can also be checked on https://dblp.org. Clarivate and Scholar pages often load only in a browser; if WebFetch cannot read them, fall back to SJR or the publisher's journal page, and mark WoS status ❓ with a note telling the user to check the Master Journal List.
+*(skill)* Computer-science venues can also be checked on https://dblp.org.
+
+### Current official journal-status portals
+
+| Authority | Portal | Use and limitation |
+|---|---|---|
+| Ministry of Science (MSRT) | https://journals.msrt.ir/ | Check the current journal record/list version; a missing result alone is not proof of blacklist clearance. |
+| Ministry of Health (MOHME) | https://research.behdasht.gov.ir/ | The IAU portal links an official journal-database spreadsheet dated 1403-08-08; treat that file as a historical snapshot unless a newer version is found. |
+| Islamic Azad University (IAU) | https://eval.journals.iau.ir/ | Official evaluation portal with 1405 evaluation/revocation status; this is not a complete standalone blacklist download. |
+| Secondary aggregator | https://impactfactor.ir/ | Useful for a consolidated report, but not an official authority. Its own notice says online results require expert review and the receiving institution makes the final decision. |
+
+S6 therefore requires reviewer-attributed checks against all three official authorities (MSRT, MOHME and IAU), with the exact ISSN, list version, page locator and timestamp. If a current official list is unavailable or stale, record "unavailable"; do not convert an absence from an old database into "clear". A verified official blacklist hit rejects the source regardless of quartile or tier.
+ Clarivate and Scholar pages often load only in a browser; if WebFetch cannot read them, fall back to SJR or the publisher's journal page, and mark WoS status ❓ with a note telling the user to check the Master Journal List.
 
 ## 7. Worked example from the slides (pages 22-23)
 
