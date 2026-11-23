@@ -93,6 +93,9 @@ ENTRY = {
         "reviewer_id": "reviewer-1", "reviewed_at": "2026-11-23T10:00:00Z", "locator": "source profile",
         "url": "https://www.scopus.com/sources.uri?zone=TopNavBar",
         "note": "Checked source entry and coverage",
+        "matched_title": "A paper",
+        "coverage_start_year": date.today().year - 5,
+        "coverage_end_year": date.today().year,
     }],
     "reading_evidence": {
         "abstract": evidence("Abstract read and reviewed"),
@@ -516,7 +519,7 @@ class TierTests(unittest.TestCase):
         self.assertIsNone(article["tier_verified"])
 
     def test_verified_indexing_evidence_is_adapted_for_tier_policy(self) -> None:
-        indexed = vs.verified_indexing_items(ENTRY)
+        indexed = vs.verified_indexing_items(ENTRY, work())
         self.assertEqual(len(indexed), 1)
         self.assertEqual(indexed[0]["index"], "Scopus")
 
@@ -525,7 +528,7 @@ class TierTests(unittest.TestCase):
             **ENTRY,
             "indexing_evidence": [{**ENTRY["indexing_evidence"][0], "verified": False}],
         }
-        self.assertEqual(vs.verified_indexing_items(entry), [])
+        self.assertEqual(vs.verified_indexing_items(entry, work()), [])
 
     def test_q1_quartile_computes_tier_a(self) -> None:
         entry = {**ENTRY, "quartile": "Q1", "tier": "A"}
@@ -588,6 +591,13 @@ class TierTests(unittest.TestCase):
         self.assertEqual(article["tier"], "D")
         self.assertIs(article["tier_verified"], True)
         self.assertIs(article["steps"]["S6"], False)
+
+    def test_missing_declared_tier_stays_pending(self) -> None:
+        entry = {key: value for key, value in ENTRY.items() if key != "tier"}
+        article = decide(entry=entry)
+        self.assertEqual(article["tier_computed"], "B")
+        self.assertEqual(article["tier"], "")
+        self.assertIsNone(article["tier_verified"])
 
     def test_verified_tier_is_preserved(self) -> None:
         article = decide()
@@ -695,6 +705,30 @@ class SourceSpecificS6Tests(unittest.TestCase):
             "note": "Conference proceedings record was inspected",
         }]
         self.assertIs(decide(conference, {**ENTRY, "indexing_evidence": evidence})["steps"]["S6"], True)
+
+    def test_index_record_requires_exact_title_and_coverage_year(self) -> None:
+        item = dict(ENTRY["indexing_evidence"][0])
+        item.pop("matched_title")
+        self.assertIsNone(decide(entry={**ENTRY, "indexing_evidence": [item]})["steps"]["S6"])
+
+    def test_index_record_title_must_match_crossref_title(self) -> None:
+        item = {**ENTRY["indexing_evidence"][0], "matched_title": "A different paper"}
+        self.assertIsNone(decide(entry={**ENTRY, "indexing_evidence": [item]})["steps"]["S6"])
+
+    def test_index_record_coverage_must_include_publication_year(self) -> None:
+        item = {**ENTRY["indexing_evidence"][0],
+                "coverage_start_year": date.today().year,
+                "coverage_end_year": date.today().year + 1}
+        self.assertIsNone(decide(entry={**ENTRY, "indexing_evidence": [item]})["steps"]["S6"])
+
+    def test_boolean_coverage_year_is_rejected(self) -> None:
+        item = {**ENTRY["indexing_evidence"][0], "coverage_start_year": True}
+        self.assertIsNone(decide(entry={**ENTRY, "indexing_evidence": [item]})["steps"]["S6"])
+
+    def test_conference_s6_rejects_doaj_journal_directory(self) -> None:
+        conference = work(kind="conference", issns=[])
+        item = {**ENTRY["indexing_evidence"][0], "index": "DOAJ", "url": "https://doaj.org/"}
+        self.assertIsNone(decide(conference, {**ENTRY, "indexing_evidence": [item]})["steps"]["S6"])
 
     def test_conference_s6_without_index_record_is_pending(self) -> None:
         conference = work(kind="conference", issns=[], container="Proceedings of Tests")

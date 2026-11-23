@@ -291,7 +291,25 @@ def evidence_item_ok(item: Any) -> bool:
     return valid_https and len(note.strip()) >= 8
 
 
-def verified_indexing_items(entry: dict[str, Any]) -> list[dict[str, Any]]:
+def _normalized_index_title(value: Any) -> str:
+    return re.sub(r"[^\\w]+", "", str(value or "").casefold(), flags=re.UNICODE)
+
+
+def _index_coverage_matches(item: dict[str, Any], work: Work) -> bool:
+    matched_title = _normalized_index_title(item.get("matched_title"))
+    expected_title = _normalized_index_title(work.title)
+    start = item.get("coverage_start_year")
+    end = item.get("coverage_end_year")
+    if not expected_title or matched_title != expected_title:
+        return False
+    if (not isinstance(start, int) or isinstance(start, bool)
+            or not isinstance(end, int) or isinstance(end, bool)
+            or start < 0 or end < start or work.year is None):
+        return False
+    return start <= work.year <= end
+
+
+def verified_indexing_items(entry: dict[str, Any], work: Work) -> list[dict[str, Any]]:
     items = entry.get("indexing_evidence")
     if not isinstance(items, list):
         return []
@@ -313,9 +331,9 @@ def verified_indexing_items(entry: dict[str, Any]) -> list[dict[str, Any]]:
             "url": item.get("url"),
             "note": item.get("note"),
         }
-        if domains and evidence_item_ok(evidence) and host_matches(
-            str(item.get("url") or ""), domains
-        ):
+        if (domains and _index_coverage_matches(item, work)
+                and evidence_item_ok(evidence)
+                and host_matches(str(item.get("url") or ""), domains)):
             verified.append(item)
     return verified
 
@@ -510,14 +528,15 @@ def s6_gate(work: Work, entry: dict[str, Any]) -> bool | None:
             blacklist_result = blacklist_gate(work, entry)
             if blacklist_result is not True:
                 return blacklist_result
-        for item in entry.get("indexing_evidence", []) or []:
-            if not isinstance(item, dict):
-                continue
-            name = str(item.get("index", "")).strip().lower()
-            domains = INDEX_DOMAINS.get(name)
-            if domains and verified_record(item, domains):
-                return True
-        return None
+        allowed_indexes = (
+            {"scopus", "web of science", "wos", "isc", "dblp"}
+            if work.kind == "conference" else set(INDEX_DOMAINS)
+        )
+        valid_indexes = {
+            str(item.get("index") or "").strip().lower()
+            for item in verified_indexing_items(entry, work)
+        }
+        return True if valid_indexes & allowed_indexes else None
 
     if work.kind == "thesis":
         item = entry.get("thesis_repository_evidence")
@@ -621,7 +640,7 @@ def tier_verified(
         source_kind=work.kind,
         publisher_recognized=publisher_trusted(work.publisher) if work.publisher else None,
         specialized=entry.get("specialized"),
-        indexing_evidence=verified_indexing_items(entry),
+        indexing_evidence=verified_indexing_items(entry, work),
         quartile=entry.get("quartile"),
         quartile_source=entry.get("quartile_source"),
         blacklisted=steps.get("S6") is False,
@@ -649,7 +668,9 @@ def tier_verified(
     if not tier_evidence_valid(work, entry):
         return None, computed, "Computed tier lacks reviewer-attributed evidence from the relevant official source."
     declared = str(entry.get("tier") or "").strip().upper()
-    if declared and declared != computed:
+    if not declared:
+        return None, computed, "Declared tier is missing; record the reviewer-provided A/B/C/D tier to compare with the computed tier."
+    if declared != computed:
         return False, computed, f"Declared tier {declared} does not match computed tier {computed}. {reason}"
     return True, computed, reason
 

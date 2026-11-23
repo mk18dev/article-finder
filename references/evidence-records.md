@@ -129,9 +129,12 @@ clearance result):
 ]
 ```
 
-**Conference:** verify the proceedings record in Scopus, Web of Science/WoS,
-ISC or DBLP using `indexing_evidence`. The journal blacklist check does not
-apply to conference proceedings.
+**Conference:** verify the exact proceedings title and coverage years in
+Scopus, Web of Science/WoS, ISC or DBLP using `indexing_evidence`. Each
+positive record must include `matched_title`, `coverage_start_year` and
+`coverage_end_year`. DOAJ cannot satisfy conference S6 because it is a
+journal directory. The journal blacklist check does not apply to conference
+proceedings.
 
 **Thesis:** use `thesis_repository_evidence` with repository
 `Irandoc`, `university repository`, or `institutional repository`, plus
