@@ -276,7 +276,7 @@ def download_one(index: int, source: Source, out: Path, dry_run: bool) -> Result
     try:
         record = fetch_json(f"https://api.openalex.org/works/doi:{source.doi}")
     except Exception as exc:
-        return Result(source, "lookup-failed", f"{type(exc).__name__}: {exc}"[:120], routes=list(ROUTES))
+        return Result(source, "lookup-failed", type(exc).__name__, routes=list(ROUTES))
 
     candidate_records = [("OpenAlex", url) for url in candidates(record)]
     candidate_records.extend(external_candidate_records(source.doi, source.title))
@@ -292,7 +292,7 @@ def download_one(index: int, source: Source, out: Path, dry_run: bool) -> Result
     if dry_run:
         return Result(
             source, "candidate",
-            " · ".join(f"{provider}: {url}" for provider, url in deduplicated[:3]),
+            " · ".join(f"{provider}: {http_util.redact_url(url)}" for provider, url in deduplicated[:3]),
         )
 
     attempts: list[RetrievalAttempt] = []
@@ -303,15 +303,15 @@ def download_one(index: int, source: Source, out: Path, dry_run: bool) -> Result
         except Exception as exc:
             detail = type(exc).__name__
             attempts.append(RetrievalAttempt(
-                provider, url, "", retrieved_at_utc(), "fetch-error", detail,
+                provider, http_util.redact_url(url), "", retrieved_at_utc(), "fetch-error", detail,
             ))
-            failures.append(f"{detail} @ {url[:60]}")
+            failures.append(f"{detail} @ {http_util.redact_url(url)[:60]}")
             continue
 
         if looks_like_pdf(response.body):
             saved = save(index, source, out, response.body, response.final_url)
             attempts.append(RetrievalAttempt(
-                provider, url, response.final_url, retrieved_at_utc(),
+                provider, http_util.redact_url(url), http_util.redact_url(response.final_url), retrieved_at_utc(),
                 saved.status, f"{len(response.body)} bytes; content-type={response.content_type or 'unknown'}",
             ))
             saved.attempts = attempts
@@ -328,13 +328,13 @@ def download_one(index: int, source: Source, out: Path, dry_run: bool) -> Result
                 inner = fetch_response(link)
             except Exception as exc:
                 attempts.append(RetrievalAttempt(
-                    provider, link, "", retrieved_at_utc(), "fetch-error", type(exc).__name__,
+                    provider, http_util.redact_url(link), "", retrieved_at_utc(), "fetch-error", type(exc).__name__,
                 ))
                 continue
             if looks_like_pdf(inner.body):
                 saved = save(index, source, out, inner.body, inner.final_url)
                 attempts.append(RetrievalAttempt(
-                    provider, link, inner.final_url, retrieved_at_utc(),
+                    provider, http_util.redact_url(link), http_util.redact_url(inner.final_url), retrieved_at_utc(),
                     saved.status, f"{len(inner.body)} bytes; content-type={inner.content_type or 'unknown'}",
                 ))
                 saved.attempts = attempts
@@ -343,7 +343,7 @@ def download_one(index: int, source: Source, out: Path, dry_run: bool) -> Result
                 provider, link, inner.final_url, retrieved_at_utc(), "not-pdf",
                 f"content-type={inner.content_type or 'unknown'}",
             ))
-        failures.append(f"no PDF @ {url[:60]}" + (f" ({len(nested)} link(s) inside)" if nested else ""))
+        failures.append(f"no PDF @ {http_util.redact_url(url)[:60]}" + (f" ({len(nested)} link(s) inside)" if nested else ""))
 
     detail = f"{len(deduplicated)} candidate(s) tried; " + (failures[-1] if failures else "no response")
     return Result(source, "no-pdf", detail, routes=list(ROUTES), attempts=attempts)
@@ -374,9 +374,9 @@ def save(index: int, source: Source, out: Path, payload: bytes, origin: str) -> 
                 temporary.unlink()
             except OSError:
                 pass
-        detail = f"{type(exc).__name__}: {str(exc)}"[:120]
+        detail = type(exc).__name__
         return Result(source, "save-failed", detail)
-    return Result(source, "downloaded", f"{len(payload) // 1024} KB from {origin}", path=str(target))
+    return Result(source, "downloaded", f"{len(payload) // 1024} KB from {http_util.redact_url(origin)}", path=str(target))
 
 
 def crossref_contact(doi: str) -> tuple[str, str]:
@@ -451,8 +451,8 @@ def report(results: list[Result], out: Path) -> str:
     for result in results:
         for attempt in result.attempts:
             attempt_number += 1
-            source_url = attempt.source_url.replace("|", "%7C")
-            final_url = attempt.final_url.replace("|", "%7C")
+            source_url = http_util.redact_url(attempt.source_url).replace("|", "%7C")
+            final_url = http_util.redact_url(attempt.final_url).replace("|", "%7C")
             detail = attempt.detail.replace("|", "\\|")
             outcome = attempt.outcome + (f": {detail}" if detail else "")
             lines.append(
