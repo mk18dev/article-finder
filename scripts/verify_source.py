@@ -234,11 +234,13 @@ def host_matches(url: str, domains: tuple[str, ...]) -> bool:
         return False
 
 
-def _valid_search_timestamp(value: str) -> bool:
+def _valid_search_timestamp(value: Any) -> bool:
+    if not isinstance(value, str) or not value.strip():
+        return False
     try:
         parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
         return parsed.tzinfo is not None and parsed.utcoffset() is not None
-    except ValueError:
+    except (ValueError, TypeError, OverflowError):
         return False
 
 

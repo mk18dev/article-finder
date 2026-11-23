@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import sys
 import unittest
-from unittest.mock import patch
+from datetime import date
 from pathlib import Path
+from unittest.mock import patch
 
 SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
 sys.path.insert(0, str(SCRIPTS))
@@ -70,19 +71,19 @@ ENTRY = {
     "blacklist_checks": [
         {
             "authority": "msrt", "status": "clear", "query_type": "ISSN",
-            "query_value": "0924-1868", "list_version": "2026-11-23", "list_updated_at": "2026-11-23",
+            "query_value": "0924-1868", "list_version": "2026-11-23", "list_updated_at": date.today().isoformat(),
             **evidence("ISSN checked in the MSRT journal portal"),
             "url": "https://journals.msrt.ir/", "locator": "ISSN 0924-1868 search result",
         },
         {
             "authority": "iau", "status": "clear", "query_type": "ISSN",
-            "query_value": "0924-1868", "list_version": "1405", "list_updated_at": "2026-11-23",
+            "query_value": "0924-1868", "list_version": "1405", "list_updated_at": date.today().isoformat(),
             **evidence("ISSN checked in the IAU invalid-journals/evaluation portal"),
             "url": "https://eval.journals.iau.ir/", "locator": "1405 journal record",
         },
         {
             "authority": "mohme", "status": "clear", "query_type": "ISSN",
-            "query_value": "0924-1868", "list_version": "2026-11-23 fixture", "list_updated_at": "2026-11-23",
+            "query_value": "0924-1868", "list_version": "2026-11-23 fixture", "list_updated_at": date.today().isoformat(),
             **evidence("ISSN checked in the MOHME journal database"),
             "url": "https://research.behdasht.gov.ir/", "locator": "journal database record",
         },

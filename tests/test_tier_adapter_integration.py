@@ -18,3 +18,11 @@ class TierAdapterIntegrationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TimestampTypeGuardTests(unittest.TestCase):
+    def test_non_string_review_timestamps_fail_closed(self):
+        for value in (None, 0, [], {}, True):
+            with self.subTest(value=value):
+                self.assertFalse(verify_source._valid_search_timestamp(value))
+
