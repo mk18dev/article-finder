@@ -65,7 +65,7 @@ Seven points on the slide:
 - Publisher of the book
 - Year of publication
 
-Sites on the slide: Google Books https://books.google.com · Amazon https://www.amazon.com · Z-Lib https://z-lib.io/ (see section 8 about Z-Lib).
+Sites on the slide: Google Books https://books.google.com · Amazon https://www.amazon.com. Unauthorized full-text services are excluded from the product's retrieval routes and are not linked here.
 
 Feeds: publisher → S5 · Google Books/Amazon record + citation count → S6 · ISBN (validate with `scripts/check_ids.py`) → S7 · year → S8.
 
@@ -163,14 +163,9 @@ Lesson: the best quartile is Q1 by SJR and Q2 by JCR, so always say which source
 
 ## 8. Getting the full text (slides, pages 26-27, 31)
 
-Page 27, "Download Article", lists three sites, reproduced as printed:
-- Sci-hub: https://sci-hub.st
-- Iran Paper: https://iranpaper.ir/
-- Libgen: http://libgen.is/
+The course slides mention third-party full-text services in this section. This product deliberately does not implement or link to unauthorized full-text services, and their URLs are omitted from this documentation. No such service is a provider, fallback, configuration option or retrieval route in `scripts/fetch_pdf.py`.
 
-Page 31 adds Z-Lib (https://z-lib.io/) next to Google Books and Amazon.
-
-How the skill treats them: `scripts/fetch_pdf.py` does the fetching and only ever follows open-access links (OpenAlex best-OA location, arXiv, author copies), so none of the three is reachable from the toolchain. Iran Paper is an Iranian paper-access service (check its terms and prices). Sci-hub, Libgen and Z-Lib distribute copyrighted papers and books without the publishers' permission, so Claude does not fetch from them, verify sources through them, or recommend them. They stay on this page only so the record of the slides is complete, and the choice of whether to use them is the user's own. For the same papers, Claude offers the routes that give a legitimate copy:
+The resolver uses only declared open-access metadata routes (OpenAlex OA locations, Unpaywall OA locations, Semantic Scholar open-access PDF links, CORE records explicitly marked open access, and arXiv). A publicly reachable URL is not by itself proof of permission: provider OA flags are required where the provider supplies them, and the PDF signature/size check does not establish a license. If a source is paywalled or its OA status is unknown, do not download it; use a licensed route instead:
 - the publisher page (IEEE Xplore, SpringerLink, ScienceDirect)
 - Google Scholar's PDF and "all versions" links to open copies
 - author pages and preprint servers

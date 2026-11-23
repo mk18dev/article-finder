@@ -16,9 +16,9 @@ import fetch_pdf as fp
 
 def record(**overrides) -> dict:
     base = {
-        "best_oa_location": {"pdf_url": "https://example.org/a.pdf", "landing_page_url": "https://example.org/a"},
-        "locations": [{"pdf_url": None, "landing_page_url": "https://example.org/b.pdf"}],
-        "open_access": {"oa_url": "https://example.org/c"},
+        "best_oa_location": {"is_oa": True, "pdf_url": "https://example.org/a.pdf", "landing_page_url": "https://example.org/a"},
+        "locations": [{"is_oa": True, "pdf_url": None, "landing_page_url": "https://example.org/b.pdf"}],
+        "open_access": {"is_oa": True, "oa_url": "https://example.org/c"},
         "ids": {},
     }
     base.update(overrides)
@@ -35,6 +35,31 @@ class CandidateTests(unittest.TestCase):
     def test_plain_landing_page_is_not_a_candidate(self) -> None:
         urls = fp.candidates(record())
         self.assertNotIn("https://example.org/a", urls)
+
+    def test_non_oa_openalex_location_is_not_a_candidate(self) -> None:
+        data = record(
+            best_oa_location={"is_oa": False, "pdf_url": "https://publisher.example/paywall.pdf"},
+            locations=[{"is_oa": False, "pdf_url": "https://publisher.example/closed.pdf"}],
+            open_access={"is_oa": False, "oa_url": "https://publisher.example/closed.pdf"},
+        )
+        self.assertEqual(fp.candidates(data), [])
+
+    def test_unknown_openalex_oa_status_fails_closed(self) -> None:
+        data = record(
+            best_oa_location={"pdf_url": "https://unknown.example/paper.pdf"},
+            locations=[{"pdf_url": "https://unknown.example/other.pdf"}],
+            open_access={"oa_url": "https://unknown.example/third.pdf"},
+        )
+        self.assertEqual(fp.candidates(data), [])
+
+    def test_core_requires_explicit_open_access_and_download_url(self) -> None:
+        with patch.dict("os.environ", {"CORE_API_KEY": "test-key"}), \
+             patch.object(fp, "fetch_json", return_value={"results": [
+                 {"isOpenAccess": False, "downloadUrl": "https://core.example/closed.pdf"},
+                 {"isOpenAccess": True, "fullTextIdentifier": "https://core.example/identifier"},
+                 {"isOpenAccess": True, "downloadUrl": "https://core.example/open.pdf"},
+             ]}):
+            self.assertEqual(fp.core_candidates("10.1000/a"), ["https://core.example/open.pdf"])
 
     def test_arxiv_feed_rejects_entity_expansion(self) -> None:
         from defusedxml.common import EntitiesForbidden
@@ -224,6 +249,12 @@ class IrandocTests(unittest.TestCase):
         text = fp.report([fp.Result(source, "paywalled", "", routes=list(fp.ROUTES) + [fp.irandoc_route(source.title)])],
                          Path("pdfs"))
         self.assertIn("ganj.irandoc.ac.ir", text)
+
+    def test_unauthorized_full_text_hosts_are_not_linked_in_policy_docs(self) -> None:
+        validation = (SCRIPTS.parent / "references" / "validation.md").read_text(encoding="utf-8").lower()
+        for host in ("sci-hub.st", "libgen.is", "z-lib.io"):
+            self.assertNotIn(host, validation)
+        self.assertIn("does not implement or link", validation)
 
 
 class EmailDraftTests(unittest.TestCase):

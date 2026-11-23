@@ -112,14 +112,19 @@ def candidates(record: dict[str, Any]) -> list[str]:
         if text and text not in urls:
             urls.append(text)
 
-    best = record.get("best_oa_location") or {}
-    add(best.get("pdf_url"))
+    best = record.get("best_oa_location")
+    if isinstance(best, dict) and best.get("is_oa") is True:
+        add(best.get("pdf_url"))
     for location in record.get("locations") or []:
-        add((location or {}).get("pdf_url"))
-        landing = str((location or {}).get("landing_page_url") or "")
+        if not isinstance(location, dict) or location.get("is_oa") is not True:
+            continue
+        add(location.get("pdf_url"))
+        landing = str(location.get("landing_page_url") or "")
         if landing.lower().endswith(".pdf"):
             add(landing)
-    add((record.get("open_access") or {}).get("oa_url"))
+    open_access = record.get("open_access")
+    if isinstance(open_access, dict) and open_access.get("is_oa") is True:
+        add(open_access.get("oa_url"))
     add(arxiv_url(record))
     return [url for url in urls if url.lower().startswith("https://")]
 
@@ -199,10 +204,11 @@ def core_candidates(doi: str) -> list[str]:
                         headers={"Authorization": f"Bearer {key}"})
     urls: list[str] = []
     for item in record.get("results") or []:
-        for key_name in ("downloadUrl", "fullTextIdentifier"):
-            value = str((item or {}).get(key_name) or "")
-            if value.startswith("https://"):
-                urls.append(value)
+        if not isinstance(item, dict) or item.get("isOpenAccess") is not True:
+            continue
+        value = str(item.get("downloadUrl") or "")
+        if value.startswith("https://"):
+            urls.append(value)
     return unique(urls)
 
 
