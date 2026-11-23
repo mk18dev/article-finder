@@ -7,7 +7,7 @@
 | Asset / boundary | Threat | Existing or added control | Residual risk |
 |---|---|---|---|
 | Public API | oversized bodies and computationally expensive drafts | 512 KiB request cap, 180,000-character draft cap, four-record cap, bounded provider timeout/retry | no distributed caller quota |
-| API process | concurrent expensive requests exhaust CPU/memory | four in-flight POSTs per Python process; excess work receives 503 | does not coordinate across serverless instances |
+| API process | concurrent expensive requests exhaust CPU/memory | four in-flight POSTs per Python process; excess work receives 503; local HTTP server sockets have a ten-second inactivity timeout | does not coordinate across serverless instances |
 | API authentication | unauthorized access, timing leakage, accidental credential persistence | fail-closed hosted auth, constant-time bearer comparison, no browser storage, no request-body logging | production auth still needs Phase 10 live smoke |
 | Provider URLs | SSRF, DNS rebinding, redirects, proxy bypass | HTTPS/443 only, all DNS answers checked, validated IP pinning, redirect revalidation, proxy isolation | DNS resolution waits at most five seconds; at most two resolver workers may remain stuck, after which new resolution attempts fail closed |
 | Provider responses | oversized body, false PDF, malicious XML/HTML | 80 MiB response cap, bounded HTML parser input, PDF signature + size floor, defusedxml for Atom | valid PDF signature does not prove malware-free or scholarly integrity |
@@ -24,7 +24,7 @@
 | PH8-01 | documented threat model for API, providers, PDF and untrusted content | VERIFIED | this file |
 | PH8-02 | pinned dependencies and vulnerability audit | VERIFIED | requirements.txt, requirements-browser.txt, requirements-quality.txt; CI pip-audit covers all three manifests |
 | PH8-03 | Ruff, Bandit, pip-audit and secret scanning | CI PENDING | Ruff/Bandit/pip-audit plus pinned Gitleaks v2.3.9 with full-history checkout are configured; exact-SHA CI result is required before verification |
-| PH8-04 | request/response, timeout, retry, concurrency and resource limits | PARTIAL | request/draft/count/body/response limits, four per-process POST slots, and five-second DNS wait with at most two bounded daemon workers; no distributed rate limiter |
+| PH8-04 | request/response, timeout, retry, concurrency and resource limits | PARTIAL | request/draft/count/body/response limits, four per-process POST slots, ten-second local server socket timeout, and five-second DNS wait with at most two bounded daemon workers; no distributed rate limiter |
 | PH8-05 | sensitive-data redaction in logs and retrieval reports | VERIFIED IN CODE; CI PENDING | http_util.redact_url; retrieval errors omit exception text; regression tests cover common and vendor-specific token keys plus URL userinfo |
 | PH8-06 | safe path, archive, XML and untrusted HTML handling | PARTIAL | no archive extraction path exists; title slug + atomic writes; defusedxml is pinned; HTML input is bounded and PDF links are HTTPS-filtered; further parser fuzzing not evidenced |
 | PH8-07 | caller rate-limit behavior and provider outage behavior | PARTIAL | process capacity overflow returns 503; this is not a caller quota; provider outage is covered by deterministic mocked tests, not live uptime evidence |
@@ -37,7 +37,7 @@
 
 - Added http_util.redact_url() to remove URL userinfo and credential/contact/token/key query values before URLs are shown in dry-run output, retrieval reports, saved-result details or retained retrieval-attempt records.
 - Removed raw exception messages from PDF lookup and file-save failure details; the report keeps the exception class without echoing potentially sensitive request URLs or local paths.
-- Added a process-local semaphore limiting simultaneous API POST work to four requests. Excess work receives HTTP 503. This is explicitly a resource guard and does not claim distributed rate limiting or HTTP 429 quota enforcement.
+- Added a ten-second inactivity timeout to local HTTP server sockets and a process-local semaphore limiting simultaneous API POST work to four requests. Excess work receives HTTP 503. This is explicitly a resource guard and does not claim distributed rate limiting or HTTP 429 quota enforcement.
 - Added regression tests for URL redaction and semaphore saturation/release.
 - Existing controls retained: strict HTTPS and public-IP validation, DNS pinning, redirect validation, proxy isolation, TLS verification, bounded response bytes, provider retry limits, API body/draft limits, no-store responses, fail-closed hosted auth, and safe XML parsing with defusedxml.
 
