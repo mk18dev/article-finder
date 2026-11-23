@@ -576,14 +576,23 @@ def tier_verified(
              "dl.acm.org", "link.springer.com", "sciencedirect.com"),
         )
     ]
+    if derived_status == "found" and not valid_derived:
+        derived_status = None
     university_evidence = entry.get("university_evidence")
+    institution_domain = str(entry.get("institution_domain") or "").strip().lower()
+    university_domains = (institution_domain,) if institution_domain else ("ac.ir", "edu")
     university_reputable = (
-        True if entry.get("university_reputable") is True and evidence_item_ok(university_evidence)
+        True if entry.get("university_reputable") is True
+        and evidence_item_ok(university_evidence)
+        and host_matches(str(university_evidence.get("url") or ""), university_domains)
         else False if entry.get("university_reputable") is False else None
     )
     relevant_chapters_evidence = entry.get("relevant_chapters_evidence")
+    book_domains = ("books.google.com", "amazon.com", "amazon.co.uk", "amazon.de", "amazon.ca")
     relevant_chapters = (
-        True if entry.get("relevant_chapters") is True and evidence_item_ok(relevant_chapters_evidence)
+        True if entry.get("relevant_chapters") is True
+        and evidence_item_ok(relevant_chapters_evidence)
+        and host_matches(str(relevant_chapters_evidence.get("url") or ""), book_domains)
         else False if entry.get("relevant_chapters") is False else None
     )
     computed, reason = compute_tier(
