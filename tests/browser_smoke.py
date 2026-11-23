@@ -161,7 +161,10 @@ def main() -> int:
             )
 
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch()
+        browser_name = os.environ.get("ARTICLE_FINDER_BROWSER", "chromium")
+        if browser_name not in {"chromium", "firefox", "webkit"}:
+            raise ValueError(f"Unsupported browser engine: {browser_name}")
+        browser = getattr(playwright, browser_name).launch()
         context = browser.new_context(
             viewport={"width": 390, "height": 844},
             device_scale_factor=1,
