@@ -316,9 +316,9 @@ class RetrievalRedactionTests(unittest.TestCase):
         })()
         record = {"best_oa_location": {}, "locations": [], "open_access": {}, "ids": {}}
         candidate = "https://repo.example/paper?api_key=secret-source&download=1"
-        with tempfile.TemporaryDirectory() as directory, \\
-             patch.object(fp, "fetch_json", return_value=record), \\
-             patch.object(fp, "external_candidate_records", return_value=[("Provider", candidate)]), \\
+        with tempfile.TemporaryDirectory() as directory, \
+             patch.object(fp, "fetch_json", return_value=record), \
+             patch.object(fp, "external_candidate_records", return_value=[("Provider", candidate)]), \
              patch.object(fp, "fetch_response", return_value=response):
             result = fp.download_one(1, source, Path(directory), False)
         self.assertEqual(result.status, "no-pdf")
