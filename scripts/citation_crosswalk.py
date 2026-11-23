@@ -65,6 +65,7 @@ def _author_key(value: Any) -> str:
     if not text:
         return ""
     text = re.sub(r"\s+et\s+al\.?$", "", text, flags=re.I)
+    text = re.sub(r"^(?:and|و)\s+", "", text, flags=re.I)
     text = re.split(r"\s*(?:&|and|و)\s*", text, maxsplit=1, flags=re.I)[0]
     if re.search(r"[,،]", text):
         family = re.split(r"[,،]", text, maxsplit=1)[0]
@@ -112,6 +113,7 @@ def _expand_ieee(body: str) -> list[int]:
 
 
 def audit_ieee(text: str, references: list[dict[str, Any]]) -> dict[str, Any]:
+    text = _normalize_digits(text)
     text = _body_text(text)
     ref_numbers: dict[int, dict[str, Any]] = {}
     errors = []
@@ -155,6 +157,7 @@ def audit_ieee(text: str, references: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def audit_apa(text: str, references: list[dict[str, Any]]) -> dict[str, Any]:
+    text = _normalize_digits(text)
     text = _body_text(text)
     reference_keys: dict[tuple[str, str], list[int]] = defaultdict(list)
     invalid = []
