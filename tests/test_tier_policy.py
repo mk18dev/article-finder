@@ -23,6 +23,18 @@ class TierPolicyTests(unittest.TestCase):
         values.update(overrides)
         return compute_tier(**values)
 
+    def test_journal_missing_identifier_stays_pending(self):
+        self.assertIsNone(self.compute(identifier_verified=None)[0])
+
+    def test_journal_invalid_identifier_is_tier_d(self):
+        self.assertEqual(self.compute(identifier_verified=False)[0], "D")
+
+    def test_malformed_source_kind_stays_pending_without_crashing(self):
+        self.assertIsNone(self.compute(source_kind=123)[0])
+
+    def test_malformed_indexing_status_stays_pending_without_crashing(self):
+        self.assertIsNone(self.compute(indexing_status=[])[0])
+
     def test_journal_q1_computes_a(self):
         self.assertEqual(self.compute(quartile="Q1")[0], "A")
 
