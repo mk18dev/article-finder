@@ -320,8 +320,19 @@ def tier_evidence_valid(work: Work, entry: dict[str, Any]) -> bool:
     if not evidence_item_ok(payload):
         return False
     if work.kind == "journal":
-        source = str(entry.get("quartile_source") or "").strip().upper()
-        domains = {"SJR": ("scimagojr.com",), "JCR": ("jcr.clarivate.com", "clarivate.com")}.get(source, ())
+        checks = entry.get("blacklist_checks") or []
+        has_verified_hit = any(
+            isinstance(item, dict)
+            and str(item.get("status") or "").lower() in {"listed", "blacklisted", "invalid", "revoked"}
+            for item in checks
+        )
+        if has_verified_hit:
+            domains = tuple(domain for values in BLACKLIST_DOMAINS.values() for domain in values)
+        elif entry.get("indexing_status") == "not_indexed":
+            domains = tuple(domain for values in INDEX_DOMAINS.values() for domain in values)
+        else:
+            source = str(entry.get("quartile_source") or "").strip().upper()
+            domains = {"SJR": ("scimagojr.com",), "JCR": ("jcr.clarivate.com", "clarivate.com")}.get(source, ())
     elif work.kind == "conference":
         domains = ("ieeexplore.ieee.org", "dl.acm.org", "link.springer.com", "sciencedirect.com", "dblp.org")
     elif work.kind == "thesis":
@@ -834,7 +845,7 @@ def decide(work: Work, entry: dict[str, Any]) -> dict[str, Any]:
         "url": f"https://doi.org/{work.doi}",
         "doi": work.doi,
         "category": category,
-        "tier": tier_computed or "",
+        "tier": tier_computed if tier_ok is not None else "",
         "tier_declared": tier_declared,
         "tier_computed": tier_computed,
         "tier_reason": tier_reason,
