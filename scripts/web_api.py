@@ -15,7 +15,7 @@ import urllib.error
 import urllib.parse
 from http.server import BaseHTTPRequestHandler
 from datetime import datetime, timezone
-from threading import RLock
+from threading import BoundedSemaphore, RLock
 from pathlib import Path
 from typing import Any
 
@@ -39,6 +39,10 @@ if os.environ.get("VERCEL") == "1":
     http_util.RETRIES = int(os.environ.get("ARTICLE_FINDER_HTTP_RETRIES", "1"))
 
 _DRAFT_LOCK = RLock()
+MAX_CONCURRENT_REQUESTS = 4
+# Per-process resource guard only; it is deliberately not represented as a
+# distributed caller rate limit across serverless instances.
+_REQUEST_SLOTS = BoundedSemaphore(MAX_CONCURRENT_REQUESTS)
 
 APP_VERSION = "1.1.0"
 MAX_BODY_BYTES = 512 * 1024
@@ -524,6 +528,18 @@ class handler(BaseHTTPRequestHandler):
         })
 
     def do_POST(self) -> None:
+        if not _REQUEST_SLOTS.acquire(blocking=False):
+            self._send(503, {
+                "ok": False,
+                "error": "ظرفیت پردازش این نمونه موقتاً تکمیل است؛ کمی بعد دوباره تلاش کن.",
+            })
+            return
+        try:
+            self._do_POST_inner()
+        finally:
+            _REQUEST_SLOTS.release()
+
+    def _do_POST_inner(self) -> None:
         if self.path.split("?", 1)[0].rstrip("/") not in {"", "/", "/index", "/index.py", "/api", "/api/index", "/api/index.py"}:
             self._send(404, {"ok": False, "error": "مسیر API پیدا نشد."})
             return
