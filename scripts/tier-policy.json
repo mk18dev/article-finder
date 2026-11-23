@@ -1,0 +1,12 @@
+{
+  "version": "1.1.0-default",
+  "book_citations": {
+    "high_min": 50,
+    "modest_min": 10
+  },
+  "notes": [
+    "The course slides do not define A/B/C/D thresholds; these are explicit project defaults from references/validation.md.",
+    "Book citation thresholds are configurable heuristics, not universal academic standards.",
+    "Quartile source (SJR or JCR) must be stated; values from different sources are not mixed."
+  ]
+}
