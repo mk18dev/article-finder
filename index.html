@@ -68,6 +68,39 @@
         </button>
       </nav>
 
+      <section class="cli-mode-panel" aria-labelledby="cli-mode-title">
+        <div class="cli-mode-heading">
+          <div>
+            <p class="section-kicker">RESEARCH WORKFLOWS / CLI</p>
+            <h2 id="cli-mode-title">دو گردش‌کار پژوهشی در نسخه CLI</h2>
+          </div>
+          <span class="cli-only-label">CLI ONLY</span>
+        </div>
+        <div class="cli-mode-grid">
+          <article class="cli-mode-card" data-mode-cli="systematic-review">
+            <span class="cli-mode-number">03</span>
+            <div>
+              <h3>مرور نظام‌مند و دامنه‌ای</h3>
+              <p>جست‌وجو، غربالگری، دفتر ثبت تصمیم‌ها، PRISMA و سنتز شواهد.</p>
+              <code>scripts/prisma_review.py</code>
+              <code>scripts/synthesize_literature.py</code>
+            </div>
+            <span class="cli-only-label">فقط CLI</span>
+          </article>
+          <article class="cli-mode-card" data-mode-cli="citation-identity-audit">
+            <span class="cli-mode-number">04</span>
+            <div>
+              <h3>ممیزی هویت و تطبیق ارجاعات</h3>
+              <p>تطبیق DOI و فراداده، سیگنال اصلاح/پس‌گرفتن و Crosswalk APA/IEEE.</p>
+              <code>scripts/verify_citations.py</code>
+              <code>scripts/citation_crosswalk.py</code>
+            </div>
+            <span class="cli-only-label">فقط CLI</span>
+          </article>
+        </div>
+        <p class="cli-mode-note">این دو گردش‌کار در API عمومی اجرا نمی‌شوند. دریافت PDF نیز فقط از مسیر CLI محلی و طبق سیاست دسترسی قانونی انجام می‌شود.</p>
+      </section>
+
       <section class="workspace-grid">
         <section class="panel input-panel" aria-label="ورودی">
           <div class="panel-heading">

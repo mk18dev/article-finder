@@ -1,0 +1,22 @@
+# Phase 7 — API Contract & Web Workspace Acceptance Matrix
+
+**Scope:** the existing Python domain modules remain authoritative. This phase hardens the HTTP adapter and makes all four research modes visible without exposing CLI-only workflows through the public API.
+
+| Gate | Required behavior | Implementation | Regression evidence |
+|---|---|---|---|
+| PH7-01 | GET health and POST action contract are explicit; only discovery, source verification and draft checking are accepted | `scripts/web_api.py`, `api/index.py`, `vercel.json` | `test_health_contract_exposes_four_modes_and_cli_only_boundaries`, `test_unknown_action_and_path_are_rejected`, `test_fetch_pdf_action_is_not_exposed` |
+| PH7-02 | Four source records/candidates maximum; draft ≤180,000 characters; JSON body ≤512 KiB | `MAX_SOURCE_ENTRIES`, discovery limit, `MAX_DRAFT_CHARS`, `MAX_BODY_BYTES` | `test_rejects_duplicate_dois_and_oversized_batches`, `test_discovery_rejects_invalid_query_category_and_limit`, `test_draft_limit_is_enforced_at_180000_characters`, `test_oversized_content_length_is_rejected_before_reading_body` |
+| PH7-03 | Correct request errors: malformed JSON 400, auth 401, oversized body 413, unsupported media type 415, semantic validation 422, internal/provider failures 5xx | `handler.do_POST`, `RequestError` | `test_malformed_json_is_rejected_at_http_boundary`, `test_actual_http_auth_and_origin_guards`, `test_oversized_content_length_is_rejected_before_reading_body`, `test_content_type_must_be_exact_json_media_type`, `test_semantic_validation_uses_422_and_unknown_action_uses_400`, discovery upstream failure test |
+| PH7-04 | Exact same-origin check includes scheme and authority; browser cross-origin POST and OPTIONS preflight receive no CORS grant | `_request_scheme`, `_same_origin`, `do_OPTIONS`, no Access-Control-Allow headers | `test_origin_scheme_must_match_request_scheme`, `test_preflight_never_grants_cross_origin_access`, same-origin/external-origin unit tests |
+| PH7-05 | Production requires `ARTICLE_FINDER_API_KEY` unless explicit public-mode opt-in; key is sent only in request header and is not persisted/logged | `_auth_mode`, `_authorized`, browser in-memory password inputs | `test_vercel_without_key_fails_closed`, `test_vercel_public_mode_requires_explicit_opt_in`, `test_optional_bearer_key_uses_constant_time_comparison`, browser assertion that local/session storage remain empty |
+| PH7-06 | All four modes are visible; only Modes 1–2 are Web/API, Modes 3–4 are explicitly CLI-only; full-text retrieval stays CLI-only | health `modes` metadata; CLI-only cards in `index.html` | `test_health_contract_exposes_four_modes_and_cli_only_boundaries`, browser assertions for both CLI-only cards |
+| PH7-07 | UI presents Pending/Approved/Rejected and displays the evidence note explaining unresolved verdicts | `app.js` result rendering | Browser E2E asserts Pending badge and reviewer-evidence reason text |
+| PH7-08 | Persian RTL, keyboard navigation, labels, focus, contrast, no horizontal overflow, responsive widths, performance budgets | `index.html`, `styles.css`, `app.js`, `tests/browser_smoke.py` | Chromium/Firefox/WebKit E2E; Chromium axe-core WCAG 2.2 AA; 320/390/768/844-landscape/1440 px viewports |
+| PH7-09 | Empty/loading/error/success states use real API responses; test fixtures are confined to E2E and never presented as live data | UI state machine and API integration | Browser E2E checks health, discovery, verification, draft success, 401 error, copy/download; HTTP server tests execute the actual Python API |
+| PH7-10 | CLI and Web/API reuse the same domain modules; no public arbitrary-URL/PDF fetch action | `run_source_discovery`, `run_source_verification`, `run_draft_check`; no `fetch_pdf` import in API adapter | `test_existing_verifier_and_renderer_are_used`, `test_fetch_pdf_action_is_not_exposed`, Phase 6 PH6-09 matrix |
+
+## Deliberate contract boundary
+
+- The API does **not** advertise a `429` rate-limit response because no shared/distributed rate limiter is configured. A process-local counter would not be a reliable Vercel-wide security control. If a rate limit is introduced later, it must use a shared enforcement layer and add explicit `429`/retry tests.
+- Crossref/provider throttling is an upstream service failure, not a caller-specific quota; it is reported as a service-side failure rather than falsely claiming the user exceeded an Article Finder quota.
+- Production Smoke remains a separate Phase 10 release gate. This phase does not deploy, publish a release, or claim Production READY.

@@ -38,6 +38,7 @@ class HTTPAPIBoundaryTests(unittest.TestCase):
         content_length: str | None = "auto",
         origin: str | None = None,
         authorization: str | None = None,
+        method: str = "POST",
     ) -> tuple[int, dict]:
         headers = [
             f"Host: {self.authority}",
@@ -54,7 +55,7 @@ class HTTPAPIBoundaryTests(unittest.TestCase):
         if authorization is not None:
             headers.append(f"Authorization: {authorization}")
         wire = (
-            f"POST {path} HTTP/1.1\r\n"
+            f"{method} {path} HTTP/1.1\r\n"
             + "\r\n".join(headers)
             + "\r\n\r\n"
         ).encode("ascii") + body
@@ -129,6 +130,42 @@ class HTTPAPIBoundaryTests(unittest.TestCase):
         status, body = self.raw_request(b"{}", content_length="10")
         self.assertEqual(status, 400)
         self.assertIn("ناقص", body["error"])
+
+    def test_semantic_validation_uses_422_and_unknown_action_uses_400(self):
+        status, body = self.raw_request(
+            b'{"action":"discover_sources","keyword":"Survey + recommender systems","category":"unknown"}'
+        )
+        self.assertEqual(status, 422)
+        self.assertFalse(body["ok"])
+
+        status, body = self.raw_request(b'{"action":"unknown"}')
+        self.assertEqual(status, 400)
+        self.assertFalse(body["ok"])
+
+    def test_preflight_never_grants_cross_origin_access(self):
+        status, body = self.raw_request(
+            path="/api",
+            method="OPTIONS",
+            origin="https://attacker.invalid",
+        )
+        self.assertEqual(status, 403)
+        self.assertFalse(body["ok"])
+
+        status, body = self.raw_request(
+            path="/api",
+            method="OPTIONS",
+            origin=f"http://{self.authority}",
+        )
+        self.assertEqual(status, 405)
+        self.assertFalse(body["ok"])
+
+    def test_origin_scheme_must_match_request_scheme(self):
+        status, body = self.raw_request(
+            b'{"action":"unknown"}',
+            origin=f"https://{self.authority}",
+        )
+        self.assertEqual(status, 403)
+        self.assertFalse(body["ok"])
 
     def test_unknown_action_and_path_are_rejected(self):
         status, body = self.raw_request(b'{"action":"unknown"}')

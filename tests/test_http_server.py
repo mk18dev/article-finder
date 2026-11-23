@@ -10,9 +10,14 @@ from unittest.mock import patch
 
 from scripts.serve import ArticleFinderHandler, bind_host
 from scripts.web_api import handler as VercelAPIHandler
+from scripts import http_util
 
 
 class ArticleFinderHTTPServerTests(unittest.TestCase):
+    def test_importing_server_does_not_mutate_cli_transport_defaults(self):
+        self.assertEqual(http_util.TIMEOUT, 30)
+        self.assertEqual(http_util.RETRIES, 3)
+
     def test_local_server_binds_loopback_unless_overridden(self):
         with patch.dict("os.environ", {}, clear=True):
             self.assertEqual(bind_host(), "127.0.0.1")

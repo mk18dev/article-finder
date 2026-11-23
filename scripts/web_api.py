@@ -9,6 +9,7 @@ import hmac
 import json
 import os
 import re
+import ssl
 import sys
 import urllib.error
 import urllib.parse
@@ -52,7 +53,7 @@ CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
 
 
 class RequestError(Exception):
-    def __init__(self, message: str, status: int = 400):
+    def __init__(self, message: str, status: int = 422):
         super().__init__(message)
         self.status = status
 
@@ -429,6 +430,14 @@ class handler(BaseHTTPRequestHandler):
         # Avoid logging DOI payloads, draft contents or credentials.
         super().log_message("Article Finder API request")
 
+    def _request_scheme(self) -> str:
+        forwarded = self.headers.get("X-Forwarded-Proto", "").split(",", 1)[0].strip().lower()
+        if forwarded in {"https", "http"}:
+            return forwarded
+        if os.environ.get("VERCEL") == "1":
+            return "https"
+        return "https" if isinstance(getattr(self, "connection", None), ssl.SSLSocket) else "http"
+
     def _same_origin(self) -> bool:
         origin = self.headers.get("Origin")
         if not origin:
@@ -436,7 +445,15 @@ class handler(BaseHTTPRequestHandler):
         try:
             parsed = urllib.parse.urlsplit(origin)
             host = self.headers.get("Host", "")
-            return parsed.scheme in {"https", "http"} and parsed.netloc.lower() == host.lower()
+            return (
+                parsed.scheme.lower() == self._request_scheme()
+                and parsed.netloc.lower() == host.lower()
+                and parsed.username is None
+                and parsed.password is None
+                and parsed.path == ""
+                and not parsed.query
+                and not parsed.fragment
+            )
         except ValueError:
             return False
 
@@ -479,9 +496,30 @@ class handler(BaseHTTPRequestHandler):
             "ok": True,
             "service": "article-finder",
             "version": APP_VERSION,
-            "capabilities": ["source-discovery", "source-verification", "draft-checking"],
+            "capabilities": [
+                "source-discovery",
+                "source-verification",
+                "draft-checking",
+                "systematic-review-cli",
+                "citation-identity-audit-cli",
+                "full-text-retrieval-cli",
+            ],
+            "modes": [
+                {"id": "source-verification", "surface": "web-api"},
+                {"id": "draft-checking", "surface": "web-api"},
+                {"id": "systematic-review", "surface": "cli-only"},
+                {"id": "citation-identity-audit", "surface": "cli-only"},
+            ],
             "auth_mode": self._auth_mode(),
             "auth_configured": bool(os.environ.get("ARTICLE_FINDER_API_KEY")),
+        })
+
+    def do_OPTIONS(self) -> None:
+        # Deliberately send no Access-Control-Allow-* headers.
+        status = 405 if self._same_origin() else 403
+        self._send(status, {
+            "ok": False,
+            "error": "درخواست preflight/CORS پشتیبانی نمی‌شود.",
         })
 
     def do_POST(self) -> None:
@@ -531,7 +569,10 @@ class handler(BaseHTTPRequestHandler):
             elif action == "check_draft":
                 result = run_draft_check(payload)
             else:
-                raise RequestError("action باید discover_sources، verify_sources یا check_draft باشد.")
+                raise RequestError(
+                    "action باید discover_sources، verify_sources یا check_draft باشد.",
+                    400,
+                )
             self._send(200, result)
         except RequestError as exc:
             self._send(exc.status, {"ok": False, "error": str(exc)})

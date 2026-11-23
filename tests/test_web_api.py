@@ -240,6 +240,39 @@ class DraftExecutionTests(unittest.TestCase):
 
 
 class RequestBoundaryTests(unittest.TestCase):
+    def test_health_contract_exposes_four_modes_and_cli_only_boundaries(self):
+        request = object.__new__(api.handler)
+        request.headers = {}
+        request.path = "/api"
+        sent = {}
+        request._send = lambda status, payload: sent.update(status=status, payload=payload)
+        request.do_GET()
+        self.assertEqual(sent["status"], 200)
+        self.assertEqual(
+            {mode["id"]: mode["surface"] for mode in sent["payload"]["modes"]},
+            {
+                "source-verification": "web-api",
+                "draft-checking": "web-api",
+                "systematic-review": "cli-only",
+                "citation-identity-audit": "cli-only",
+            },
+        )
+        self.assertIn("full-text-retrieval-cli", sent["payload"]["capabilities"])
+
+    def test_draft_limit_is_enforced_at_180000_characters(self):
+        with self.assertRaises(api.RequestError) as raised:
+            api.run_draft_check({"draft": "x" * (api.MAX_DRAFT_CHARS + 1), "language": "fa"})
+        self.assertEqual(raised.exception.status, 422)
+
+    def test_same_origin_guard_rejects_scheme_mismatch(self):
+        request = object.__new__(api.handler)
+        request.headers = {
+            "Origin": "https://article-finder.vercel.app",
+            "Host": "article-finder.vercel.app",
+            "X-Forwarded-Proto": "http",
+        }
+        self.assertFalse(request._same_origin())
+
     def test_same_origin_guard_rejects_external_origin(self):
         request = object.__new__(api.handler)
         request.headers = {
@@ -253,6 +286,7 @@ class RequestBoundaryTests(unittest.TestCase):
         request.headers = {
             "Origin": "https://article-finder.vercel.app",
             "Host": "article-finder.vercel.app",
+            "X-Forwarded-Proto": "https",
         }
         self.assertTrue(request._same_origin())
 

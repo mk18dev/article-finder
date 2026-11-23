@@ -12,10 +12,6 @@ from urllib.parse import urlsplit
 
 from scripts.web_api import handler as APIHandler, http_util
 
-# Keep public API requests bounded on a long-running process.
-http_util.TIMEOUT = int(os.environ.get("ARTICLE_FINDER_HTTP_TIMEOUT", "8"))
-http_util.RETRIES = int(os.environ.get("ARTICLE_FINDER_HTTP_RETRIES", "1"))
-
 ROOT = Path(__file__).resolve().parents[1]
 STATIC_FILES = {
     "/": ("index.html", "text/html; charset=utf-8"),
@@ -88,6 +84,13 @@ def main() -> None:
         raise SystemExit("PORT must be an integer") from exc
     if not 1 <= port <= 65535:
         raise SystemExit("PORT must be between 1 and 65535")
+
+    # Apply server-only budgets at startup; importing this module must not
+    # mutate the CLI retrieval policy.
+    http_util.TIMEOUT = int(os.environ.get("ARTICLE_FINDER_HTTP_TIMEOUT", "8"))
+    http_util.RETRIES = int(os.environ.get("ARTICLE_FINDER_HTTP_RETRIES", "1"))
+    if http_util.TIMEOUT < 1 or http_util.RETRIES < 1:
+        raise SystemExit("ARTICLE_FINDER_HTTP_TIMEOUT and ARTICLE_FINDER_HTTP_RETRIES must be positive")
 
     host = bind_host()
     server = ThreadingHTTPServer((host, port), ArticleFinderHandler)

@@ -74,7 +74,7 @@ def main() -> int:
                 "type": "journal",
                 "year": 2024,
                 "tier": "B",
-                "notes": {"fa": "", "en": ""},
+                "notes": {"fa": "علت Pending: شواهد بازبین هنوز ثبت نشده است.", "en": "Pending: reviewer evidence is not recorded yet."},
             },
             "steps": {"S1": True},
             "verdict": "pending",
@@ -273,6 +273,10 @@ def main() -> int:
                 f"api_route_hits={api_route_hits}; api_requests={api_requests}"
             ) from error
         assert page.locator(".mode-tab").count() == 2
+        assert page.locator("[data-mode-cli]").count() == 2
+        assert page.locator('[data-mode-cli="systematic-review"]').is_visible()
+        assert page.locator('[data-mode-cli="citation-identity-audit"]').is_visible()
+        assert page.locator(".cli-mode-panel .cli-only-label").count() >= 3
         assert page.locator("#source-form").is_visible()
         assert_no_horizontal_overflow(page)
         advanced_summary = page.locator(".advanced-block summary")
@@ -308,6 +312,8 @@ def main() -> int:
         page.locator("#source-submit").click()
         page.locator(".source-result").wait_for(state="visible")
         assert page.locator(".source-title").inner_text() == INJECTED_TITLE
+        assert page.locator(".source-notes").is_visible()
+        assert "شواهد بازبین هنوز ثبت نشده" in page.locator(".source-notes").inner_text()
         assert page.locator("#result-items img").count() == 0
         assert page.locator("#results-view").is_visible()
         if browser_name == "chromium":

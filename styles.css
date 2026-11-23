@@ -505,3 +505,78 @@ textarea.input-control { resize: vertical; line-height: 1.8; }
   .discovery-heading { align-items:flex-start; }
   .discovery-actions { align-items:stretch; flex-direction:column; }
 }
+
+
+/* Explicitly distinguish CLI-only research workflows from the two web/API modes. */
+.cli-mode-panel {
+  margin: 14px 0 20px;
+  padding: 16px 18px;
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: 14px;
+  background: rgba(255,255,255,.72);
+}
+.cli-mode-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.cli-mode-heading h2 { margin: 0; font-size: 13px; }
+.cli-only-label {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #d8d3ff;
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: #5547bf;
+  background: #f5f3ff;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .4px;
+}
+.cli-mode-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+.cli-mode-card {
+  display: grid;
+  grid-template-columns: 28px minmax(0,1fr) auto;
+  align-items: start;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #eaedf2;
+  border-radius: 10px;
+  background: #fff;
+}
+.cli-mode-number {
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  border-radius: 8px;
+  background: #f0efff;
+  color: #5949c5;
+  font: 800 9px "Segoe UI",sans-serif;
+}
+.cli-mode-card h3 { margin: 0 0 4px; font-size: 10px; line-height: 1.7; }
+.cli-mode-card p { margin: 0 0 8px; color: #5f6b7c; font-size: 9px; line-height: 1.8; }
+.cli-mode-card code {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 4px;
+  direction: ltr;
+  text-align: left;
+  overflow-wrap: anywhere;
+  color: #5949c5;
+  font: 8px Consolas,monospace;
+}
+.cli-mode-note { margin: 10px 0 0; color: #5f6b7c; font-size: 8px; line-height: 1.8; }
+@media (max-width: 720px) {
+  .cli-mode-panel { padding: 13px; }
+  .cli-mode-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 420px) {
+  .cli-mode-card { grid-template-columns: 25px minmax(0,1fr); }
+  .cli-mode-card > .cli-only-label { grid-column: 2; justify-self: start; }
+}

@@ -1,13 +1,13 @@
 """End-to-end orchestration tests for PDF retrieval, without network access."""
 from __future__ import annotations
 
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
-import sys
 sys.path.insert(0, str(SCRIPTS))
 import fetch_pdf as fp
 
@@ -19,11 +19,15 @@ SECONDARY_URL = "https://mirror.example/paper.pdf"
 
 def openalex_record(*urls: str) -> dict:
     return {
-        "best_oa_location": {"pdf_url": urls[0]} if urls else {},
-        "locations": [{"pdf_url": value} for value in urls[1:]],
+        "best_oa_location": {"is_oa": True, "pdf_url": urls[0]} if urls else {},
+        "locations": [{"is_oa": True, "pdf_url": value} for value in urls[1:]],
         "open_access": {},
         "ids": {},
     }
+
+
+def fetched(body: bytes, url: str, content_type: str = "application/pdf") -> fp.FetchResponse:
+    return fp.FetchResponse(body=body, final_url=url, content_type=content_type)
 
 
 class DownloadOneIntegrationTests(unittest.TestCase):
@@ -42,8 +46,8 @@ class DownloadOneIntegrationTests(unittest.TestCase):
     def test_download_one_fetches_valid_pdf_and_persists_it(self):
         with (
             patch.object(fp, "fetch_json", return_value=openalex_record(PRIMARY_URL)),
-            patch.object(fp, "external_candidates", return_value=[]),
-            patch.object(fp, "fetch_bytes", return_value=PDF) as fetch,
+            patch.object(fp, "external_candidate_records", return_value=[]),
+            patch.object(fp, "fetch_response", return_value=fetched(PDF, PRIMARY_URL)) as fetch,
         ):
             result = fp.download_one(1, self.source, self.out, dry_run=False)
 
@@ -60,8 +64,10 @@ class DownloadOneIntegrationTests(unittest.TestCase):
                 fp, "fetch_json",
                 return_value=openalex_record(PRIMARY_URL, SECONDARY_URL),
             ),
-            patch.object(fp, "external_candidates", return_value=[]),
-            patch.object(fp, "fetch_bytes", side_effect=[OSError("blocked"), PDF]) as fetch,
+            patch.object(fp, "external_candidate_records", return_value=[]),
+            patch.object(fp, "fetch_response", side_effect=[
+                OSError("blocked"), fetched(PDF, SECONDARY_URL)
+            ]) as fetch,
         ):
             result = fp.download_one(1, self.source, self.out, dry_run=False)
 
@@ -74,8 +80,11 @@ class DownloadOneIntegrationTests(unittest.TestCase):
         html = b'<html><a href="/files/final.pdf">PDF</a></html>'
         with (
             patch.object(fp, "fetch_json", return_value=openalex_record(PRIMARY_URL)),
-            patch.object(fp, "external_candidates", return_value=[]),
-            patch.object(fp, "fetch_bytes", side_effect=[html, PDF]) as fetch,
+            patch.object(fp, "external_candidate_records", return_value=[]),
+            patch.object(fp, "fetch_response", side_effect=[
+                fetched(html, PRIMARY_URL, "text/html"),
+                fetched(PDF, "https://open.example/files/final.pdf"),
+            ]) as fetch,
         ):
             result = fp.download_one(1, self.source, self.out, dry_run=False)
 
@@ -88,8 +97,8 @@ class DownloadOneIntegrationTests(unittest.TestCase):
         html = b"<html><body>Access denied</body></html>" + b" " * fp.MIN_PDF_BYTES
         with (
             patch.object(fp, "fetch_json", return_value=openalex_record(PRIMARY_URL)),
-            patch.object(fp, "external_candidates", return_value=[]),
-            patch.object(fp, "fetch_bytes", return_value=html),
+            patch.object(fp, "external_candidate_records", return_value=[]),
+            patch.object(fp, "fetch_response", return_value=fetched(html, PRIMARY_URL, "text/html")),
         ):
             result = fp.download_one(1, self.source, self.out, dry_run=False)
 
@@ -99,7 +108,7 @@ class DownloadOneIntegrationTests(unittest.TestCase):
     def test_lookup_failure_is_reported_without_attempting_download(self):
         with (
             patch.object(fp, "fetch_json", side_effect=TimeoutError("provider timeout")),
-            patch.object(fp, "fetch_bytes") as fetch,
+            patch.object(fp, "fetch_response") as fetch,
         ):
             result = fp.download_one(1, self.source, self.out, dry_run=False)
 
@@ -117,8 +126,8 @@ class DownloadOneIntegrationTests(unittest.TestCase):
     def test_no_registered_open_copy_returns_paywall_routes(self):
         with (
             patch.object(fp, "fetch_json", return_value=openalex_record()),
-            patch.object(fp, "external_candidates", return_value=[]),
-            patch.object(fp, "fetch_bytes") as fetch,
+            patch.object(fp, "external_candidate_records", return_value=[]),
+            patch.object(fp, "fetch_response") as fetch,
         ):
             result = fp.download_one(1, self.source, self.out, dry_run=False)
 
@@ -129,8 +138,8 @@ class DownloadOneIntegrationTests(unittest.TestCase):
     def test_dry_run_returns_candidates_without_downloading(self):
         with (
             patch.object(fp, "fetch_json", return_value=openalex_record(PRIMARY_URL)),
-            patch.object(fp, "external_candidates", return_value=[]),
-            patch.object(fp, "fetch_bytes") as fetch,
+            patch.object(fp, "external_candidate_records", return_value=[]),
+            patch.object(fp, "fetch_response") as fetch,
         ):
             result = fp.download_one(1, self.source, self.out, dry_run=True)
 
@@ -142,8 +151,13 @@ class DownloadOneIntegrationTests(unittest.TestCase):
     def test_exhausted_bad_candidates_return_no_pdf(self):
         with (
             patch.object(fp, "fetch_json", return_value=openalex_record(PRIMARY_URL)),
-            patch.object(fp, "external_candidates", return_value=[SECONDARY_URL]),
-            patch.object(fp, "fetch_bytes", side_effect=[OSError("offline"), b"not a pdf"]),
+            patch.object(
+                fp, "external_candidate_records",
+                return_value=[("Semantic Scholar", SECONDARY_URL)],
+            ),
+            patch.object(fp, "fetch_response", side_effect=[
+                OSError("offline"), fetched(b"not a pdf", SECONDARY_URL, "text/plain")
+            ]),
         ):
             result = fp.download_one(1, self.source, self.out, dry_run=False)
 

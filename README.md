@@ -183,7 +183,7 @@ Not affiliated with, or endorsed by, the deck's author or Islamic Azad Universit
 
 ## Web app and API
 
-The Persian-first web interface currently exposes source discovery, 11-gate source verification and draft checking through the same Python modules as the CLI. PRISMA, thematic synthesis and citation identity audit are available through the bundled specialist workflows and CLI tools.
+The Persian-first web interface exposes source discovery, 11-gate source verification and draft checking through the same Python modules as the CLI. The workspace visibly lists all four research modes: source verification and draft checking are available in Web/API; systematic/scoping review and citation identity audit are explicitly marked CLI-only. Full-text PDF retrieval also remains a local CLI-only workflow.
 
 - `/` serves the responsive web workspace.
 - `GET /api` reports API health and supported actions.
