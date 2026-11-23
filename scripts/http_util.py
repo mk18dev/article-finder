@@ -48,8 +48,12 @@ def _resolve_public_addresses(host: str) -> tuple[str, ...]:
             raise ValueError("destination resolved to an invalid IP address") from exc
         if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped:
             address = address.ipv4_mapped
-        if not address.is_global:
-            raise ValueError(f"non-public destination IP is blocked: {address}")
+        # ``is_global`` alone is not a sufficient egress policy: some
+        # special-purpose IPv6 ranges (including the well-known NAT64
+        # translation prefix) and multicast addresses can still report
+        # ``is_global=True``. Reject those classes explicitly as well.
+        if not address.is_global or address.is_reserved or address.is_multicast:
+            raise ValueError(f"non-public or special-purpose destination IP is blocked: {address}")
         validated.append(str(address))
     return tuple(dict.fromkeys(validated))
 
