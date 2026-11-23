@@ -30,6 +30,14 @@ class SkillPackageTests(unittest.TestCase):
         self.assertIn("article-finder/VERSION", names)
         self.assertIn("article-finder/requirements.txt", names)
         self.assertIn("article-finder/SKILL.md", names)
+        for required in (
+            "article-finder/CHANGELOG.md",
+            "article-finder/index.html",
+            "article-finder/app.js",
+            "article-finder/styles.css",
+            "article-finder/.github/workflows/tests.yml",
+        ):
+            self.assertIn(required, names)
         expected = {
             "systematic-search", "openalex-retrieval", "source-verification",
             "prisma-screening", "literature-synthesis", "citation-verification",

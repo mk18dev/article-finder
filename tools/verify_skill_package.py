@@ -12,6 +12,11 @@ REQUIRED = {
     "article-finder/SKILL.md",
     "article-finder/VERSION",
     "article-finder/README.md",
+    "article-finder/CHANGELOG.md",
+    "article-finder/index.html",
+    "article-finder/app.js",
+    "article-finder/styles.css",
+    "article-finder/.github/workflows/tests.yml",
     "article-finder/requirements.txt",
 }
 FORBIDDEN_SUFFIXES = {".pdf", ".pyc", ".skill"}
@@ -34,6 +39,8 @@ def validate(archive_path: Path) -> list[str]:
                 raise ValueError(f"Forbidden file type in archive: {name!r}")
             if any(part in {"__pycache__", ".git", "dist", "tools"} for part in path.parts):
                 raise ValueError(f"Build-only path in archive: {name!r}")
+            if ".github" in path.parts and name != "article-finder/.github/workflows/tests.yml":
+                raise ValueError(f"Unexpected workflow metadata in archive: {name!r}")
             mode = item.external_attr >> 16
             if not stat.S_ISREG(mode) or stat.S_ISLNK(mode):
                 raise ValueError(f"Non-regular archive entry: {name!r}")
