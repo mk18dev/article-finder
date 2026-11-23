@@ -579,6 +579,14 @@ class TierTests(unittest.TestCase):
         self.assertEqual(article["tier"], "C")
         self.assertIs(article["tier_verified"], True)
 
+    def test_malformed_specialization_cannot_approve_source_tier(self) -> None:
+        for value in ("false", "true", 0, 1, [], {}):
+            with self.subTest(value=value):
+                article = decide(entry={**ENTRY, "specialized": value, "tier": "A"})
+                self.assertEqual(article["tier"], "")
+                self.assertIsNone(article["tier_verified"])
+                self.assertIsNone(article["tier_computed"])
+
     def test_verified_blacklist_hit_computes_tier_d(self) -> None:
         checks = [dict(item) for item in ENTRY["blacklist_checks"]]
         checks[0]["status"] = "listed"
