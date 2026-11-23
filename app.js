@@ -485,6 +485,7 @@
       const active = button.dataset.mode === mode;
       button.classList.toggle("is-active", active);
       button.setAttribute("aria-selected", String(active));
+      button.tabIndex = active ? 0 : -1;
     });
     elements.sourceForm.classList.toggle("is-hidden", mode !== "sources");
     elements.draftForm.classList.toggle("is-hidden", mode !== "draft");
@@ -526,8 +527,22 @@
     }
   });
 
-  $$(".mode-tab").forEach(button => {
+  const modeTabs = $(".mode-tab");
+  modeTabs.forEach(button => {
     button.addEventListener("click", () => setMode(button.dataset.mode));
+    button.addEventListener("keydown", event => {
+      const direction = getComputedStyle(button.closest(".mode-tabs")).direction;
+      let nextIndex = modeTabs.indexOf(button);
+      if (event.key === "Home") nextIndex = 0;
+      else if (event.key === "End") nextIndex = modeTabs.length - 1;
+      else if (event.key === "ArrowRight") nextIndex += direction === "rtl" ? -1 : 1;
+      else if (event.key === "ArrowLeft") nextIndex += direction === "rtl" ? 1 : -1;
+      else return;
+      event.preventDefault();
+      nextIndex = (nextIndex + modeTabs.length) % modeTabs.length;
+      modeTabs[nextIndex].focus();
+      setMode(modeTabs[nextIndex].dataset.mode);
+    });
   });
 
   $("#dismiss-error").addEventListener("click", showEmpty);
