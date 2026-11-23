@@ -33,6 +33,26 @@ _NON_GLOBAL_SPECIAL_NETWORKS = (ipaddress.ip_network("2001:20::/28"),)
 _UA = f"article-finder/1.1 (mailto:{MAILTO})" if MAILTO else "article-finder/1.1"
 
 
+def redact_url(url: str) -> str:
+    """Redact credential-like query values before URLs enter reports or logs."""
+    try:
+        parsed = urllib.parse.urlsplit(str(url))
+        sensitive = {
+            "access_token", "api_key", "apikey", "auth", "authorization",
+            "credential", "email", "key", "password", "secret", "signature",
+            "sig", "token", "x-amz-credential", "x-amz-signature",
+            "x-goog-signature",
+        }
+        query = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
+        safe_query = urllib.parse.urlencode([
+            (name, "[REDACTED]" if name.casefold() in sensitive else value)
+            for name, value in query
+        ])
+        return urllib.parse.urlunsplit(parsed._replace(query=safe_query, fragment=""))
+    except (TypeError, ValueError):
+        return "[invalid URL]"
+
+
 def _resolve_public_addresses(host: str) -> tuple[str, ...]:
     try:
         infos = socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
