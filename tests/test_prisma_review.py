@@ -145,6 +145,15 @@ class PrismaReviewTests(unittest.TestCase):
         self.assertEqual(normalize_doi("https://doi.org/10.1234/ABC"), "10.1234/abc")
         self.assertEqual(normalize_doi("doi: 10.1234/ABC"), "10.1234/abc")
 
+    def test_malformed_dois_do_not_become_deduplication_keys(self):
+        self.assertEqual(normalize_doi("not-a-doi"), "")
+        unique, duplicates = deduplicate_records([
+            {"record_id": "a", "doi": "not-a-doi", "title": "Paper A"},
+            {"record_id": "b", "doi": "not-a-doi", "title": "Paper B"},
+        ])
+        self.assertEqual(len(unique), 2)
+        self.assertEqual(duplicates, [])
+
     def test_title_normalization(self):
         self.assertEqual(normalize_title("A Study: Recommender-Systems!"), "a study recommender systems")
 
