@@ -298,6 +298,11 @@ class IdentifierTests(unittest.TestCase):
         entry = {**ENTRY, "main_book": True, "book_evidence": evidence("ISBN-10 checked")}
         self.assertIs(decide(book, entry)["steps"]["S7"], True)
 
+    def test_book_isbn10_lowercase_x_check_digit_is_normalized(self) -> None:
+        book = work(kind="book", issns=[], isbns=["155404295x"])
+        entry = {**ENTRY, "main_book": True, "book_evidence": evidence("ISBN-10 lowercase x normalized")}
+        self.assertIs(decide(book, entry)["steps"]["S7"], True)
+
     def test_book_invalid_isbn_checksum_is_rejected_by_source_verification(self) -> None:
         book = work(kind="book", issns=[], isbns=["9780262033849"])
         entry = {**ENTRY, "main_book": True, "book_evidence": evidence("ISBN checksum checked")}
