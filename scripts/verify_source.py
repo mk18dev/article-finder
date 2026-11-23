@@ -25,6 +25,7 @@ sys.path.insert(0, str(SCRIPT_DIR))
 
 from check_ids import isbn10_valid, isbn13_valid, issn_valid
 from http_util import fetch_json
+from tier_policy import compute_tier
 
 RECENCY_YEARS = 5
 
@@ -40,6 +41,7 @@ INDEX_DOMAINS: dict[str, tuple[str, ...]] = {
     "web of science": ("mjl.clarivate.com", "webofscience.com"),
     "wos": ("mjl.clarivate.com", "webofscience.com"),
     "isi master journal list": ("mjl.clarivate.com",),
+    "esci": ("mjl.clarivate.com", "webofscience.com"),
     "isc": ("isc.gov.ir",),
     "dblp": ("dblp.org",),
     "doaj": ("doaj.org",),
