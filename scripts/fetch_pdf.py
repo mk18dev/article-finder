@@ -320,7 +320,7 @@ def download_one(index: int, source: Source, out: Path, dry_run: bool) -> Result
 
         nested = pdf_links(response.body, response.final_url)
         attempts.append(RetrievalAttempt(
-            provider, url, response.final_url, retrieved_at_utc(),
+            provider, http_util.redact_url(url), http_util.redact_url(response.final_url), retrieved_at_utc(),
             "html-landing-page" if nested else "not-pdf",
             f"{len(nested)} PDF link(s); content-type={response.content_type or 'unknown'}",
         ))
@@ -341,7 +341,7 @@ def download_one(index: int, source: Source, out: Path, dry_run: bool) -> Result
                 saved.attempts = attempts
                 return saved
             attempts.append(RetrievalAttempt(
-                provider, link, inner.final_url, retrieved_at_utc(), "not-pdf",
+                provider, http_util.redact_url(link), http_util.redact_url(inner.final_url), retrieved_at_utc(), "not-pdf",
                 f"content-type={inner.content_type or 'unknown'}",
             ))
         failures.append(f"no PDF @ {http_util.redact_url(url)[:60]}" + (f" ({len(nested)} link(s) inside)" if nested else ""))
