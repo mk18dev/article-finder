@@ -14,6 +14,7 @@ import unicodedata
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 REVIEW_TYPES = {"systematic", "scoping"}
 DECISIONS = {"include", "exclude", "pending"}
@@ -27,6 +28,34 @@ REQUIRED_COUNTS = (
 
 def _nonempty(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
+
+
+def _valid_https_url(value: Any) -> bool:
+    if not _nonempty(value):
+        return False
+    try:
+        parsed = urlsplit(value.strip())
+        port = parsed.port
+    except ValueError:
+        return False
+    return (
+        parsed.scheme.lower() == "https"
+        and bool(parsed.hostname)
+        and not any(char.isspace() for char in parsed.hostname)
+        and parsed.username is None
+        and parsed.password is None
+        and port in (None, 443)
+    )
+
+
+def _valid_iso_date(value: Any) -> bool:
+    if not isinstance(value, str) or not re.fullmatch(r"\\d{4}-\\d{2}-\\d{2}", value):
+        return False
+    try:
+        date.fromisoformat(value)
+        return True
+    except ValueError:
+        return False
 
 
 def normalize_doi(value: Any) -> str:
@@ -149,12 +178,9 @@ def validate_protocol(review: dict[str, Any]) -> list[str]:
             errors.append(f"{prefix}.source_type must be database or register")
         if item.get("status") == "error":
             errors.append(f"{prefix} is marked failed and cannot count as a completed search")
-        search_url = str(item.get("search_url") or "")
-        if search_url and not search_url.startswith("https://"):
-            errors.append(f"{prefix}.search_url must use HTTPS")
-        try:
-            date.fromisoformat(str(item.get("date_run", "")))
-        except ValueError:
+        if item.get("search_url") and not _valid_https_url(item.get("search_url")):
+            errors.append(f"{prefix}.search_url must be a valid HTTPS URL with a host and no credentials")
+        if not _valid_iso_date(item.get("date_run")):
             errors.append(f"{prefix}.date_run must be YYYY-MM-DD")
         hits = item.get("hits")
         if isinstance(hits, bool) or not isinstance(hits, int) or hits < 0:
@@ -175,11 +201,9 @@ def validate_protocol(review: dict[str, Any]) -> list[str]:
                     errors.append(f"{prefix}.{field} is required")
             if item.get("status") == "error":
                 errors.append(f"{prefix} is marked failed and cannot count as completed")
-            if item.get("search_url") and not str(item["search_url"]).startswith("https://"):
-                errors.append(f"{prefix}.search_url must use HTTPS")
-            try:
-                date.fromisoformat(str(item.get("date_run", "")))
-            except ValueError:
+            if item.get("search_url") and not _valid_https_url(item.get("search_url")):
+                errors.append(f"{prefix}.search_url must be a valid HTTPS URL with a host and no credentials")
+            if not _valid_iso_date(item.get("date_run")):
                 errors.append(f"{prefix}.date_run must be YYYY-MM-DD")
             hits = item.get("hits")
             if isinstance(hits, bool) or not isinstance(hits, int) or hits < 0:
@@ -470,6 +494,23 @@ def build_report(review: dict[str, Any]) -> str:
     lines.extend(["", "Counts below are derived from raw retrieved records and reviewer-attributed screening decisions; supplied totals are never trusted as the source of truth.", "", "## PRISMA counts", "", "| Stage | n |", "|---|---:|"])
     for key, value in counts.items():
         lines.append(f"| {key.replace('_', ' ')} | {value} |")
+    _, duplicate_records = _screened_records(review)
+    lines.extend(["", "## Duplicate-resolution ledger", ""])
+    if not duplicate_records:
+        lines.append("No duplicate records were identified by the configured exact-key rules.")
+    else:
+        lines.extend(["| Raw record | Canonical record | Match key | Metadata conflicts |",
+                      "|---|---|---|---|"])
+        for duplicate in duplicate_records:
+            conflicts = json.dumps(duplicate.get("metadata_conflicts", []), ensure_ascii=False, sort_keys=True)
+            def safe(value: Any) -> str:
+                return str(value or "").replace("|", "\\|").replace("\\n", " ")
+            lines.append("| " + " | ".join((
+                safe(duplicate.get("record_id")),
+                safe(duplicate.get("duplicate_of")),
+                safe(f"{duplicate.get('key_type')}: {duplicate.get('key')}"),
+                safe(conflicts),
+            )) + " |")
     lines.extend(["", "## Flow diagram", "", "```mermaid", render_prisma_flow(counts), "```", ""])
     lines.append("## Eligibility criteria")
     lines.extend(["", "### Inclusion"])
