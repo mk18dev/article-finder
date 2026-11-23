@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SKILL = "article-finder"
-INCLUDE = ("SKILL.md", "VERSION", "README.md", "LICENSE", "NOTICE", "CHANGELOG.md", "index.html", "app.js", "styles.css", ".github/workflows/tests.yml", "requirements.txt", "references", "scripts", "skills", "tests", "examples")
+INCLUDE = ("SKILL.md", "VERSION", "README.md", "LICENSE", "NOTICE", "CHANGELOG.md", "index.html", "app.js", "styles.css", ".github/workflows/tests.yml", "vercel.json", "requirements.txt", "api", "references", "scripts", "skills", "tests", "examples")
 EXCLUDE_DIRS = {"__pycache__", "dist", ".git", ".github", "tools", "pdfs"}
 EXCLUDE_FILES = {"test_pack_skill.py"}
 EXCLUDE_SUFFIXES = {".pyc", ".pdf", ".skill"}

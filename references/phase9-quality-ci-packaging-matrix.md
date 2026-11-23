@@ -12,7 +12,7 @@
 | PH9-05 | Static/security | Pinned Ruff, Bandit, pip-audit and Gitleaks; SBOM and license inventory generated |
 | PH9-06 | Artifact provenance | Test/coverage, browser, security and package artifacts are retained for 30 days and named with the exact commit SHA (Python/browser matrix dimension where relevant) |
 | PH9-07 | Deterministic packaging | Two clean builds in the same pinned Python 3.12 environment must be byte-for-byte identical |
-| PH9-08 | Archive integrity | Includes runtime UI assets and release metadata needed by the packaged test suite; unique relative paths only; regular files only; normalized permissions; no symlinks, traversal, PDFs, bytecode, unrelated workflow files, build output or build tooling |
+| PH9-08 | Archive integrity | Includes runtime UI assets, Vercel configuration/API entrypoint and release metadata needed by the packaged test suite; unique relative paths only; regular files only; normalized permissions; no symlinks, traversal, PDFs, bytecode, unrelated workflow files, build output or build tooling |
 | PH9-09 | Consumer installation | Archive is validated and extracted into a clean consumer skills directory; the installed copy is compiled and its packaged test suite is executed |
 | PH9-10 | Workflow safety | Push-to-main CI required; Production Smoke remains manual, key-protected and separate; no continue-on-error or hidden required-test skips |
 | PH9-11 | SHA-bound acceptance | All required jobs and artifacts identify the same immutable commit SHA; failed or cancelled runs do not count as acceptance |
@@ -24,6 +24,6 @@ The master plan requires an enforced coverage threshold but does not set its num
 ## Known limits
 
 - The workflow's normal test suite uses mocked providers and local loopback HTTP fixtures. Live provider availability/access policy is not tested by this suite.
-- The distributable includes index.html, app.js, styles.css, CHANGELOG.md and the single version-consistency workflow file required by the shipped HTTP/version tests; unrelated .github content and build tooling remain excluded.
+- The distributable includes index.html, app.js, styles.css, vercel.json, api/index.py, CHANGELOG.md and the single version-consistency workflow file required by the shipped HTTP/version tests; unrelated .github content and build tooling remain excluded.
 - Production Smoke is deliberately skipped on push events and is not a Phase 9 blocker; it remains a manual Phase 10 post-deployment gate.
 - This workflow does not configure branch protection/rulesets. Repository policy changes are outside the current phase and require separate authorization.

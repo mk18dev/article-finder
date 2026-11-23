@@ -36,6 +36,8 @@ class SkillPackageTests(unittest.TestCase):
             "article-finder/app.js",
             "article-finder/styles.css",
             "article-finder/.github/workflows/tests.yml",
+            "article-finder/vercel.json",
+            "article-finder/api/index.py",
         ):
             self.assertIn(required, names)
         expected = {

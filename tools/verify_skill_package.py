@@ -17,6 +17,8 @@ REQUIRED = {
     "article-finder/app.js",
     "article-finder/styles.css",
     "article-finder/.github/workflows/tests.yml",
+    "article-finder/vercel.json",
+    "article-finder/api/index.py",
     "article-finder/requirements.txt",
 }
 FORBIDDEN_SUFFIXES = {".pdf", ".pyc", ".skill"}
