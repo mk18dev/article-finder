@@ -115,39 +115,39 @@ class DraftRuleAcceptanceMatrixTests(unittest.TestCase):
 
     def test_each_automatic_rule_has_positive_negative_and_boundary_cases(self) -> None:
         cases = {
-            "T1": (self._words(8), self._words(7), self._words(15)),
-            "T5": ("Research title", "Research title.", "Research title。"),
-            "A1": (self._words(200), self._words(199), self._words(250)),
-            "A10": ("One paragraph.", "First paragraph.\\n\\nSecond paragraph.", "First line.\\nSecond line."),
-            "A11": ("Plain abstract text.", "(Smith, 2024)", "شکل 1"),
-            "K1": ("a,b,c,d,e,f", "a,b,c,d,e", "a,b,c,d,e,f,g,h"),
-            "K3": ("Data Mining, AI", "data mining, ai", "هوش مصنوعی"),
-            "F1": ("Department of Computing", "", "   "),
-            "F2": ("دانشگاه آزاد Islamic Azad", "Islamic Azad", "دانشگاه ۱۲۳"),
-            "I1": (self._words(500), self._words(499), self._words(700)),
-            "B1": (self._words(1000), self._words(999), self._words(1500)),
-            "B7": ("Models are effective.", "Models and methods.", "Candy is sweet."),
-            "M1": (self._words(500), self._words(499), self._words(1000)),
-            "M8": ("The population is described in prose.", "- adults\\n- students", "1) adults\\n2) students"),
-            "R1": (self._words(1000), self._words(999), self._words(1500)),
-            "R4": (self._tables(1), "No table is included.", "Table 1 is mentioned but not rendered."),
-            "R5": (self._tables(3), self._tables(2), self._tables(5)),
-            "R6": ("![one](one.png)", "No figure.", "![one](one.png)\\n\\n![two](two.png)"),
-            "C1": (self._words(1000), self._words(999), self._words(1500)),
-            "C2": ("A concise conclusion.", "| value |\\n|---|\\n| 1 |", "(Smith, 2024)"),
-            "X1": ("Smith, J. (2024). A paper.", "", "   "),
+            "T1": (self._words(8), self._words(7), self._words(15), True),
+            "T5": ("Research title", "Research title.", "Research title。", False),
+            "A1": (self._words(200), self._words(199), self._words(250), True),
+            "A10": ("One paragraph.", "First paragraph.\\n\\nSecond paragraph.", "First line.\\nSecond line.", True),
+            "A11": ("Plain abstract text.", "(Smith, 2024)", "شکل 1", False),
+            "K1": ("a,b,c,d,e,f", "a,b,c,d,e", "a,b,c,d,e,f,g,h", True),
+            "K3": ("Data Mining, AI", "data mining, ai", "هوش مصنوعی", True),
+            "F1": ("Department of Computing", "", "   ", False),
+            "F2": ("دانشگاه آزاد Islamic Azad", "Islamic Azad", "دانشگاه ۱۲۳", False),
+            "I1": (self._words(500), self._words(499), self._words(700), True),
+            "B1": (self._words(1000), self._words(999), self._words(1500), True),
+            "B7": ("Models are effective.", "Models and methods.", "Candy is sweet.", True),
+            "M1": (self._words(500), self._words(499), self._words(1000), True),
+            "M8": ("The population is described in prose.", "- adults\\n- students", "1) adults\\n2) students", False),
+            "R1": (self._words(1000), self._words(999), self._words(1500), True),
+            "R4": (self._tables(1), "No table is included.", "Table 1 is mentioned but not rendered.", False),
+            "R5": (self._tables(3), self._tables(2), self._tables(5), True),
+            "R6": ("![one](one.png)", "No figure.", "![one](one.png)\\n\\n![two](two.png)", True),
+            "C1": (self._words(1000), self._words(999), self._words(1500), True),
+            "C2": ("A concise conclusion.", "| value |\\n|---|\\n| 1 |", "(Smith, 2024)", False),
+            "X1": ("Smith, J. (2024). A paper.", "", "   ", False),
         }
         automatic_ids = {rule[0] for rule in cd.RULES if rule[2] == "auto"}
         self.assertEqual(set(cases), automatic_ids)
         rule_map = {rule[0]: rule for rule in cd.RULES}
-        for rule_id, (positive, negative, boundary) in cases.items():
+        for rule_id, (positive, negative, boundary, boundary_expected) in cases.items():
             _rid, section, _kind, fn, _en, _fa = rule_map[rule_id]
             with self.subTest(rule=rule_id, case="positive"):
                 self.assertIs(fn(positive, self.sections)[0], True)
             with self.subTest(rule=rule_id, case="negative"):
                 self.assertIs(fn(negative, self.sections)[0], False)
             with self.subTest(rule=rule_id, case="boundary"):
-                self.assertIsInstance(fn(boundary, self.sections)[0], bool)
+                self.assertIs(fn(boundary, self.sections)[0], boundary_expected)
 
     def test_hint_rules_produce_reviewable_details_without_auto_approval(self) -> None:
         from datetime import date
