@@ -11,6 +11,7 @@ import argparse
 import json
 import re
 import sys
+import unicodedata
 import urllib.parse
 from difflib import SequenceMatcher
 from pathlib import Path
@@ -56,7 +57,11 @@ def normalize_doi(value: Any) -> str:
     return raw
 
 def normalize_text(value: Any) -> str:
-    return " ".join(re.findall(r"[\w]+", str(value or "").casefold(), flags=re.UNICODE))
+    text = unicodedata.normalize("NFKC", str(value or ""))
+    text = text.translate(str.maketrans({"ي": "ی", "ى": "ی", "ك": "ک", "ـ": ""}))
+    text = text.replace("\u200c", "").replace("\u200f", "").replace("\u200e", "")
+    return " ".join(re.findall(r"[\w]+", text.casefold(), flags=re.UNICODE))
+
 
 
 def title_similarity(expected: str, actual: str) -> float:
@@ -92,6 +97,7 @@ def update_status(message: dict[str, Any]) -> tuple[str, list[dict[str, str]]]:
                 "type": kind,
                 "doi": normalize_doi(item.get("DOI")),
                 "label": str(item.get("label") or ""),
+                "url": ("https://doi.org/" + normalize_doi(item.get("DOI"))) if item.get("DOI") else "",
             })
     relation = message.get("relation") or {}
     if isinstance(relation, dict):
@@ -107,6 +113,7 @@ def update_status(message: dict[str, Any]) -> tuple[str, list[dict[str, str]]]:
                         "type": update_type.strip(),
                         "doi": normalize_doi(item.get("id")),
                         "label": str(item.get("asserted-by") or ""),
+                        "url": ("https://doi.org/" + normalize_doi(item.get("id"))) if item.get("id") else "",
                     })
     retraction_terms = ("retract", "withdraw", "expression_of_concern")
     correction_terms = ("correct", "errat", "corrigendum")
@@ -126,6 +133,11 @@ def verify_metadata(citation: dict[str, Any], message: dict[str, Any]) -> dict[s
     actual_year = publication_year(message)
     expected_year = citation.get("year")
     actual_author = first_author_family(message.get("author"))
+    containers = message.get("container-title") or []
+    actual_venue = str(containers[0]) if containers else ""
+    actual_publisher = str(message.get("publisher") or "")
+    expected_venue = str(citation.get("venue") or citation.get("journal") or citation.get("container_title") or "").strip()
+    expected_publisher = str(citation.get("publisher") or "").strip()
     expected_author_raw = str(citation.get("first_author") or "").strip()
     expected_author_raw = expected_author_raw.split(",", 1)[0] if "," in expected_author_raw else expected_author_raw
     expected_author = normalize_text(expected_author_raw)
@@ -140,6 +152,12 @@ def verify_metadata(citation: dict[str, Any], message: dict[str, Any]) -> dict[s
         mismatches.append(f"publication year mismatch: expected {expected_year}, Crossref reports {actual_year}")
     if expected_author and actual_author and not (expected_author == actual_author or expected_author.endswith(" " + actual_author) or expected_author.startswith(actual_author + " ")):
         mismatches.append("first-author family name mismatch")
+    venue_similarity = title_similarity(expected_venue, actual_venue) if expected_venue and actual_venue else 0.0
+    publisher_similarity = title_similarity(expected_publisher, actual_publisher) if expected_publisher and actual_publisher else 0.0
+    if expected_venue and actual_venue and venue_similarity < 0.85:
+        mismatches.append(f"venue mismatch: expected {expected_venue!r}, Crossref reports {actual_venue!r}")
+    if expected_publisher and actual_publisher and publisher_similarity < 0.90:
+        mismatches.append(f"publisher mismatch: expected {expected_publisher!r}, Crossref reports {actual_publisher!r}")
 
     if status_update == "retracted":
         status = "retracted"
@@ -147,9 +165,12 @@ def verify_metadata(citation: dict[str, Any], message: dict[str, Any]) -> dict[s
         status = "corrected"
     elif mismatches:
         status = "mismatch"
-    elif not expected_doi or not actual_doi or not expected_title or not actual_title or actual_year is None:
-        status = "pending"
-    elif expected_author and not actual_author:
+    elif (
+        not expected_doi or not actual_doi or not expected_title or not actual_title
+        or expected_year is None or actual_year is None or not expected_author or not actual_author
+        or (expected_venue and not actual_venue)
+        or (expected_publisher and not actual_publisher)
+    ):
         status = "pending"
     else:
         status = "verified"
@@ -160,6 +181,10 @@ def verify_metadata(citation: dict[str, Any], message: dict[str, Any]) -> dict[s
         "title": actual_title,
         "year": actual_year,
         "first_author": actual_author,
+        "venue": actual_venue,
+        "publisher": actual_publisher,
+        "venue_similarity": round(venue_similarity, 4),
+        "publisher_similarity": round(publisher_similarity, 4),
         "title_similarity": round(similarity, 4),
         "updates": updates,
         "mismatches": mismatches,
@@ -217,6 +242,17 @@ def verify_all(document: Any) -> list[dict[str, Any]]:
         raise ValueError("input must be a list or an object with a citations list")
     if not 1 <= len(citations) <= 100:
         raise ValueError("citations must contain between 1 and 100 records")
+    doi_counts: dict[str, int] = {}
+    for citation in citations:
+        if not isinstance(citation, dict):
+            continue
+        try:
+            normalized = normalize_doi(citation.get("doi"))
+        except ValueError:
+            normalized = ""
+        if normalized:
+            doi_counts[normalized] = doi_counts.get(normalized, 0) + 1
+
     results = []
     for index, citation in enumerate(citations, 1):
         try:
@@ -233,6 +269,17 @@ def verify_all(document: Any) -> list[dict[str, Any]]:
             }
         result["index"] = index
         result["input"] = citation
+        try:
+            normalized_doi = normalize_doi(citation.get("doi")) if isinstance(citation, dict) else ""
+        except ValueError:
+            normalized_doi = ""
+        if normalized_doi and doi_counts.get(normalized_doi, 0) > 1:
+            result["duplicate_doi"] = True
+            result.setdefault("mismatches", []).append("duplicate DOI appears more than once in the submitted bibliography")
+            if result.get("status") not in {"retracted", "corrected"}:
+                result["status"] = "mismatch"
+        else:
+            result["duplicate_doi"] = False
         results.append(result)
     return results
 
