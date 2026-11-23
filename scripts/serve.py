@@ -21,6 +21,22 @@ STATIC_FILES = {
 }
 
 
+class RequestTimeoutHTTPServer(ThreadingHTTPServer):
+    """Bound idle client sockets so slow/incomplete requests cannot pin threads."""
+
+    request_timeout = 10.0
+
+    def __init__(self, server_address, RequestHandlerClass, bind_and_activate=True, *, request_timeout=None):
+        if request_timeout is not None:
+            self.request_timeout = float(request_timeout)
+        super().__init__(server_address, RequestHandlerClass, bind_and_activate)
+
+    def get_request(self):
+        request, client_address = super().get_request()
+        request.settimeout(self.request_timeout)
+        return request, client_address
+
+
 class ArticleFinderHandler(APIHandler):
     server_version = "ArticleFinder/1.1.0"
     sys_version = ""
@@ -93,7 +109,7 @@ def main() -> None:
         raise SystemExit("ARTICLE_FINDER_HTTP_TIMEOUT and ARTICLE_FINDER_HTTP_RETRIES must be positive")
 
     host = bind_host()
-    server = ThreadingHTTPServer((host, port), ArticleFinderHandler)
+    server = RequestTimeoutHTTPServer((host, port), ArticleFinderHandler)
     server.daemon_threads = True
     server.request_queue_size = 64
     print(f"Article Finder listening on {host}:{port}", flush=True)
