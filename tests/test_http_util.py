@@ -227,6 +227,17 @@ class HttpSecurityTests(unittest.TestCase):
         self.assertTrue(context.check_hostname)
         self.assertEqual(context.verify_mode, hu.ssl.CERT_REQUIRED)
 
+    def test_redacts_sensitive_query_values_and_fragments(self):
+        value = hu.redact_url(
+            "https://files.example/paper.pdf?download=1&token=supersecret&email=user%40example.org#page=2"
+        )
+        self.assertIn("download=1", value)
+        self.assertIn("token=%5BREDACTED%5D", value)
+        self.assertIn("email=%5BREDACTED%5D", value)
+        self.assertNotIn("supersecret", value)
+        self.assertNotIn("user%40example.org", value)
+        self.assertNotIn("#page", value)
+
 
 if __name__ == "__main__":
     unittest.main()
