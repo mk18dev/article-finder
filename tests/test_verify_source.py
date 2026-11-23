@@ -453,6 +453,8 @@ class BlacklistTests(unittest.TestCase):
         self.assertIn("journals.msrt.ir", links)
         self.assertIn("eval.journals.iau.ir", links)
         self.assertIn("research.behdasht.gov.ir", links)
+        self.assertIn("https://impactfactor.ir", links)
+        self.assertNotIn("http://impactfactor.ir", links)
 
     def test_conference_checklist_keeps_dblp_without_journal_blacklist_link(self) -> None:
         links = " ".join(vs.s6_links(work(kind="conference", issns=[])))
