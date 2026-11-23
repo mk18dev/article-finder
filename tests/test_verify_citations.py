@@ -162,5 +162,34 @@ class CitationVerificationTests(unittest.TestCase):
         self.assertTrue(all(item["status"] == "mismatch" for item in results))
 
 
+    def test_correction_report_contains_notice_doi_url(self):
+        message = dict(self.message, **{
+            "update-to": [{"type": "correction", "DOI": "10.1234/correction"}]
+        })
+        status, updates = update_status(message)
+        self.assertEqual(status, "corrected")
+        self.assertEqual(updates[0]["url"], "https://doi.org/10.1234/correction")
+
+    def test_metadata_result_exposes_crossref_provenance(self):
+        result = verify_metadata(self.citation, self.message)
+        self.assertEqual(result["metadata_provider"], "Crossref")
+        self.assertEqual(
+            result["metadata_record_url"],
+            "https://api.crossref.org/works/10.1234/example",
+        )
+
+    def test_markdown_report_surfaces_update_and_pending_reasons(self):
+        from scripts.verify_citations import render_markdown
+        result = verify_metadata(self.citation, dict(self.message, **{
+            "update-to": [{"type": "retraction", "DOI": "10.1234/retract"}]
+        }))
+        result["index"] = 1
+        result["input"] = self.citation
+        report = render_markdown([result])
+        self.assertIn("retracted", report)
+        self.assertIn("https://doi.org/10.1234/retract", report)
+        self.assertIn("First author", report)
+
+
 if __name__ == "__main__":
     unittest.main()
