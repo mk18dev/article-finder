@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import socket
 import threading
 import unittest
 import urllib.error
@@ -8,7 +9,7 @@ import urllib.request
 from http.server import ThreadingHTTPServer
 from unittest.mock import patch
 
-from scripts.serve import ArticleFinderHandler, bind_host
+from scripts.serve import ArticleFinderHandler, RequestTimeoutHTTPServer, bind_host
 from scripts.web_api import handler as VercelAPIHandler
 from scripts import http_util
 
@@ -26,7 +27,7 @@ class ArticleFinderHTTPServerTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.server = ThreadingHTTPServer(("127.0.0.1", 0), ArticleFinderHandler)
+        cls.server = RequestTimeoutHTTPServer(("127.0.0.1", 0), ArticleFinderHandler)
         cls.server.daemon_threads = True
         cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
         cls.thread.start()
@@ -49,6 +50,20 @@ class ArticleFinderHTTPServerTests(unittest.TestCase):
             return urllib.request.urlopen(request, timeout=3)
         except urllib.error.HTTPError as error:
             return error
+
+
+    def test_server_socket_has_bounded_read_timeout(self):
+        server = RequestTimeoutHTTPServer(
+            ("127.0.0.1", 0), ArticleFinderHandler, request_timeout=0.25
+        )
+        client = socket.create_connection(server.server_address, timeout=1)
+        accepted, _ = server.get_request()
+        try:
+            self.assertEqual(accepted.gettimeout(), 0.25)
+        finally:
+            accepted.close()
+            client.close()
+            server.server_close()
 
     def test_root_serves_real_ui_with_security_headers(self):
         response = self.request("/")
