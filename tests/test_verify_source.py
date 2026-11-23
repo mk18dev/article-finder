@@ -293,6 +293,16 @@ class IdentifierTests(unittest.TestCase):
         entry = {**ENTRY, "main_book": True, "book_evidence": evidence("Contents identify main book")}
         self.assertIs(decide(book, entry)["steps"]["S7"], True)
 
+    def test_book_isbn10_validates_through_source_verification(self) -> None:
+        book = work(kind="book", issns=[], isbns=["155404295X"])
+        entry = {**ENTRY, "main_book": True, "book_evidence": evidence("ISBN-10 checked")}
+        self.assertIs(decide(book, entry)["steps"]["S7"], True)
+
+    def test_book_invalid_isbn_checksum_is_rejected_by_source_verification(self) -> None:
+        book = work(kind="book", issns=[], isbns=["9780262033849"])
+        entry = {**ENTRY, "main_book": True, "book_evidence": evidence("ISBN checksum checked")}
+        self.assertIs(decide(book, entry)["steps"]["S7"], False)
+
     def test_book_chapter_is_not_misclassified_as_book(self) -> None:
         self.assertIs(decide(work(kind="book_chapter"))["steps"]["S4"], False)
 
