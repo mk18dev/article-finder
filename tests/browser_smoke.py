@@ -119,6 +119,20 @@ def main() -> int:
     def api_route(route):
         nonlocal draft_requests
         request = route.request
+        if request.method == "GET":
+            route.fulfill(
+                status=200,
+                content_type="application/json; charset=utf-8",
+                body=json.dumps({
+                    "ok": True,
+                    "service": "article-finder",
+                    "version": "1.1.0",
+                    "capabilities": ["source-discovery", "source-verification", "draft-checking"],
+                    "auth_mode": "public",
+                    "auth_configured": False,
+                }),
+            )
+            return
         if request.method != "POST":
             route.continue_()
             return
