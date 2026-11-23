@@ -515,6 +515,18 @@ class TierTests(unittest.TestCase):
         self.assertEqual(article["tier"], "")
         self.assertIsNone(article["tier_verified"])
 
+    def test_verified_indexing_evidence_is_adapted_for_tier_policy(self) -> None:
+        indexed = vs.verified_indexing_items(ENTRY)
+        self.assertEqual(len(indexed), 1)
+        self.assertEqual(indexed[0]["index"], "Scopus")
+
+    def test_unverified_indexing_evidence_is_not_adapted(self) -> None:
+        entry = {
+            **ENTRY,
+            "indexing_evidence": [{**ENTRY["indexing_evidence"][0], "verified": False}],
+        }
+        self.assertEqual(vs.verified_indexing_items(entry), [])
+
     def test_q1_quartile_computes_tier_a(self) -> None:
         entry = {**ENTRY, "quartile": "Q1", "tier": "A"}
         article = decide(entry=entry)
