@@ -219,15 +219,12 @@ def publisher_trusted(publisher: str) -> bool:
     return normalized in TRUSTED_PUBLISHERS
 
 
-def host_matches(url: str, domains: tuple[str, ...], allow_legacy_http: bool = False) -> bool:
+def host_matches(url: str, domains: tuple[str, ...]) -> bool:
     try:
         parsed = urllib.parse.urlsplit(url)
         host = (parsed.hostname or "").lower().rstrip(".")
-        scheme_ok = parsed.scheme.lower() == "https" and parsed.port in (None, 443)
-        if allow_legacy_http and host == "impactfactor.ir":
-            scheme_ok = scheme_ok or (parsed.scheme.lower() == "http" and parsed.port in (None, 80))
         return (
-            scheme_ok
+            parsed.scheme.lower() == "https" and parsed.port in (None, 443)
             and parsed.username is None and parsed.password is None
             and any(host == domain or host.endswith("." + domain) for domain in domains)
         )
@@ -287,13 +284,7 @@ def evidence_item_ok(item: Any) -> bool:
         and parsed.username is None and parsed.password is None
         and port in (None, 443)
     )
-    legacy_blacklist_http = (
-        item.get("allow_legacy_blacklist_http") is True
-        and parsed.scheme.lower() == "http" and host == "impactfactor.ir"
-        and parsed.username is None and parsed.password is None
-        and port in (None, 80)
-    )
-    return (valid_https or legacy_blacklist_http) and len(note.strip()) >= 8
+    return valid_https and len(note.strip()) >= 8
 
 
 def judgement(entry: dict[str, Any], step: str) -> bool | None:
