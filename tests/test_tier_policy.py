@@ -74,6 +74,28 @@ class TierPolicyTests(unittest.TestCase):
     def test_off_specialization_computes_c(self):
         self.assertEqual(self.compute(specialized=False)[0], "C")
 
+    def test_non_boolean_specialization_never_approves_a_tier(self):
+        for value in ("false", "true", 0, 1, [], {}):
+            with self.subTest(value=value):
+                self.assertIsNone(self.compute(specialized=value)[0])
+
+    def test_non_boolean_blacklist_signal_fails_closed(self):
+        self.assertIsNone(self.compute(blacklisted="false")[0])
+
+    def test_non_boolean_conference_review_signal_fails_closed(self):
+        self.assertIsNone(self.compute(
+            source_kind="conference",
+            conference_scope="international",
+            conference_series_established="true",
+            publisher_recognized=True,
+            source_record_verified=True,
+            identifier_verified=True,
+        )[0])
+
+    def test_malformed_indexing_evidence_fails_closed(self):
+        self.assertIsNone(self.compute(indexing_evidence=[None])[0])
+        self.assertIsNone(self.compute(indexing_evidence={"index": "Scopus"})[0])
+
     def test_verified_blacklist_hit_overrides_q1_and_computes_d(self):
         self.assertEqual(self.compute(blacklisted=True, quartile="Q1")[0], "D")
 
