@@ -11,7 +11,7 @@
 | API authentication | unauthorized access, timing leakage, accidental credential persistence | fail-closed hosted auth, constant-time bearer comparison, no browser storage, no request-body logging | production auth still needs Phase 10 live smoke |
 | Provider URLs | SSRF, DNS rebinding, redirects, proxy bypass | HTTPS/443 only, all DNS answers checked, validated IP pinning, redirect revalidation, proxy isolation | DNS resolution waits at most five seconds; at most two resolver workers may remain stuck, after which new resolution attempts fail closed |
 | Provider responses | oversized body, false PDF, malicious XML/HTML | 80 MiB response cap, bounded HTML parser input, PDF signature + size floor, defusedxml for Atom | valid PDF signature does not prove malware-free or scholarly integrity |
-| Retrieval provenance | signed URL/query credentials or contact email leak into report | sensitive query-value redaction; exception details reduced to exception class | unknown vendor-specific credential parameter names may require adding to redaction list |
+| Retrieval provenance | signed URL/query credentials or contact email leak into report | URL userinfo and credential-like query-value redaction (including vendor token/key patterns); exception details reduced to exception class | unknown vendor-specific credential parameter names may require adding to redaction list |
 | Local files | path traversal / partial writes | title-derived filenames restricted to ASCII slug; atomic temp-file write; no archive extraction implementation | output directory is user-controlled and local |
 | Research content | prompt injection / untrusted paper content executed as code | content is parsed as data; no eval/shell execution path in retrieval; browser renders text safely | human/agent must still treat retrieved claims and instructions as untrusted |
 | Dependencies | known vulnerable packages / dependency drift | exact pins in runtime, browser and quality requirement files; pip-audit in CI | no automated license inventory or generated SBOM in current workflow |
@@ -25,7 +25,7 @@
 | PH8-02 | pinned dependencies and vulnerability audit | VERIFIED | requirements.txt, requirements-browser.txt, requirements-quality.txt; CI pip-audit covers all three manifests |
 | PH8-03 | Ruff, Bandit, pip-audit and secret scanning | CI PENDING | Ruff/Bandit/pip-audit plus pinned Gitleaks v2.3.9 with full-history checkout are configured; exact-SHA CI result is required before verification |
 | PH8-04 | request/response, timeout, retry, concurrency and resource limits | PARTIAL | request/draft/count/body/response limits, four per-process POST slots, and five-second DNS wait with at most two bounded daemon workers; no distributed rate limiter |
-| PH8-05 | sensitive-data redaction in logs and retrieval reports | VERIFIED IN CODE; CI PENDING | http_util.redact_url; retrieval errors omit exception text; targeted regression test added |
+| PH8-05 | sensitive-data redaction in logs and retrieval reports | VERIFIED IN CODE; CI PENDING | http_util.redact_url; retrieval errors omit exception text; regression tests cover common and vendor-specific token keys plus URL userinfo |
 | PH8-06 | safe path, archive, XML and untrusted HTML handling | PARTIAL | no archive extraction path exists; title slug + atomic writes; defusedxml is pinned; HTML input is bounded and PDF links are HTTPS-filtered; further parser fuzzing not evidenced |
 | PH8-07 | caller rate-limit behavior and provider outage behavior | PARTIAL | process capacity overflow returns 503; this is not a caller quota; provider outage is covered by deterministic mocked tests, not live uptime evidence |
 | PH8-08 | privacy and retention of user-submitted drafts | VERIFIED IN CODE | API does not persist drafts; request logging does not include body, DOI or authorization data; CLI outputs are written only to user-selected local paths |
@@ -35,7 +35,7 @@
 
 ## Changes applied in this phase
 
-- Added http_util.redact_url() to remove values for common credential/contact query keys before URLs are shown in dry-run output, retrieval reports or saved-result details.
+- Added http_util.redact_url() to remove URL userinfo and credential/contact/token/key query values before URLs are shown in dry-run output, retrieval reports or saved-result details.
 - Removed raw exception messages from PDF lookup and file-save failure details; the report keeps the exception class without echoing potentially sensitive request URLs or local paths.
 - Added a process-local semaphore limiting simultaneous API POST work to four requests. Excess work receives HTTP 503. This is explicitly a resource guard and does not claim distributed rate limiting or HTTP 429 quota enforcement.
 - Added regression tests for URL redaction and semaphore saturation/release.
