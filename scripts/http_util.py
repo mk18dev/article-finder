@@ -19,6 +19,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from dataclasses import dataclass
 from typing import Any
 
 MAILTO = os.environ.get("ARTICLE_FINDER_MAILTO", "").strip()
@@ -158,30 +159,48 @@ def _open(url: str, headers: dict[str, str] | None = None) -> Any:
     return response
 
 
-def fetch_json(url: str, headers: dict[str, str] | None = None) -> Any:
+@dataclass(frozen=True)
+class FetchResponse:
+    body: bytes
+    final_url: str
+    content_type: str
+
+
+def _retryable_network_error(exc: BaseException) -> bool:
+    reason = getattr(exc, "reason", None)
+    transient = (TimeoutError, socket.timeout, ConnectionError)
+    return isinstance(exc, transient) or isinstance(reason, transient)
+
+
+def fetch_response(url: str, headers: dict[str, str] | None = None) -> FetchResponse:
+    """Fetch a bounded response and retain its final URL and untrusted content type."""
     for attempt in range(RETRIES):
         try:
             with _open(url, headers) as response:
-                return json.loads(_read_capped(response))
+                body = _read_capped(response)
+                return FetchResponse(
+                    body=body,
+                    final_url=response.geturl(),
+                    content_type=str(response.headers.get("Content-Type", "")),
+                )
         except urllib.error.HTTPError as exc:
             if exc.code in (429, 503) and attempt + 1 < RETRIES:
                 time.sleep(2 ** attempt)
                 continue
             raise
+        except (urllib.error.URLError, TimeoutError, socket.timeout, ConnectionError) as exc:
+            if not _retryable_network_error(exc) or attempt + 1 >= RETRIES:
+                raise
+            time.sleep(2 ** attempt)
     raise RuntimeError(f"unreachable: {url}")
+
+
+def fetch_json(url: str, headers: dict[str, str] | None = None) -> Any:
+    return json.loads(fetch_response(url, headers).body)
 
 
 def fetch_bytes(url: str, headers: dict[str, str] | None = None) -> bytes:
-    for attempt in range(RETRIES):
-        try:
-            with _open(url, headers) as response:
-                return _read_capped(response)
-        except urllib.error.HTTPError as exc:
-            if exc.code in (429, 503) and attempt + 1 < RETRIES:
-                time.sleep(2 ** attempt)
-                continue
-            raise
-    raise RuntimeError(f"unreachable: {url}")
+    return fetch_response(url, headers).body
 
 
 def _read_capped(stream: Any) -> bytes:

@@ -26,12 +26,13 @@ import re
 import tempfile
 import time
 import urllib.parse
+from datetime import datetime, timezone
 from defusedxml import ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
-from http_util import MAILTO, fetch_bytes, fetch_json
+from http_util import MAILTO, fetch_bytes, fetch_json, fetch_response
 
 ATOM = {"a": "http://www.w3.org/2005/Atom"}
 IRANDOC_SEARCH = "https://ganj.irandoc.ac.ir/#/search?query="
@@ -56,12 +57,23 @@ class Source:
 
 
 @dataclass
+class RetrievalAttempt:
+    provider: str
+    source_url: str
+    final_url: str
+    retrieved_at: str
+    outcome: str
+    detail: str = ""
+
+
+@dataclass
 class Result:
     source: Source
     status: str
     detail: str = ""
     path: str = ""
     routes: list[str] = field(default_factory=list)
+    attempts: list[RetrievalAttempt] = field(default_factory=list)
 
 
 def load_sources(path: Path) -> list[Source]:
@@ -198,22 +210,34 @@ def irandoc_route(title: str) -> str:
     return IRANDOC_SEARCH + urllib.parse.quote(title)
 
 
-def external_candidates(doi: str, title: str) -> list[str]:
-    urls: list[str] = []
+def external_candidate_records(doi: str, title: str) -> list[tuple[str, str]]:
+    """Return lawful OA candidates with the metadata provider that surfaced them."""
+    candidates_with_provider: list[tuple[str, str]] = []
     providers = (
-        lambda: unpaywall_candidates(doi),
-        lambda: semantic_scholar_candidates(doi),
-        lambda: core_candidates(doi),
-        lambda: arxiv_title_candidates(title),
+        ("Unpaywall", lambda: unpaywall_candidates(doi)),
+        ("Semantic Scholar", lambda: semantic_scholar_candidates(doi)),
+        ("CORE", lambda: core_candidates(doi)),
+        ("arXiv search", lambda: arxiv_title_candidates(title)),
     )
-    for provider in providers:
+    seen: set[str] = set()
+    for provider_name, lookup in providers:
         try:
-            for url in provider():
-                if url not in urls:
-                    urls.append(url)
+            for url in lookup():
+                if url.startswith("https://") and url not in seen:
+                    seen.add(url)
+                    candidates_with_provider.append((provider_name, url))
         except Exception:
             continue
-    return urls
+    return candidates_with_provider
+
+
+def external_candidates(doi: str, title: str) -> list[str]:
+    """Backward-compatible URL-only view of the provider-aware candidate chain."""
+    return [url for _, url in external_candidate_records(doi, title)]
+
+
+def retrieved_at_utc() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
 PDF_LINK = re.compile(rb'href=["\']([^"\']+\.pdf[^"\']*)["\']', re.I)
@@ -248,36 +272,75 @@ def download_one(index: int, source: Source, out: Path, dry_run: bool) -> Result
     except Exception as exc:
         return Result(source, "lookup-failed", f"{type(exc).__name__}: {exc}"[:120], routes=list(ROUTES))
 
-    urls = candidates(record)
-    for url in external_candidates(source.doi, source.title):
-        if url not in urls:
-            urls.append(url)
-    if not urls:
+    candidate_records = [("OpenAlex", url) for url in candidates(record)]
+    candidate_records.extend(external_candidate_records(source.doi, source.title))
+    deduplicated: list[tuple[str, str]] = []
+    seen_urls: set[str] = set()
+    for provider, url in candidate_records:
+        if url not in seen_urls:
+            seen_urls.add(url)
+            deduplicated.append((provider, url))
+    if not deduplicated:
         routes = list(ROUTES) + [f"Persian thesis bank (Irandoc): {irandoc_route(source.title)}"]
         return Result(source, "paywalled", "no open-access copy registered", routes=routes)
     if dry_run:
-        return Result(source, "candidate", " · ".join(urls[:3]))
+        return Result(
+            source, "candidate",
+            " · ".join(f"{provider}: {url}" for provider, url in deduplicated[:3]),
+        )
 
+    attempts: list[RetrievalAttempt] = []
     failures: list[str] = []
-    for url in urls:
+    for provider, url in deduplicated:
         try:
-            payload = fetch_bytes(url)
+            response = fetch_response(url)
         except Exception as exc:
-            failures.append(f"{type(exc).__name__} @ {url[:60]}")
+            detail = type(exc).__name__
+            attempts.append(RetrievalAttempt(
+                provider, url, "", retrieved_at_utc(), "fetch-error", detail,
+            ))
+            failures.append(f"{detail} @ {url[:60]}")
             continue
-        if looks_like_pdf(payload):
-            return save(index, source, out, payload, url)
-        nested = pdf_links(payload, url)
+
+        if looks_like_pdf(response.body):
+            saved = save(index, source, out, response.body, response.final_url)
+            attempts.append(RetrievalAttempt(
+                provider, url, response.final_url, retrieved_at_utc(),
+                saved.status, f"{len(response.body)} bytes; content-type={response.content_type or 'unknown'}",
+            ))
+            saved.attempts = attempts
+            return saved
+
+        nested = pdf_links(response.body, response.final_url)
+        attempts.append(RetrievalAttempt(
+            provider, url, response.final_url, retrieved_at_utc(),
+            "html-landing-page" if nested else "not-pdf",
+            f"{len(nested)} PDF link(s); content-type={response.content_type or 'unknown'}",
+        ))
         for link in nested:
             try:
-                inner = fetch_bytes(link)
-            except Exception:
+                inner = fetch_response(link)
+            except Exception as exc:
+                attempts.append(RetrievalAttempt(
+                    provider, link, "", retrieved_at_utc(), "fetch-error", type(exc).__name__,
+                ))
                 continue
-            if looks_like_pdf(inner):
-                return save(index, source, out, inner, f"{link} (via {url[:40]})")
+            if looks_like_pdf(inner.body):
+                saved = save(index, source, out, inner.body, inner.final_url)
+                attempts.append(RetrievalAttempt(
+                    provider, link, inner.final_url, retrieved_at_utc(),
+                    saved.status, f"{len(inner.body)} bytes; content-type={inner.content_type or 'unknown'}",
+                ))
+                saved.attempts = attempts
+                return saved
+            attempts.append(RetrievalAttempt(
+                provider, link, inner.final_url, retrieved_at_utc(), "not-pdf",
+                f"content-type={inner.content_type or 'unknown'}",
+            ))
         failures.append(f"no PDF @ {url[:60]}" + (f" ({len(nested)} link(s) inside)" if nested else ""))
-    detail = f"{len(urls)} candidate(s) tried; " + (failures[-1] if failures else "no response")
-    return Result(source, "no-pdf", detail, routes=list(ROUTES))
+
+    detail = f"{len(deduplicated)} candidate(s) tried; " + (failures[-1] if failures else "no response")
+    return Result(source, "no-pdf", detail, routes=list(ROUTES), attempts=attempts)
 
 
 def save(index: int, source: Source, out: Path, payload: bytes, origin: str) -> Result:
@@ -375,6 +438,23 @@ def report(results: list[Result], out: Path) -> str:
     lines.append("")
     lines.append(f"**{downloaded}/{len(results)} downloaded · "
                  f"{sum(1 for r in results if r.status in {'paywalled', 'no-pdf'})} need a licensed route**")
+    lines.extend(["", "## Retrieval provenance", "",
+                  "| # | Provider | Source URL | Final URL | Retrieved at (UTC) | Result |",
+                  "|---|---|---|---|---|---|"])
+    attempt_number = 0
+    for result in results:
+        for attempt in result.attempts:
+            attempt_number += 1
+            source_url = attempt.source_url.replace("|", "%7C")
+            final_url = attempt.final_url.replace("|", "%7C")
+            detail = attempt.detail.replace("|", "\\|")
+            outcome = attempt.outcome + (f": {detail}" if detail else "")
+            lines.append(
+                f"| {attempt_number} | {attempt.provider} | {source_url} | {final_url or '-'} | "
+                f"{attempt.retrieved_at} | {outcome} |"
+            )
+    if not attempt_number:
+        lines.append("| — | — | — | — | — | No network retrieval attempts recorded |")
     return "\n".join(lines)
 
 

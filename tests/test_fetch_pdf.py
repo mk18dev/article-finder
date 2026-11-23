@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
 sys.path.insert(0, str(SCRIPTS))
@@ -111,6 +113,62 @@ class ReportTests(unittest.TestCase):
         self.assertTrue(rows)
         self.assertNotIn("sci-hub", rows[0].lower())
         self.assertIn("never used", text)
+
+    def test_report_records_retrieval_provenance(self) -> None:
+        source = fp.Source(title="A", doi="10.1000/a", year=2024)
+        attempt = fp.RetrievalAttempt(
+            "Unpaywall", "https://repo.example/paper", "https://cdn.example/paper.pdf",
+            "2026-11-23T12:00:00Z", "downloaded", "20000 bytes",
+        )
+        text = fp.report([
+            fp.Result(source, "downloaded", "ok", "pdfs/a.pdf", attempts=[attempt])
+        ], Path("pdfs"))
+        self.assertIn("Unpaywall", text)
+        self.assertIn("https://repo.example/paper", text)
+        self.assertIn("https://cdn.example/paper.pdf", text)
+        self.assertIn("2026-11-23T12:00:00Z", text)
+        self.assertIn("downloaded: 20000 bytes", text)
+
+    def test_download_records_provider_source_final_url_and_utc_time(self) -> None:
+        source = fp.Source(title="A", doi="10.1000/a", year=2024)
+        payload = b"%PDF-1.7\\n" + b"0" * fp.MIN_PDF_BYTES
+        response = type("Response", (), {
+            "body": payload,
+            "final_url": "https://cdn.example/paper.pdf",
+            "content_type": "text/html",
+        })()
+        record = {"best_oa_location": {}, "locations": [], "open_access": {}, "ids": {}}
+        with tempfile.TemporaryDirectory() as directory, \
+             patch.object(fp, "fetch_json", return_value=record), \
+             patch.object(fp, "external_candidate_records",
+                          return_value=[("Unpaywall", "https://repo.example/paper")]), \
+             patch.object(fp, "fetch_response", return_value=response):
+            result = fp.download_one(1, source, Path(directory), False)
+        self.assertEqual(result.status, "downloaded")
+        self.assertEqual(len(result.attempts), 1)
+        attempt = result.attempts[0]
+        self.assertEqual(attempt.provider, "Unpaywall")
+        self.assertEqual(attempt.source_url, "https://repo.example/paper")
+        self.assertEqual(attempt.final_url, "https://cdn.example/paper.pdf")
+        self.assertEqual(attempt.outcome, "downloaded")
+        self.assertTrue(attempt.retrieved_at.endswith("Z"))
+
+    def test_html_body_is_rejected_even_with_pdf_content_type(self) -> None:
+        source = fp.Source(title="A", doi="10.1000/a")
+        response = type("Response", (), {
+            "body": b"<!doctype html><html>not a PDF</html>",
+            "final_url": "https://repo.example/paper",
+            "content_type": "application/pdf",
+        })()
+        record = {"best_oa_location": {}, "locations": [], "open_access": {}, "ids": {}}
+        with tempfile.TemporaryDirectory() as directory, \
+             patch.object(fp, "fetch_json", return_value=record), \
+             patch.object(fp, "external_candidate_records",
+                          return_value=[("OpenAlex", "https://repo.example/paper")]), \
+             patch.object(fp, "fetch_response", return_value=response):
+            result = fp.download_one(1, source, Path(directory), False)
+        self.assertEqual(result.status, "no-pdf")
+        self.assertEqual(result.attempts[0].outcome, "not-pdf")
 
 
 

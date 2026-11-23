@@ -123,6 +123,79 @@ class HttpSecurityTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 hu._read_capped(io.BytesIO(b"123456"))
 
+    def test_dns_rebinding_between_preflight_and_connect_is_blocked(self):
+        with patch.object(hu.socket, "getaddrinfo",
+                          side_effect=[answer("1.1.1.1"), answer("127.0.0.1")]), \
+             patch.object(hu.socket, "create_connection") as connect:
+            with self.assertRaises(ValueError):
+                hu._open("https://example.org/paper.pdf")
+            connect.assert_not_called()
+
+    def test_ambient_proxy_environment_is_not_used(self):
+        from urllib.request import ProxyHandler
+        with patch.dict("os.environ", {
+            "HTTPS_PROXY": "http://127.0.0.1:8080",
+            "HTTP_PROXY": "http://127.0.0.1:8080",
+        }), patch.object(hu.socket, "getaddrinfo", return_value=answer("1.1.1.1")), \
+             patch.object(hu.urllib.request, "build_opener") as build_opener:
+            response = Mock()
+            response.geturl.return_value = "https://example.org/paper.pdf"
+            response.headers.get.return_value = "application/pdf"
+            build_opener.return_value.open.return_value = response
+            hu._open("https://example.org/paper.pdf")
+            handlers = build_opener.call_args.args
+            self.assertTrue(any(isinstance(handler, ProxyHandler) and handler.proxies == {}
+                                for handler in handlers))
+
+    def test_fetch_response_retries_transient_timeout_and_keeps_metadata(self):
+        response = Mock()
+        response.__enter__ = Mock(return_value=response)
+        response.__exit__ = Mock(return_value=False)
+        response.read.side_effect = [b"payload", b""]
+        response.geturl.return_value = "https://cdn.example/paper.pdf"
+        response.headers.get.return_value = "application/pdf"
+        with patch.object(hu, "_open", side_effect=[TimeoutError("timed out"), response]) as opened, \
+             patch.object(hu.time, "sleep") as sleep:
+            result = hu.fetch_response("https://example.org/paper.pdf")
+        self.assertEqual(result.body, b"payload")
+        self.assertEqual(result.final_url, "https://cdn.example/paper.pdf")
+        self.assertEqual(result.content_type, "application/pdf")
+        self.assertEqual(opened.call_count, 2)
+        sleep.assert_called_once_with(1)
+
+    def test_https_redirect_to_private_dns_is_blocked(self):
+        handler = hu._SafeRedirectHandler()
+        with patch.object(hu.socket, "getaddrinfo", return_value=answer("10.0.0.9")):
+            with self.assertRaises(ValueError):
+                handler.redirect_request(
+                    hu._request("https://example.org/start"), None, 302, "Found", {},
+                    "https://internal.example/private"
+                )
+
+    def test_fetch_response_retries_http_429_and_503(self):
+        from urllib.error import HTTPError
+        response = Mock()
+        response.__enter__ = Mock(return_value=response)
+        response.__exit__ = Mock(return_value=False)
+        response.read.side_effect = [b"ok", b""]
+        response.geturl.return_value = "https://example.org/result"
+        response.headers.get.return_value = "application/json"
+        errors = [
+            HTTPError("https://example.org", 429, "rate limited", {}, None),
+            HTTPError("https://example.org", 503, "unavailable", {}, None),
+        ]
+        with patch.object(hu, "_open", side_effect=errors + [response]) as opened, \
+             patch.object(hu.time, "sleep") as sleep:
+            result = hu.fetch_response("https://example.org/result")
+        self.assertEqual(result.body, b"ok")
+        self.assertEqual(opened.call_count, 3)
+        self.assertEqual([call.args[0] for call in sleep.call_args_list], [1, 2])
+
+    def test_tls_context_requires_certificate_and_hostname_verification(self):
+        context = hu.ssl.create_default_context()
+        self.assertTrue(context.check_hostname)
+        self.assertEqual(context.verify_mode, hu.ssl.CERT_REQUIRED)
+
 
 if __name__ == "__main__":
     unittest.main()
