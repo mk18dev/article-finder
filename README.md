@@ -47,11 +47,11 @@ Discovery returns candidates, never approvals. Reviewer evidence remains pending
 | S6 | Source credibility | Journals: blacklist + index; conferences: proceedings index; theses: Irandoc/university repository; books: Google Books/Amazon + citations + publisher evidence |
 | S7 | Identifiers | journal ISSN + volume/issue; conference edition/venue; book ISBN; thesis repository record |
 | S8 | Specialization & year | explicit specialization boolean + evidence URL/note + category-specific year rule |
-| S9 | Tier ≥ cut-off | only a tier with reviewer evidence and a source URL can pass |
+| S9 | Computed tier ≥ cut-off | A/B/C/D is computed from source-specific evidence; SJR/JCR quartile, publisher, specialization, derived papers or book citations are validated; a declared/computed mismatch fails |
 | S10 | Category | reviewer judgement with a source URL and note |
 | S11 | Extraction | evidence of required reading: abstract/intro/conclusion, chapters 1–2, or full text |
 
-**S6 remains evidence-driven.** A blacklist hit rejects the source. Otherwise, S6 stays pending until the plan contains three independent blacklist checks against MSRT, MOHME and IAU and at least one verified index record. OpenAlex's DOAJ flag or a publisher name alone is not proof of Scopus/WoS/ISC/DBLP membership. The generated checklist gives the reviewer the pages to inspect.
+**S6 remains evidence-driven.** A verified blacklist hit from MSRT, MOHME or IAU rejects the source. Otherwise, S6 stays pending until the plan contains all three reviewer-attributed ISSN checks (with current list version, exact locator and timestamp) and at least one verified index record. ImpactFactor is a secondary aggregator, not an authority. OpenAlex's DOAJ flag or a publisher name alone is not proof of Scopus/WoS/ISC/DBLP membership. The generated checklist gives the reviewer the pages to inspect.
 
 ## Quickstart
 
