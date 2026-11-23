@@ -6,7 +6,6 @@ import threading
 import unittest
 import urllib.error
 import urllib.request
-from http.server import ThreadingHTTPServer
 from unittest.mock import patch
 
 from scripts.serve import ArticleFinderHandler, RequestTimeoutHTTPServer, bind_host
