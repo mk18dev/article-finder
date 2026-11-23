@@ -577,6 +577,19 @@ def s6_gate(work: Work, entry: dict[str, Any]) -> bool | None:
             isinstance(citation_count, int) and not isinstance(citation_count, bool)
             and citation_count >= 0
         )
+        citation_evidence = item.get("citation_evidence")
+        citation_source = (
+            str(citation_evidence.get("source") or "").strip().lower()
+            if isinstance(citation_evidence, dict) else ""
+        )
+        citation_count_verified = (
+            citation_source == "openalex"
+            and citation_evidence.get("citation_count") == citation_count
+            and isinstance(citation_evidence.get("citation_count"), int)
+            and not isinstance(citation_evidence.get("citation_count"), bool)
+            and citation_evidence.get("citation_count") >= 0
+            and verified_record(citation_evidence, ("api.openalex.org",))
+        )
         publisher_verified = item.get("publisher_verified") is True
         if source == "google books":
             domains = ("books.google.com",)
@@ -586,7 +599,8 @@ def s6_gate(work: Work, entry: dict[str, Any]) -> bool | None:
         else:
             return None
         return True if (
-            citation_count_valid and publisher_verified and verified_record(item, domains)
+            citation_count_valid and citation_count_verified and publisher_verified
+            and verified_record(item, domains)
         ) else None
 
     return False
