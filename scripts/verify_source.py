@@ -45,11 +45,10 @@ INDEX_DOMAINS: dict[str, tuple[str, ...]] = {
     "doaj": ("doaj.org",),
 }
 BLACKLIST_DOMAINS: dict[str, tuple[str, ...]] = {
-    "msrt": ("journals.msrt.ir", "msrt.ir", "rppc.msrt.ir"),
-    "iau": ("eval.journals.iau.ir", "iau.ac.ir", "rvp.iau.ir"),
+    "msrt": ("journals.msrt.ir", "msrt.ir"),
+    "iau": ("eval.journals.iau.ir", "iau.ac.ir"),
 }
 MSRT_PORTAL = "https://journals.msrt.ir/"
-IAU_INVALID_PORTAL = "https://rsh.rvp.iau.ir/"
 IAU_EVALUATION_PORTAL = "https://eval.journals.iau.ir/"
 SEARCH_DOMAINS: tuple[str, ...] = (
     "crossref.org", "openalex.org", "scholar.google.com", "pubmed.ncbi.nlm.nih.gov",
@@ -539,8 +538,7 @@ def s6_links(work: Work) -> list[str]:
     key = work.source_issn or (work.issns[0] if work.issns else "")
     links: list[str] = [
         f"[MSRT journal portal]({MSRT_PORTAL})",
-        f"[IAU invalid-journals portal]({IAU_INVALID_PORTAL})",
-        f"[IAU evaluation 1405]({IAU_EVALUATION_PORTAL})",
+        f"[IAU evaluation / revoked-credit status]({IAU_EVALUATION_PORTAL})",
     ]
     if key:
         links.extend([
