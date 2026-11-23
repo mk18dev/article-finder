@@ -14,7 +14,7 @@
 | Retrieval provenance | signed URL/query credentials or contact email leak into report | URL userinfo and credential-like query-value redaction (including vendor token/key patterns); exception details reduced to exception class | unknown vendor-specific credential parameter names may require adding to redaction list |
 | Local files | path traversal / partial writes | title-derived filenames restricted to ASCII slug; atomic temp-file write; no archive extraction implementation | output directory is user-controlled and local |
 | Research content | prompt injection / untrusted paper content executed as code | content is parsed as data; no eval/shell execution path in retrieval; browser renders text safely | human/agent must still treat retrieved claims and instructions as untrusted |
-| Dependencies | known vulnerable packages / dependency drift | exact pins in runtime, browser and quality requirement files; pip-audit in CI | no automated license inventory or generated SBOM in current workflow |
+| Dependencies | known vulnerable packages / dependency drift | exact pins in runtime, browser and quality requirement files; pip-audit, CycloneDX SBOM generation and pip-licenses inventory in CI | generated artifacts need successful exact-HEAD CI and human review of UNKNOWN/non-SPDX labels |
 | Repository secrets | accidental key/token commit | no secrets embedded in source by design; logs redact request content and retrieval query secrets | dedicated automated secret scanner and independent repository-wide review not evidenced |
 
 ## Acceptance matrix
@@ -35,7 +35,7 @@
 
 ## Changes applied in this phase
 
-- Added http_util.redact_url() to remove URL userinfo and credential/contact/token/key query values before URLs are shown in dry-run output, retrieval reports or saved-result details.
+- Added http_util.redact_url() to remove URL userinfo and credential/contact/token/key query values before URLs are shown in dry-run output, retrieval reports, saved-result details or retained retrieval-attempt records.
 - Removed raw exception messages from PDF lookup and file-save failure details; the report keeps the exception class without echoing potentially sensitive request URLs or local paths.
 - Added a process-local semaphore limiting simultaneous API POST work to four requests. Excess work receives HTTP 503. This is explicitly a resource guard and does not claim distributed rate limiting or HTTP 429 quota enforcement.
 - Added regression tests for URL redaction and semaphore saturation/release.
