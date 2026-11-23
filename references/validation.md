@@ -87,6 +87,34 @@ The slides give no tier definitions. The rubric below is this skill's **default*
 
 State which quartile source you used (SJR vs JCR); they can differ (see section 7). Default cut-off is **B**: A and B are kept, C and D are eliminated.
 
+
+### Computation rules added in v1.1.0
+
+The rubric above is now executable in `scripts/tier_policy.py`. The code
+computes A/B/C/D from source-specific evidence and compares any declared tier
+against the computed result. A mismatch fails S9; missing evidence remains
+pending.
+
+- **Journals:** Q1-Q2 in an explicitly named SJR/JCR source, recognized
+  publisher and specialization → A; Q3-Q4 or ESCI with recognized publisher →
+  B; only ISC/DBLP/DOAJ/regional indexing or off-specialization → C; a verified
+  official blacklist hit or explicit not-indexed result → D.
+- **Conferences:** international + recognized publisher + established series
+  + specialization → A; international recognized-publisher proceedings that
+  are newer or less specialized → B; national proceedings → C; unverifiable
+  proceedings or unrecognized international publisher → D.
+- **Theses:** PhD + reputable university + traceable A/B derived paper → A;
+  PhD without traceable derived papers → B; Master's with derived papers → C;
+  Master's without derived papers or Bachelor's → D.
+- **Books:** a primary book with valid ISBN and verified publisher is required.
+  The project default uses 50 citations for "strong" and 10 for "modest";
+  these are configurable heuristics, not universal academic standards. A
+  recognized publisher + at least 50 citations + relevant chapters → A;
+  recognized publisher + at least 10 citations → B; a verified primary book
+  from a lesser-known publisher or below the modest threshold → C; non-primary
+  book, invalid ISBN or unverified publisher → D.
+
+
 ## 6. Where to verify (slides, pages 22-24, 26)
 
 | Question | Source (as printed on the slides) |
