@@ -122,7 +122,7 @@ Mode 1 and Mode 2 output examples live in [`references/output-example.md`](refer
 
 When a paper is not open, the report names the licensed route and `--draft-emails` writes a ready-to-send request to the corresponding author.
 
-**Transport safeguards:** remote fetches require HTTPS, normal TLS certificate verification, public-IP preflight, redirect revalidation and an 80 MiB response cap. Ambient proxy settings are disabled so they cannot bypass destination checks. DNS rebinding between preflight and connection remains a limitation; run untrusted inputs in a network sandbox or enforce an outbound firewall/egress policy. The legacy blacklist evidence page is a manual-review exception documented in `references/evidence-records.md`; it is not fetched by the downloader.
+**Transport safeguards:** remote fetches require HTTPS, normal TLS certificate verification, all-address public-IP validation, connection-time IP pinning with original-host TLS SNI, redirect revalidation and an 80 MiB response cap. Ambient proxy settings are disabled. The ImpactFactor site is a secondary blacklist aggregator only; S6 requires reviewer-attributed checks against official MSRT, MOHME and IAU sources.
 
 **It never touches Sci-Hub, LibGen or Z-Lib, and no flag enables them.** Those hosts redistribute copyrighted papers without permission, and a copy from them can be a stale or retracted version. If you need a paywalled paper: publisher page, Google Scholar's PDF links, your library, or the author's inbox.
 
