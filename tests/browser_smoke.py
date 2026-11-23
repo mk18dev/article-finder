@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import os
-import re
+from urllib.parse import urlsplit
 from pathlib import Path
 
 from playwright.sync_api import expect, sync_playwright
@@ -120,6 +120,9 @@ def main() -> int:
     def api_route(route):
         nonlocal draft_requests
         request = route.request
+        if urlsplit(request.url).path.rstrip("/") != "/api":
+            route.continue_()
+            return
         if request.method == "GET":
             route.fulfill(
                 status=200,
@@ -190,7 +193,7 @@ def main() -> int:
             context.grant_permissions(["clipboard-read", "clipboard-write"], origin=BASE_URL)
         page = context.new_page()
         page.on("pageerror", lambda error: page_errors.append(str(error)))
-        page.route(re.compile(r".*/api/?$"), api_route)
+        page.route("**/*", api_route)
         if browser_name == "chromium":
             axe_bundle = Path("node_modules/axe-core/axe.min.js")
             if not axe_bundle.is_file():
