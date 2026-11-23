@@ -43,7 +43,7 @@ Every entry starts with:
 - Journal tier inputs: `quartile` (`Q1`-`Q4`) and `quartile_source` (`SJR` or `JCR`). The evidence URL must match that source when using quartile rules.
 - Conference tier inputs: `conference_scope` (`international` or `national`) and boolean `conference_series_established`.
 - Thesis tier inputs: `derived_papers_status` (`found` or `none`), reviewed `derived_papers_review`, optional `derived_papers` with verified DOI records and tier, `university_reputable`, and `university_evidence`.
-- Book tier inputs: `main_book`, `relevant_chapters` plus `relevant_chapters_evidence`, and `book_s6_evidence` with publisher verification and integer citation count. The configurable default thresholds (50 strong / 10 modest) live in `scripts/tier-policy.json`.
+- Book tier inputs: `main_book`, `relevant_chapters` plus `relevant_chapters_evidence`, and `book_s6_evidence` with publisher verification, integer citation count, and a separate matching reviewer-attributed `citation_evidence` record from OpenAlex. The configurable default thresholds (50 strong / 10 modest) live in `scripts/tier-policy.json`.
 - `area` and `subject`: labels only; S1/S2 need matching records under
   `judgements`.
 - `degree_evidence`: thesis degree confirmation with a reviewer URL and note;
@@ -146,7 +146,10 @@ proceedings.
 
 **Book:** use `book_s6_evidence` with source `Google Books` or `Amazon`,
 a non-negative integer `citation_count`, `publisher_verified: true`,
-`verified: true`, a source URL and note.
+`verified: true`, a source URL and note. The same integer must be backed by a
+separate `citation_evidence` object with source `OpenAlex`, a matching
+`citation_count`, reviewer attribution, timestamp, locator, note, and an
+`https://api.openalex.org/works/...` URL.
 
 Example book record:
 
@@ -160,7 +163,17 @@ Example book record:
   "locator": "Google Books bibliographic record",
   "note": "Book record, publisher and citation count were inspected",
   "citation_count": 27,
-  "publisher_verified": true
+  "publisher_verified": true,
+  "citation_evidence": {
+    "source": "OpenAlex",
+    "citation_count": 27,
+    "verified": true,
+    "reviewer_id": "reviewer-1",
+    "reviewed_at": "2026-11-23T10:00:00Z",
+    "url": "https://api.openalex.org/works/W123",
+    "locator": "OpenAlex work W123",
+    "note": "OpenAlex cited_by_count was inspected"
+  }
 }
 ```
 
