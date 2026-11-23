@@ -124,7 +124,7 @@ pending.
 | SJR | https://www.scimagojr.com |
 | DOAJ | https://doaj.org |
 | Persian theses | https://irandoc.ac.ir/ |
-| Books | https://books.google.com · https://www.amazon.com |
+| Books and bibliographic citations | https://books.google.com · https://www.amazon.com · https://api.openalex.org/works |
 | Good sites (page 26) | IEEE https://ieeexplore.ieee.org · Springer https://link.springer.com · Elsevier https://www.sciencedirect.com/search · Google Scholar https://scholar.google.com/ |
 
 *(skill)* Computer-science venues can also be checked on https://dblp.org.
@@ -203,6 +203,6 @@ Missing or invalid ISSN, publisher not identifiable, Number inconsistent with Vo
 - **Journal:** a reported blacklist hit rejects the source. Otherwise, three documented clear checks (MSRT, MOHME and IAU) plus a verified Scopus, Web of Science/WoS, ISC, DBLP or DOAJ record are required.
 - **Conference:** a verified proceedings index record in Scopus, Web of Science/WoS, ISC or DBLP is required. The journal blacklist check does not apply.
 - **Thesis:** a verified Irandoc or official university/institutional repository record is required.
-- **Book:** a Google Books/Amazon record, a non-negative citation count and explicit publisher confirmation are required.
+- **Book:** a Google Books/Amazon record, explicit publisher confirmation, and a non-negative citation count backed by a separate reviewer-attributed OpenAlex record are required. The OpenAlex count must exactly match the count recorded on the book evidence.
 
 DOAJ membership alone does not replace the journal/conference index evidence accepted by this release. The generated checklist links to the source-specific lookup pages. Reviewers must inspect those pages and record the evidence in the plan; a URL and note are an audit trail, not cryptographic proof of the page's contents.
