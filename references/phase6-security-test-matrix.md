@@ -1,6 +1,6 @@
 # Phase 6 — Legal Full-text Retrieval & Network Security Test Matrix
 
-**Scope:** CLI-only open-access PDF retrieval. This matrix maps the Phase 6 acceptance gates to implementation and regression evidence. Network tests are deterministic and mocked; they prove local policy behavior, not the availability or policy of live providers.
+**Scope:** CLI-only open-access PDF retrieval. This matrix maps the Phase 6 acceptance gates to implementation and regression evidence. Network tests are deterministic and mocked; they prove local policy behavior, not the availability or policy of live providers. DNS resolution is bounded to a five-second caller wait with at most two stuck daemon workers per process; saturation fails closed.
 
 | Gate | Required behavior | Implementation | Regression evidence |
 |---|---|---|---|
@@ -9,7 +9,7 @@
 | PH6-03 | Pin the validated destination IP at connect time; preserve original host for SNI; block rebinding | `_PinnedHTTPSConnection`, `_PinnedHTTPSHandler` | `test_pinned_connection_uses_validated_ip_and_original_tls_hostname`, `test_pinned_connection_falls_back_only_to_validated_addresses`, `test_dns_rebinding_between_preflight_and_connect_is_blocked` |
 | PH6-04 | Revalidate each redirect; block HTTP, loopback, private and reserved destinations | `_SafeRedirectHandler` | `test_revalidates_redirect_destinations`, `test_https_redirect_to_private_dns_is_blocked` |
 | PH6-05 | Ignore ambient proxy variables | `ProxyHandler({})` in `_open` | `test_ambient_proxy_environment_is_not_used` |
-| PH6-06 | Bounded timeout, retry count, transient retry policy and 80 MiB cap | `TIMEOUT`, `RETRIES`, `fetch_response`, `_read_capped` | `test_fetch_response_retries_transient_timeout_and_keeps_metadata`, `test_fetch_response_retries_http_429_and_503`, `test_response_size_is_capped` |
+| PH6-06 | Bounded DNS wait, network timeout, retry count, transient retry policy and 80 MiB cap | `DNS_TIMEOUT=5`, two-slot bounded resolver workers, `TIMEOUT`, `RETRIES`, `fetch_response`, `_read_capped` | `test_fetch_response_retries_transient_timeout_and_keeps_metadata`, `test_fetch_response_retries_http_429_and_503`, `test_response_size_is_capped` |
 | PH6-07 | Do not trust HTTP 200 or Content-Type; require PDF signature and minimum size; support HTML-to-PDF links | `looks_like_pdf`, `pdf_links`, `download_one` | `test_html_error_page_rejected`, `test_tiny_pdf_rejected`, `test_html_body_is_rejected_even_with_pdf_content_type`, resolver-chain tests |
 | PH6-08 | Record provider, requested URL, final URL, UTC time and outcome | `RetrievalAttempt`, `fetch_response`, `report` | `test_download_records_provider_source_final_url_and_utc_time`, `test_report_records_retrieval_provenance` |
 | PH6-09 | Keep PDF retrieval out of public Web/API routes | `scripts/web_api.py` action allowlist; CLI entrypoint only | API dispatch accepts only `discover_sources`, `verify_sources`, `check_draft`; no `fetch_pdf` import or action; `test_fetch_pdf_action_is_not_exposed` |
