@@ -68,6 +68,8 @@ Run the steps in order. Stop at the first ❌ and note why. Details, the tier ru
 | S7 | Identifiers | Journal ISSN + volume/issue; conference DOI + edition/venue; book ISBN + main-book evidence; thesis repository record |
 | S8 | Specialization & year | Specialization boolean and its review URL/note are present; category-specific year rule passes |
 | S9 | Tier | A-D tier has a reviewer evidence URL and basis; the render script compares it to the cut-off |
+
+For a PhD thesis, a derived paper can support tier A only when its DOI record and its own reviewer-attributed SJR/JCR quartile or ESCI record are both verified. The evidence-derived A/B tier must match the paper's declared tier; a DOI URL plus a free-text tier is insufficient.
 | S10 | Category | Category judgement has an evidence URL and note |
 | S11 | Extraction | Reading evidence is recorded: abstract/intro/conclusion, chapters 1–2, or full text |
 
