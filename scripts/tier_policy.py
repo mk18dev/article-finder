@@ -1,4 +1,4 @@
-""""Evidence-driven A/B/C/D source tier computation for Article Finder."""
+"""Evidence-driven A/B/C/D source tier computation for Article Finder."""
 from __future__ import annotations
 
 import json
