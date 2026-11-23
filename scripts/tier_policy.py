@@ -62,21 +62,21 @@ def compute_tier(
         }
         high_index = "scopus" in indices or bool(wos_coverage & {"SCIE", "SSCI", "AHCI"})
         esci = "esci" in indices or "ESCI" in wos_coverage
-        if not high_index and indices & {"isc", "dblp", "doaj", "regional"}:
+        if not high_index and not esci and indices & {"isc", "dblp", "doaj", "regional"}:
             return "C", "Only regional/secondary indexing evidence is recorded."
         if not high_index and not esci:
             return None, "The supplied index does not map to a configured tier rule."
         if publisher_recognized is not True:
             return None, "A recognized publisher is required for a WoS/Scopus/ESCI tier."
+        if not high_index and esci:
+            return "B", "ESCI coverage with a recognized publisher maps to tier B."
         q = (quartile or "").strip().upper()
         source = (quartile_source or "").strip().upper()
         if source not in {"SJR", "JCR"} or q not in {"Q1", "Q2", "Q3", "Q4"}:
-            if esci:
-                return "B", "ESCI coverage with a recognized publisher maps to tier B."
             return None, "A valid Q1-Q4 quartile and explicit SJR/JCR source are required."
-        if q in {"Q1", "Q2"} and not esci:
+        if q in {"Q1", "Q2"}:
             return "A", f"{source} {q}, recognized publisher and specialization meet tier A."
-        return "B", f"{source} {q} or ESCI coverage with a recognized publisher meets tier B."
+        return "B", f"{source} {q} with a recognized publisher meets tier B."
 
     if kind == "conference":
         if source_record_verified is False or identifier_verified is False:
