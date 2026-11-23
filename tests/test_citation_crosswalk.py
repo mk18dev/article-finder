@@ -98,5 +98,24 @@ class CitationCrosswalkTests(unittest.TestCase):
             audit("text", [], "Chicago")
 
 
+    def test_persian_author_and_solar_year_are_matched(self):
+        text = "پژوهش پیشین (رضایی، ۱۴۰۲) این نتیجه را تأیید می‌کند."
+        refs = [{"first_author": "رضایی، علی", "year": "۱۴۰۲"}]
+        result = audit_apa(text, refs)
+        self.assertEqual(result["status"], "pass")
+        self.assertEqual(result["matched_reference_indices"], [1])
+
+    def test_persian_ieee_digits_are_normalized(self):
+        result = audit_ieee("شواهد پیشین [۱، ۲] را ببینید.", [{"number": 1}, {"number": 2}])
+        self.assertEqual(result["status"], "pass")
+        self.assertEqual(result["unique_in_text_numbers"], [1, 2])
+
+    def test_arabic_and_persian_author_variants_normalize_equally(self):
+        text = "پژوهش پیشین (رضايي، ۱۴۰۲)."
+        refs = [{"first_author": "رضایی، علی", "year": 1402}]
+        result = audit_apa(text, refs)
+        self.assertEqual(result["status"], "pass")
+
+
 if __name__ == "__main__":
     unittest.main()
