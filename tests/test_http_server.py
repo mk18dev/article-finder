@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import socket
 import threading
+from http.server import ThreadingHTTPServer
 import unittest
 import urllib.error
 import urllib.request
