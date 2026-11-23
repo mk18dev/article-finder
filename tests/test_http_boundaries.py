@@ -167,6 +167,13 @@ class HTTPAPIBoundaryTests(unittest.TestCase):
         self.assertEqual(status, 403)
         self.assertFalse(body["ok"])
 
+    def test_fetch_pdf_action_is_not_exposed(self):
+        status, body = self.raw_request(
+            b'{"action":"fetch_pdf","url":"https://example.org/paper.pdf"}'
+        )
+        self.assertEqual(status, 400)
+        self.assertFalse(body["ok"])
+
     def test_unknown_action_and_path_are_rejected(self):
         status, body = self.raw_request(b'{"action":"unknown"}')
         self.assertEqual(status, 400)

@@ -10,6 +10,7 @@ from unittest.mock import patch
 SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 import fetch_pdf as fp
+from http_util import FetchResponse
 
 
 PDF = b"%PDF-1.7\n" + b"0" * fp.MIN_PDF_BYTES
@@ -26,8 +27,8 @@ def openalex_record(*urls: str) -> dict:
     }
 
 
-def fetched(body: bytes, url: str, content_type: str = "application/pdf") -> fp.FetchResponse:
-    return fp.FetchResponse(body=body, final_url=url, content_type=content_type)
+def fetched(body: bytes, url: str, content_type: str = "application/pdf") -> FetchResponse:
+    return FetchResponse(body=body, final_url=url, content_type=content_type)
 
 
 class DownloadOneIntegrationTests(unittest.TestCase):

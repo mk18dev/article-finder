@@ -557,10 +557,10 @@ class handler(BaseHTTPRequestHandler):
         try:
             raw = self.rfile.read(length)
             if len(raw) != length:
-                raise RequestError("بدنه درخواست ناقص دریافت شد.")
+                raise RequestError("بدنه درخواست ناقص دریافت شد.", 400)
             payload = json.loads(raw.decode("utf-8"))
             if not isinstance(payload, dict):
-                raise RequestError("بدنه درخواست باید یک شیء JSON باشد.")
+                raise RequestError("بدنه درخواست باید یک شیء JSON باشد.", 400)
             action = payload.get("action")
             if action == "discover_sources":
                 result = run_source_discovery(payload)
