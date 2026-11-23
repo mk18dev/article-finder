@@ -301,7 +301,19 @@ def verified_indexing_items(entry: dict[str, Any]) -> list[dict[str, Any]]:
             continue
         index = str(item.get("index") or "").strip().lower()
         domains = INDEX_DOMAINS.get(index)
-        if domains and item.get("verified") is True and evidence_item_ok(item) and host_matches(
+        # S6 records use the source-specific "verified" flag, while the
+        # shared evidence validator expects the generic "reviewed" flag.
+        # Adapt the schema here so the tier policy consumes the same evidence
+        # that already passed the S6 gate; do not weaken evidence validation.
+        evidence = {
+            "reviewed": item.get("verified") is True,
+            "reviewer_id": item.get("reviewer_id"),
+            "reviewed_at": item.get("reviewed_at"),
+            "locator": item.get("locator"),
+            "url": item.get("url"),
+            "note": item.get("note"),
+        }
+        if domains and evidence_item_ok(evidence) and host_matches(
             str(item.get("url") or ""), domains
         ):
             verified.append(item)
