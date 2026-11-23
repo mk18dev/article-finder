@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Browser E2E for Article Finder's discovery, verification, draft and output flows."""
+"""Browser E2E for functional, accessibility and performance regression checks."""
 from __future__ import annotations
 
 import json
