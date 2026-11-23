@@ -38,17 +38,17 @@ class HttpSecurityTests(unittest.TestCase):
             hu.validate_remote_url("https://example.org:8443/a.pdf")
 
     def test_accepts_public_dns_result(self):
-        with patch("http_util.socket.getaddrinfo", return_value=answer("1.1.1.1")):
+        with patch.object(hu.socket, "getaddrinfo", return_value=answer("1.1.1.1")):
             self.assertEqual(hu.validate_remote_url("https://example.org/a.pdf"),
                              "https://example.org/a.pdf")
 
     def test_blocks_private_dns_result(self):
-        with patch("http_util.socket.getaddrinfo", return_value=answer("10.0.0.2")):
+        with patch.object(hu.socket, "getaddrinfo", return_value=answer("10.0.0.2")):
             with self.assertRaises(ValueError):
                 hu.validate_remote_url("https://example.org/a.pdf")
 
     def test_blocks_mixed_public_and_private_dns_results(self):
-        with patch("http_util.socket.getaddrinfo",
+        with patch.object(hu.socket, "getaddrinfo",
                    return_value=answer("1.1.1.1") + answer("192.168.1.2")):
             with self.assertRaises(ValueError):
                 hu.validate_remote_url("https://example.org/a.pdf")
@@ -56,12 +56,12 @@ class HttpSecurityTests(unittest.TestCase):
     def test_blocks_ipv4_mapped_private_ipv6(self):
         record = [(socket.AF_INET6, socket.SOCK_STREAM, socket.IPPROTO_TCP, "",
                    ("::ffff:127.0.0.1", 443, 0, 0))]
-        with patch("http_util.socket.getaddrinfo", return_value=record):
+        with patch.object(hu.socket, "getaddrinfo", return_value=record):
             with self.assertRaises(ValueError):
                 hu.validate_remote_url("https://example.org/a.pdf")
 
     def test_strips_fragments(self):
-        with patch("http_util.socket.getaddrinfo", return_value=answer("1.1.1.1")):
+        with patch.object(hu.socket, "getaddrinfo", return_value=answer("1.1.1.1")):
             self.assertEqual(hu.validate_remote_url("https://example.org/a.pdf#page=3"),
                              "https://example.org/a.pdf")
 
@@ -75,17 +75,17 @@ class HttpSecurityTests(unittest.TestCase):
 
 
     def test_explicit_default_port_is_normalized(self):
-        with patch("http_util.socket.getaddrinfo", return_value=answer("1.1.1.1")):
+        with patch.object(hu.socket, "getaddrinfo", return_value=answer("1.1.1.1")):
             self.assertEqual(hu.validate_remote_url("https://example.org:443/a.pdf"),
                              "https://example.org/a.pdf")
 
 
     def test_public_ipv4_mapped_ipv6_is_normalized_before_dial(self):
-        with patch("http_util.socket.getaddrinfo", return_value=answer("::ffff:8.8.8.8")):
+        with patch.object(hu.socket, "getaddrinfo", return_value=answer("::ffff:8.8.8.8")):
             self.assertEqual(hu._resolve_public_addresses("example.org"), ("8.8.8.8",))
 
     def test_private_ipv4_mapped_ipv6_is_rejected(self):
-        with patch("http_util.socket.getaddrinfo", return_value=answer("::ffff:127.0.0.1")):
+        with patch.object(hu.socket, "getaddrinfo", return_value=answer("::ffff:127.0.0.1")):
             with self.assertRaises(ValueError):
                 hu._resolve_public_addresses("example.org")
 
