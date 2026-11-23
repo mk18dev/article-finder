@@ -43,6 +43,12 @@ class IsbnTests(unittest.TestCase):
     def test_isbn13_invalid(self) -> None:
         self.assertFalse(ci.isbn13_valid("9780262033849"))
 
+    def test_real_mit_press_deep_learning_isbn(self) -> None:
+        self.assertTrue(ci.isbn13_valid("9780262035613"))
+
+    def test_real_kdd_2024_proceedings_isbn(self) -> None:
+        self.assertTrue(ci.isbn13_valid("9798400704901"))
+
 
 class ClassifyTests(unittest.TestCase):
     def test_classifies_by_length_after_clean(self) -> None:
