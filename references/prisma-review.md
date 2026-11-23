@@ -7,7 +7,7 @@ The PRISMA module validates a reviewer-attributed screening ledger and derives c
 - `protocol.review_type`: `systematic` or `scoping`; narrative reviews must not be presented as PRISMA systematic reviews.
 - `protocol.question`, `inclusion_criteria`, and `exclusion_criteria`: frozen before screening.
 - `protocol.reviewers`: unique reviewer IDs. Dual screening is explicit; single screening requires a written justification.
-- `search_log`: database/register name, platform, exact query, ISO date, HTTPS result URL, actual retrieved hits, limits, status, and `source_type` (`database` or `register`).
+- `search_log`: database/register name, platform, exact query, exact `YYYY-MM-DD` calendar date, valid HTTPS result URL with a host, actual retrieved hits, limits, status, and `source_type` (`database` or `register`).
 - `other_methods_log`: websites, organisations, backward/forward citation searching, or other methods, with method, date, HTTPS URL, hits, limits, and status.
 - `records`: every raw record from all search streams. `source_type` is `database`, `register`, or `other_method`. Each record needs a stable `record_id` and title.
 
@@ -42,7 +42,7 @@ If a `counts` object is supplied, each supplied value is compared with the ledge
 
 ## Deduplication
 
-The canonical key order is DOI, PMID, normalized URL, then normalized title. Duplicate links preserve the canonical `record_id`, key type, and any conflicting title/year/author/venue/publisher metadata. A conflict is not silently overwritten.
+The canonical key order is valid DOI, PMID, normalized URL, then normalized title. Malformed DOI strings are not accepted as DOI keys. Duplicate links preserve the canonical `record_id`, key type, and any conflicting title/year/author/venue/publisher metadata. The generated report includes a duplicate-resolution ledger; a conflict is not silently overwritten.
 
 ## Run
 
