@@ -90,7 +90,6 @@ SCI_MAGO = "https://www.scimagojr.com/journalsearch.php?q="
 CLARIVATE = "https://mjl.clarivate.com/search-results?issn="
 DOAJ = "https://doaj.org/search/journals?source=%7B%22query%22%3A%7B%22query_string%22%3A%7B%22query%22%3A%22"
 DBLP = "https://dblp.org/search?q="
-IMPACTFACTOR = "http://impactfactor.ir/"
 
 
 @dataclass
