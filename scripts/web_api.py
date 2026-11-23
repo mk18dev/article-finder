@@ -500,7 +500,9 @@ class handler(BaseHTTPRequestHandler):
         if not self._authorized():
             self._send(401, {"ok": False, "error": "کلید دسترسی معتبر نیست."})
             return
-        if "application/json" not in self.headers.get("Content-Type", "").lower():
+        content_type = self.headers.get("Content-Type", "")
+        media_type = content_type.split(";", 1)[0].strip().lower()
+        if media_type != "application/json":
             self._send(415, {"ok": False, "error": "Content-Type باید application/json باشد."})
             return
         try:

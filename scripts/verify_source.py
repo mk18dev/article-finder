@@ -626,7 +626,6 @@ def tier_verified(
         derived_papers=valid_derived,
         university_reputable=university_reputable,
         main_book=entry.get("main_book"),
-        isbn_valid=steps.get("S7") if work.kind == "book" else None,
         publisher_verified=book_evidence.get("publisher_verified"),
         citation_count=book_evidence.get("citation_count"),
         relevant_chapters=relevant_chapters,

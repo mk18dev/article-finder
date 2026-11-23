@@ -23,6 +23,7 @@ import argparse
 import json
 import os
 import re
+import tempfile
 import time
 import urllib.parse
 from defusedxml import ElementTree as ET
@@ -280,8 +281,32 @@ def download_one(index: int, source: Source, out: Path, dry_run: bool) -> Result
 
 
 def save(index: int, source: Source, out: Path, payload: bytes, origin: str) -> Result:
+    """Persist a completed PDF atomically; never leave a partial target behind."""
     target = out / f"{slug(index, source.title)}.pdf"
-    target.write_bytes(payload)
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="wb",
+            prefix=f".{target.name}.",
+            suffix=".part",
+            dir=out,
+            delete=False,
+        ) as stream:
+            temporary = Path(stream.name)
+            written = stream.write(payload)
+            if written != len(payload):
+                raise OSError("short write while saving PDF")
+            stream.flush()
+            os.fsync(stream.fileno())
+        temporary.replace(target)
+    except OSError as exc:
+        if temporary is not None:
+            try:
+                temporary.unlink()
+            except OSError:
+                pass
+        detail = f"{type(exc).__name__}: {str(exc)}"[:120]
+        return Result(source, "save-failed", detail)
     return Result(source, "downloaded", f"{len(payload) // 1024} KB from {origin}", path=str(target))
 
 
