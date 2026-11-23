@@ -175,4 +175,3 @@ def compute_tier(
         return "C", "A primary book below the configured citation threshold maps to tier C."
 
     return None, "Unsupported source type; no tier was computed."
-"
