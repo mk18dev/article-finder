@@ -190,44 +190,46 @@ def main() -> int:
         page = context.new_page()
         page.on("pageerror", lambda error: page_errors.append(str(error)))
         page.route("**/api", api_route)
-        axe_bundle = Path("node_modules/axe-core/axe.min.js")
-        if not axe_bundle.is_file():
-            raise AssertionError("Pinned axe-core bundle is missing")
-        axe_source = axe_bundle.read_text(encoding="utf-8")
-        page.route(
-            "**/axe.min.js",
-            lambda route: route.fulfill(
-                status=200,
-                content_type="application/javascript; charset=utf-8",
-                body=axe_source,
-            ),
-        )
+        if browser_name == "chromium":
+            axe_bundle = Path("node_modules/axe-core/axe.min.js")
+            if not axe_bundle.is_file():
+                raise AssertionError("Pinned axe-core bundle is missing")
+            axe_source = axe_bundle.read_text(encoding="utf-8")
+            page.route(
+                "**/axe.min.js",
+                lambda route: route.fulfill(
+                    status=200,
+                    content_type="application/javascript; charset=utf-8",
+                    body=axe_source,
+                ),
+            )
 
         response = page.goto(BASE_URL, wait_until="networkidle", timeout=20_000)
         assert response is not None and response.status == 200
 
-        page.add_script_tag(url=BASE_URL.rstrip("/") + "/axe.min.js")
-        accessibility = page.evaluate("""async () => {
-            const result = await axe.run(document, {
-                runOnly: {
-                    type: "tag",
-                    values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]
-                }
-            });
-            return result.violations.map(item => ({
-                id: item.id,
-                impact: item.impact,
-                help: item.help,
-                nodes: item.nodes.map(node => ({
-                    target: node.target,
-                    summary: node.failureSummary
-                }))
-            }));
-        }""")
-        if accessibility:
-            raise AssertionError("WCAG 2.2 AA accessibility violations: " + json.dumps(
-                accessibility, ensure_ascii=False
-            ))
+        if browser_name == "chromium":
+            page.add_script_tag(url=BASE_URL.rstrip("/") + "/axe.min.js")
+            accessibility = page.evaluate("""async () => {
+                const result = await axe.run(document, {
+                    runOnly: {
+                        type: "tag",
+                        values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]
+                    }
+                });
+                return result.violations.map(item => ({
+                    id: item.id,
+                    impact: item.impact,
+                    help: item.help,
+                    nodes: item.nodes.map(node => ({
+                        target: node.target,
+                        summary: node.failureSummary
+                    }))
+                }));
+            }""")
+            if accessibility:
+                raise AssertionError("WCAG 2.2 AA accessibility violations: " + json.dumps(
+                    accessibility, ensure_ascii=False
+                ))
 
         performance = page.evaluate("""() => {
             const navigation = performance.getEntriesByType("navigation")[0];
@@ -252,6 +254,8 @@ def main() -> int:
         assert page.locator(".mode-tab").count() == 2
         assert page.locator("#source-form").is_visible()
         assert_no_horizontal_overflow(page)
+        advanced_summary_box = page.locator(".advanced-block summary").bounding_box()
+        assert advanced_summary_box and advanced_summary_box["height"] >= 24, advanced_summary_box
 
         page.locator("#access-key").fill("browser-e2e-key")
         page.locator("#discovery-keyword").fill("Survey + recommender systems")
@@ -268,16 +272,17 @@ def main() -> int:
         assert page.locator(".source-title").inner_text() == INJECTED_TITLE
         assert page.locator("#result-items img").count() == 0
         assert page.locator("#results-view").is_visible()
-        result_accessibility = page.evaluate("""async () => {
-            const result = await axe.run(document, {
-                runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] }
-            });
-            return result.violations.map(item => ({id: item.id, impact: item.impact, help: item.help}));
-        }""")
-        if result_accessibility:
-            raise AssertionError("Result view accessibility violations: " + json.dumps(
-                result_accessibility, ensure_ascii=False
-            ))
+        if browser_name == "chromium":
+            result_accessibility = page.evaluate("""async () => {
+                const result = await axe.run(document, {
+                    runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] }
+                });
+                return result.violations.map(item => ({id: item.id, impact: item.impact, help: item.help}));
+            }""")
+            if result_accessibility:
+                raise AssertionError("Result view accessibility violations: " + json.dumps(
+                    result_accessibility, ensure_ascii=False
+                ))
         assert any(item["action"] == "verify_sources" for item in calls)
         assert any(item["authorization"] == "Bearer browser-e2e-key" for item in calls)
         assert page.evaluate(
@@ -292,20 +297,27 @@ def main() -> int:
         assert download.suggested_filename == "article-finder-report.json"
 
         draft_tab = page.locator('[data-mode="draft"]')
+        source_tab = page.locator('[data-mode="sources"]')
+        source_tab.focus()
+        page.keyboard.press("ArrowLeft")
+        assert draft_tab.get_attribute("aria-selected") == "true"
+        page.keyboard.press("ArrowRight")
+        assert source_tab.get_attribute("aria-selected") == "true"
         draft_tab.focus()
         page.keyboard.press("Enter")
         assert draft_tab.get_attribute("aria-selected") == "true"
         assert page.locator("#draft-form").is_visible()
-        draft_accessibility = page.evaluate("""async () => {
-            const result = await axe.run(document, {
-                runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] }
-            });
-            return result.violations.map(item => ({id: item.id, impact: item.impact, help: item.help}));
-        }""")
-        if draft_accessibility:
-            raise AssertionError("Draft view accessibility violations: " + json.dumps(
-                draft_accessibility, ensure_ascii=False
-            ))
+        if browser_name == "chromium":
+            draft_accessibility = page.evaluate("""async () => {
+                const result = await axe.run(document, {
+                    runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] }
+                });
+                return result.violations.map(item => ({id: item.id, impact: item.impact, help: item.help}));
+            }""")
+            if draft_accessibility:
+                raise AssertionError("Draft view accessibility violations: " + json.dumps(
+                    draft_accessibility, ensure_ascii=False
+                ))
         page.locator("#draft-text").fill(
             "# عنوان\nاین متن برای اجرای آزمون مرورگر و بررسی رابط نوشته شده است.\n\n"
             "## چکیده\nمتن آزمایشی چکیده مقاله."
