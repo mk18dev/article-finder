@@ -574,6 +574,9 @@ class TierTests(unittest.TestCase):
             "indexing_evidence": [{
                 "index": "ISC", "verified": True, **evidence("ISC index record reviewed"),
                 "url": "https://isc.gov.ir/journal/record",
+                 "matched_title": "A paper",
+                 "coverage_start_year": date.today().year - 5,
+                 "coverage_end_year": date.today().year,
             }],
             "tier_evidence": {
                 **ENTRY["tier_evidence"], "url": "https://isc.gov.ir/journal/record",
