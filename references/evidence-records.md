@@ -166,6 +166,7 @@ Example book record:
   "publisher_verified": true,
   "citation_evidence": {
     "source": "OpenAlex",
+    "doi": "10.1000/replace-with-book-doi",
     "citation_count": 27,
     "verified": true,
     "reviewer_id": "reviewer-1",
