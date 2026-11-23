@@ -11,7 +11,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-IEEE_RE = re.compile(r"\[(\d+(?:\s*[-–]\s*\d+)?(?:\s*,\s*\d+(?:\s*[-–]\s*\d+)?)*)\]")
+IEEE_RE = re.compile(r"\[(\d+(?:\s*[-–]\s*\d+)?(?:\s*[,،]\s*\d+(?:\s*[-–]\s*\d+)?)*)\]")
 APA_PAREN_RE = re.compile(r"\(([^()]{0,240}(?:13|14|19|20)\d{2}[a-z]?[^()]*)\)", re.UNICODE)
 APA_PAIR_RE = re.compile(
     r"([^\W\d_][^\d,;()]{0,80}?),?\s*((?:13|14|19|20)\d{2}[a-z]?)",
@@ -94,7 +94,7 @@ def _reference_author(reference: dict[str, Any]) -> str:
 
 def _expand_ieee(body: str) -> list[int]:
     result: list[int] = []
-    for token in body.split(","):
+    for token in re.split(r"[,،]", body):
         token = token.strip()
         if "-" in token or "–" in token:
             parts = re.split(r"[-–]", token)
