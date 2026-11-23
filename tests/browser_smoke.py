@@ -387,10 +387,16 @@ def main() -> int:
         context.close()
         browser.close()
 
+    accessibility_result = (
+        "WCAG 2.2 AA axe-core audit passed"
+        if browser_name == "chromium"
+        else "axe-core accessibility audit is executed in Chromium only"
+    )
     print(
         "Browser E2E passed: discovery, source submission, safe text rendering, API-key handling, "
-        "draft submission, API error state, copy/download controls, responsive layouts, "
-        "WCAG 2.2 AA axe-core audit and performance budgets. "
+        "draft submission, API error state, copy/download controls, responsive layouts; "
+        + accessibility_result
+        + "; performance budgets. "
         + json.dumps(performance, ensure_ascii=False)
     )
     return 0

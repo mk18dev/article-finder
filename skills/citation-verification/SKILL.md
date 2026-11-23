@@ -14,6 +14,7 @@ Use `scripts/verify_citations.py` on a bibliography JSON file and `scripts/citat
 - A metadata identity match does not establish that the source supports the cited claim.
 - No Crossref update record is not proof that no correction or retraction exists.
 - Confirm high-risk notices on the publisher page and preserve the notice DOI.
-- Cross-check APA author-year or IEEE numeric citations against the reference list; report missing bibliography entries, uncited references, duplicate DOI and duplicate author-year keys.\n- Do not silently delete or rewrite questionable citations; report the mismatch and request reviewer action.
+- Cross-check APA author-year or IEEE numeric citations against the reference list; report missing bibliography entries, uncited references, duplicate DOI and duplicate author-year keys.
+- Do not silently delete or rewrite questionable citations; report the mismatch and request reviewer action.
 
 Output: per-citation status, metadata comparison, update links, APA/IEEE crosswalk, and limitations.

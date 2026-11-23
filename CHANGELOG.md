@@ -48,8 +48,8 @@ All notable changes to this skill and web app. Format: [Keep a Changelog](https:
 
 ### Quality gates
 
-- The baseline CI run on commit `3315c76816249316d6698b795954b2c10ef6e66c` passed the Python 3.10–3.13 test jobs, static quality/security, Chromium, and WebKit; Firefox and production smoke were cancelled in that run and are not counted as passes.
-- Added 24 regression/acceptance tests across citation identity, IEEE numbering, PRISMA provenance and duplicate traceability, synthesis evidence, and the 76-rule matrix; added `references/phase3-5-test-matrix.md` to map the acceptance gates. The latest main revision requires a fresh complete CI read-back before phase acceptance.
+- Full CI run [45169419253](https://github.com/mk18dev/article-finder/actions/runs/45169419253) on commit `91a6f177cce75f6c97276395033808e8f290ba21` completed successfully: 478 tests on Python 3.10–3.13, 79% branch coverage, static quality/security, Chromium/Firefox/WebKit browser smoke, and skill-package build/content checks. Production smoke was intentionally skipped because it is a separately authorized release gate; this run does not claim a production deployment.
+- Expanded regression/acceptance coverage across citation identity, IEEE numbering, PRISMA provenance and duplicate traceability, synthesis evidence, and all 76 draft rules; added `references/phase3-5-test-matrix.md` to map the acceptance gates.
 - Added Ruff lint, Bandit security scanning and pip-audit for pinned runtime/browser/quality dependencies.
 - Added a Playwright browser smoke job for RTL rendering, mode switching and 320px/390px mobile plus desktop overflow checks.
 - Added package-content validation for all nine specialist skills and explicit exclusion of PDFs, caches and build output.
