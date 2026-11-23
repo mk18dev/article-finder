@@ -32,6 +32,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
+import http_util
 from http_util import MAILTO, fetch_bytes, fetch_json, fetch_response
 
 ATOM = {"a": "http://www.w3.org/2005/Atom"}
