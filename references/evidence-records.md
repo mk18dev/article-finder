@@ -110,6 +110,7 @@ clearance result):
   {
     "authority": "mohme", "status": "clear", "query_type": "ISSN",
     "query_value": "0924-1868", "list_version": "replace-with-current-version",
+    "list_updated_at": "2026-11-23",
     "reviewed": true, "reviewer_id": "reviewer-1",
     "reviewed_at": "2026-11-23T10:00:00Z",
     "url": "https://research.behdasht.gov.ir/",
