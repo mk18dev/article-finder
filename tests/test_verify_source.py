@@ -775,8 +775,42 @@ class SourceSpecificS6Tests(unittest.TestCase):
             "url": "https://books.google.com/books?id=example",
             "note": "Book record and publisher were inspected",
             "citation_count": 27, "publisher_verified": True,
+            "citation_evidence": {
+                "source": "OpenAlex", "citation_count": 27, "verified": True,
+                "reviewer_id": "reviewer-1", "reviewed_at": "2026-11-23T10:00:00Z",
+                "locator": "OpenAlex work W123", "url": "https://api.openalex.org/works/W123",
+                "note": "OpenAlex cited_by_count was inspected",
+            },
         }
         self.assertIs(decide(book, {**ENTRY, "book_s6_evidence": evidence})["steps"]["S6"], True)
+
+    def test_book_s6_requires_citation_evidence_provenance(self) -> None:
+        book = work(kind="book", issns=[], isbns=["9780262033848"])
+        evidence = {
+            "source": "Google Books", "verified": True,
+            "reviewer_id": "reviewer-1", "reviewed_at": "2026-11-23T10:00:00Z",
+            "locator": "book record", "url": "https://books.google.com/books?id=example",
+            "note": "Book record and publisher were inspected",
+            "citation_count": 27, "publisher_verified": True,
+        }
+        self.assertIsNone(decide(book, {**ENTRY, "book_s6_evidence": evidence})["steps"]["S6"])
+
+    def test_book_s6_rejects_mismatched_openalex_citation_count(self) -> None:
+        book = work(kind="book", issns=[], isbns=["9780262033848"])
+        evidence = {
+            "source": "Google Books", "verified": True,
+            "reviewer_id": "reviewer-1", "reviewed_at": "2026-11-23T10:00:00Z",
+            "locator": "book record", "url": "https://books.google.com/books?id=example",
+            "note": "Book record and publisher were inspected",
+            "citation_count": 27, "publisher_verified": True,
+            "citation_evidence": {
+                "source": "OpenAlex", "citation_count": 28, "verified": True,
+                "reviewer_id": "reviewer-1", "reviewed_at": "2026-11-23T10:00:00Z",
+                "locator": "OpenAlex work W123", "url": "https://api.openalex.org/works/W123",
+                "note": "OpenAlex cited_by_count was inspected",
+            },
+        }
+        self.assertIsNone(decide(book, {**ENTRY, "book_s6_evidence": evidence})["steps"]["S6"])
 
     def test_book_s6_is_pending_without_citation_count(self) -> None:
         book = work(kind="book", issns=[], isbns=["9780262033848"])
@@ -796,6 +830,12 @@ class SourceSpecificS6Tests(unittest.TestCase):
             "url": "https://www.amazon.com/dp/example",
             "note": "Book record and citation count were inspected",
             "citation_count": 12, "publisher_verified": False,
+            "citation_evidence": {
+                "source": "OpenAlex", "citation_count": 12, "verified": True,
+                "reviewer_id": "reviewer-1", "reviewed_at": "2026-11-23T10:00:00Z",
+                "locator": "OpenAlex work W123", "url": "https://api.openalex.org/works/W123",
+                "note": "OpenAlex cited_by_count was inspected",
+            },
         }
         self.assertIs(decide(book, {**ENTRY, "book_s6_evidence": evidence})["steps"]["S6"], None)
 
@@ -857,6 +897,12 @@ class SourceSpecificS6Tests(unittest.TestCase):
             "url": "https://books.google.com/books?id=example",
             "note": "Book record and publisher were inspected",
             "citation_count": True, "publisher_verified": True,
+            "citation_evidence": {
+                "source": "OpenAlex", "citation_count": True, "verified": True,
+                "reviewer_id": "reviewer-1", "reviewed_at": "2026-11-23T10:00:00Z",
+                "locator": "OpenAlex work W123", "url": "https://api.openalex.org/works/W123",
+                "note": "OpenAlex cited_by_count was inspected",
+            },
         }
         self.assertIsNone(decide(book, {**ENTRY, "book_s6_evidence": evidence})["steps"]["S6"])
 if __name__ == "__main__":
