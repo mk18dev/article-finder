@@ -164,7 +164,7 @@ class HttpSecurityTests(unittest.TestCase):
         sleep.assert_called_once_with(1)
 
     def test_timeout_retry_stops_at_configured_attempt_limit(self):
-        with patch.object(hu, "_open", side_effect=TimeoutError("timed out")) as opened, \\
+        with patch.object(hu, "_open", side_effect=TimeoutError("timed out")) as opened, \
              patch.object(hu.time, "sleep") as sleep:
             with self.assertRaises(TimeoutError):
                 hu.fetch_response("https://example.org/paper.pdf")
