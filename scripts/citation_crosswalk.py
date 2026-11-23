@@ -118,7 +118,7 @@ def _reference_number(value: Any) -> int | None:
     normalized = unicodedata.normalize("NFKC", str(value)).translate(
         str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
     )
-    if not re.fullmatch(r"\\d+", normalized):
+    if not re.fullmatch(r"\d+", normalized):
         return None
     number = int(normalized)
     return number if number > 0 else None
