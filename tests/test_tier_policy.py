@@ -30,6 +30,24 @@ class TierPolicyTests(unittest.TestCase):
     def test_journal_q4_computes_b(self):
         self.assertEqual(self.compute(quartile="Q4")[0], "B")
 
+    def test_wos_scie_q1_computes_a(self):
+        self.assertEqual(self.compute(
+            indexing_evidence=[{"index": "Web of Science", "coverage": "SCIE"}],
+            quartile="Q1",
+        )[0], "A")
+
+    def test_wos_esci_computes_b(self):
+        self.assertEqual(self.compute(
+            indexing_evidence=[{"index": "Web of Science", "coverage": "ESCI"}],
+            quartile=None, quartile_source=None,
+        )[0], "B")
+
+    def test_wos_without_coverage_is_pending(self):
+        self.assertIsNone(self.compute(
+            indexing_evidence=[{"index": "Web of Science"}],
+            quartile="Q1",
+        )[0])
+
     def test_esci_computes_b_without_quartile(self):
         self.assertEqual(self.compute(
             indexing_evidence=[{"index": "ESCI"}],
