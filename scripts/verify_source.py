@@ -28,6 +28,7 @@ from http_util import fetch_json
 from tier_policy import compute_tier
 
 RECENCY_YEARS = 5
+BLACKLIST_MAX_AGE_DAYS = 730
 
 TRUSTED_PUBLISHERS: tuple[str, ...] = (
     "ieee", "institute of electrical and electronics engineers", "ieee computer society",
@@ -454,6 +455,13 @@ def blacklist_gate(work: Work, entry: dict[str, Any]) -> bool | None:
         if _normalize_issn(item.get("query_value")) not in valid_issns:
             return None
         if not str(item.get("list_version") or "").strip():
+            return None
+        try:
+            list_updated = date.fromisoformat(str(item.get("list_updated_at") or ""))
+        except ValueError:
+            return None
+        list_age = (date.today() - list_updated).days
+        if list_age < 0 or list_age > BLACKLIST_MAX_AGE_DAYS:
             return None
         if not evidence_item_ok(item) or not host_matches(
             str(item.get("url") or ""), BLACKLIST_DOMAINS[authority]
