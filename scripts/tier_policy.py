@@ -55,10 +55,13 @@ def compute_tier(
             return None, "Specialization status is required for the journal tier."
         if specialized is False:
             return "C", "The journal is indexed but outside the declared specialization."
-        high_index = bool(indices & {"scopus", "web of science", "wos", "isi master journal list"})
-        esci = "esci" in indices or any(
-            str(item.get("coverage") or "").upper() == "ESCI" for item in indexing_evidence
-        )
+        wos_coverage = {
+            str(item.get("coverage") or "").strip().upper()
+            for item in indexing_evidence
+            if str(item.get("index") or "").strip().lower() in {"web of science", "wos"}
+        }
+        high_index = "scopus" in indices or bool(wos_coverage & {"SCIE", "SSCI", "AHCI"})
+        esci = "esci" in indices or "ESCI" in wos_coverage
         if not high_index and indices & {"isc", "dblp", "doaj", "regional"}:
             return "C", "Only regional/secondary indexing evidence is recorded."
         if not high_index and not esci:
