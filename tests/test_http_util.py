@@ -244,6 +244,16 @@ class HttpSecurityTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "DNS resolution timed out"):
                 hu._resolve_public_addresses("slow.example")
 
+    def test_redacts_url_userinfo_and_vendor_specific_token_parameters(self):
+        value = hu.redact_url(
+            "https://alice:password@files.example/paper.pdf?X-Amz-Security-Token=abc123&AWSAccessKeyId=AKIA123&download=1"
+        )
+        self.assertNotIn("alice", value)
+        self.assertNotIn("password", value)
+        self.assertNotIn("abc123", value)
+        self.assertNotIn("AKIA123", value)
+        self.assertIn("download=1", value)
+
 
 if __name__ == "__main__":
     unittest.main()
