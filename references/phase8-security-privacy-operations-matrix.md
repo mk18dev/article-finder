@@ -52,7 +52,6 @@
 
 ## Final verification — 2026-11-23
 
-<badge> </badge>
 
 - Status: **DONE — automated implementation and CI acceptance complete, with documented limitations**.
 - Exact main HEAD: `569b7f1a7bc4189f01bcac7acaa85454abe97abb`; version remains `1.1.0`.
