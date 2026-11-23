@@ -476,35 +476,50 @@ def blacklist_gate(work: Work, entry: dict[str, Any]) -> bool | None:
         return None
     valid_issns = {_normalize_issn(value) for value in work.issns if _normalize_issn(value)}
     by_authority: dict[str, dict[str, Any]] = {}
+    incomplete = False
     for item in checks:
         if not isinstance(item, dict):
-            return None
+            incomplete = True
+            continue
         authority = str(item.get("authority") or "").strip().lower()
-        if authority not in BLACKLIST_DOMAINS or authority in by_authority:
-            return None
+        if authority not in BLACKLIST_DOMAINS:
+            incomplete = True
+            continue
+        duplicate = authority in by_authority
         if str(item.get("query_type") or "").strip().lower() != "issn":
-            return None
+            incomplete = True
+            continue
         if _normalize_issn(item.get("query_value")) not in valid_issns:
-            return None
+            incomplete = True
+            continue
         if not str(item.get("list_version") or "").strip():
-            return None
+            incomplete = True
+            continue
         try:
             list_updated = date.fromisoformat(str(item.get("list_updated_at") or ""))
         except ValueError:
-            return None
+            incomplete = True
+            continue
         list_age = (date.today() - list_updated).days
         if list_age < 0 or list_age > BLACKLIST_MAX_AGE_DAYS:
-            return None
+            incomplete = True
+            continue
         if not evidence_item_ok(item) or not host_matches(
             str(item.get("url") or ""), BLACKLIST_DOMAINS[authority]
         ):
-            return None
+            incomplete = True
+            continue
         status = str(item.get("status") or "").strip().lower()
+        # A verified official hit is decisive even when another authority's
+        # record is missing, malformed, duplicated, or stale.
         if status in {"listed", "blacklisted", "invalid", "revoked"}:
             return False
-        if status != "clear":
-            return None
+        if status != "clear" or duplicate:
+            incomplete = True
+            continue
         by_authority[authority] = item
+    if incomplete:
+        return None
     return True if set(by_authority) == set(BLACKLIST_DOMAINS) else None
 
 

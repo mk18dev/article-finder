@@ -423,6 +423,13 @@ class BlacklistTests(unittest.TestCase):
         checks = ENTRY["blacklist_checks"] + [dict(ENTRY["blacklist_checks"][0])]
         self.assertIsNone(decide(entry={**ENTRY, "blacklist_checks": checks})["steps"]["S6"])
 
+    def test_verified_blacklist_hit_is_not_masked_by_incomplete_other_checks(self) -> None:
+        checks = [
+            None,
+            {**ENTRY["blacklist_checks"][2], "status": "listed"},
+        ]
+        self.assertIs(decide(entry={**ENTRY, "blacklist_checks": checks})["steps"]["S6"], False)
+
     def test_unverified_blacklist_hit_is_pending_not_rejected(self) -> None:
         checks = [dict(item) for item in ENTRY["blacklist_checks"]]
         checks[1]["status"] = "listed"
