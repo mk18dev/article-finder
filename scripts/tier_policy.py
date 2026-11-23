@@ -1,4 +1,4 @@
-"""Evidence-driven A/B/C/D source tier computation for Article Finder."""
+""""Evidence-driven A/B/C/D source tier computation for Article Finder."""
 from __future__ import annotations
 
 import json
@@ -39,8 +39,12 @@ def compute_tier(
     policy: dict[str, Any] | None = None,
 ) -> tuple[str | None, str]:
     """Return (tier, rationale); None means the evidence is insufficient."""
+    if not isinstance(source_kind, str):
+        return None, "Source type must be a string; malformed input remains pending."
+    if indexing_status is not None and not isinstance(indexing_status, str):
+        return None, "Indexing status must be a string or null; malformed input remains pending."
     policy = policy or load_policy()
-    kind = (source_kind or "").lower()
+    kind = source_kind.strip().lower()
     boolean_inputs = {
         "publisher_recognized": publisher_recognized,
         "specialized": specialized,
@@ -74,6 +78,10 @@ def compute_tier(
     if kind == "journal":
         if indexing_status == "not_indexed":
             return "D", "The reviewer explicitly recorded that the journal is not indexed."
+        if identifier_verified is False:
+            return "D", "The journal identifier failed verification; tier D is assigned."
+        if identifier_verified is not True:
+            return None, "A verified journal identifier is required before computing a tier."
         if not indexing_evidence or source_record_verified is not True:
             return None, "A verified indexing record is required before computing a journal tier."
         if specialized is None:
@@ -167,3 +175,4 @@ def compute_tier(
         return "C", "A primary book below the configured citation threshold maps to tier C."
 
     return None, "Unsupported source type; no tier was computed."
+"
