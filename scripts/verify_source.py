@@ -585,6 +585,7 @@ def s6_gate(work: Work, entry: dict[str, Any]) -> bool | None:
         )
         citation_doi = str(
             citation_evidence.get("doi") or ""
+            if isinstance(citation_evidence, dict) else ""
         ).strip().lower().removeprefix("https://doi.org/").removeprefix("http://dx.doi.org/")
         work_doi = str(work.doi or "").strip().lower().removeprefix(
             "https://doi.org/"
