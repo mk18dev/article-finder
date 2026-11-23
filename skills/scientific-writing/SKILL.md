@@ -9,7 +9,7 @@ Use `scripts/check_draft.py` and `references/writing-article.md`.
 
 - Preserve the supplied draft; do not invent data, results, citations, or methods.
 - Run deterministic checks first: word ranges, paragraph constraints, headings, table/figure counts, and reference formatting.
-- Keep manual rules Pending until a reviewer records a boolean decision and a note pointing to the exact section.
+- Keep manual rules Pending until a reviewer records a boolean decision and a note pointing to the exact section. The 76-rule acceptance matrix checks complete rule registration, source-step mapping, fail-closed behavior, and human-verdict handling; it does not automate subjective rules.
 - Distinguish course-specific style rules from universal scientific-writing standards.
 - Return passed, failed, and pending rules separately, grouped by article section.
 - Suggest revisions with the rule and reason; rewrite only when explicitly asked.
