@@ -238,6 +238,12 @@ class HttpSecurityTests(unittest.TestCase):
         self.assertNotIn("user%40example.org", value)
         self.assertNotIn("#page", value)
 
+    def test_dns_resolution_has_a_hard_timeout(self):
+        with patch.object(hu, "DNS_TIMEOUT", 0.01), \
+             patch.object(hu.socket, "getaddrinfo", side_effect=lambda *args, **kwargs: __import__("time").sleep(0.08)):
+            with self.assertRaisesRegex(ValueError, "DNS resolution timed out"):
+                hu._resolve_public_addresses("slow.example")
+
 
 if __name__ == "__main__":
     unittest.main()
