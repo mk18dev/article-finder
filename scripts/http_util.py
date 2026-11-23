@@ -27,6 +27,9 @@ TIMEOUT = 30
 RETRIES = 3
 MAX_BYTES = 80 * 1024 * 1024
 CHUNK = 1 << 16
+# ORCHIDv2 identifiers are not globally reachable even though some Python
+# ipaddress versions classify them as global and non-reserved.
+_NON_GLOBAL_SPECIAL_NETWORKS = (ipaddress.ip_network("2001:20::/28"),)
 _UA = f"article-finder/1.1 (mailto:{MAILTO})" if MAILTO else "article-finder/1.1"
 
 
@@ -52,7 +55,12 @@ def _resolve_public_addresses(host: str) -> tuple[str, ...]:
         # special-purpose IPv6 ranges (including the well-known NAT64
         # translation prefix) and multicast addresses can still report
         # ``is_global=True``. Reject those classes explicitly as well.
-        if not address.is_global or address.is_reserved or address.is_multicast:
+        in_non_global_special_range = any(
+            address.version == network.version and address in network
+            for network in _NON_GLOBAL_SPECIAL_NETWORKS
+        )
+        if (not address.is_global or address.is_reserved or address.is_multicast
+                or in_non_global_special_range):
             raise ValueError(f"non-public or special-purpose destination IP is blocked: {address}")
         validated.append(str(address))
     return tuple(dict.fromkeys(validated))
