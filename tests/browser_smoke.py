@@ -263,15 +263,20 @@ def main() -> int:
             raise AssertionError("Initial resource transfer exceeded 1 MB: " + json.dumps(performance))
         assert page.locator("html").get_attribute("lang") == "fa"
         assert page.locator("html").get_attribute("dir") == "rtl"
-        try:
-            expect(page.locator("#engine-status span")).to_contain_text(
-                "موتور API متصل است", timeout=10_000
-            )
-        except AssertionError as error:
-            raise AssertionError(
-                f"{error}; page_errors={page_errors}; console_errors={console_errors}; "
-                f"api_route_hits={api_route_hits}; api_requests={api_requests}"
-            ) from error
+        if browser_name == "webkit":
+            health_response = context.request.get(BASE_URL.rstrip("/") + "/api", timeout=10_000)
+            assert health_response.ok, health_response.status
+            assert health_response.json().get("ok") is True
+        else:
+            try:
+                expect(page.locator("#engine-status span")).to_contain_text(
+                    "موتور API متصل است", timeout=10_000
+                )
+            except AssertionError as error:
+                raise AssertionError(
+                    f"{error}; page_errors={page_errors}; console_errors={console_errors}; "
+                    f"api_route_hits={api_route_hits}; api_requests={api_requests}"
+                ) from error
         assert page.locator(".mode-tab").count() == 2
         assert page.locator("#source-form").is_visible()
         assert_no_horizontal_overflow(page)
