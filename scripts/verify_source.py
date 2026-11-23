@@ -582,8 +582,25 @@ def s6_gate(work: Work, entry: dict[str, Any]) -> bool | None:
             str(citation_evidence.get("source") or "").strip().lower()
             if isinstance(citation_evidence, dict) else ""
         )
+        citation_doi = str(
+            citation_evidence.get("doi") or ""
+        ).strip().lower().removeprefix("https://doi.org/").removeprefix("http://dx.doi.org/")
+        work_doi = str(work.doi or "").strip().lower().removeprefix(
+            "https://doi.org/"
+        ).removeprefix("http://dx.doi.org/")
+        citation_isbn = re.sub(
+            r"[^0-9X]", "", str(citation_evidence.get("isbn") or "").upper()
+        ) if isinstance(citation_evidence, dict) else ""
+        work_isbns = {
+            re.sub(r"[^0-9X]", "", str(value).upper()) for value in work.isbns
+        }
+        citation_identity_verified = (
+            citation_doi == work_doi if work_doi
+            else bool(citation_isbn and citation_isbn in work_isbns)
+        )
         citation_count_verified = (
             citation_source == "openalex"
+            and citation_identity_verified
             and citation_evidence.get("citation_count") == citation_count
             and isinstance(citation_evidence.get("citation_count"), int)
             and not isinstance(citation_evidence.get("citation_count"), bool)
