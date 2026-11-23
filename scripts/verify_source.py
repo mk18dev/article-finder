@@ -652,8 +652,7 @@ def s6_links(work: Work) -> list[str]:
 
 def decide(work: Work, entry: dict[str, Any]) -> dict[str, Any]:
     category = str(entry.get("category", "")).lower()
-    tier = str(entry.get("tier", "")).upper()
-    tier_ok = tier_verified(entry)
+    tier_declared = str(entry.get("tier", "")).upper()
     keyword = str(entry.get("keyword", "")).strip()
     declared_area = str(entry.get("area", "")).strip()
     subject = str(entry.get("subject", "")).strip()
@@ -705,6 +704,8 @@ def decide(work: Work, entry: dict[str, Any]) -> dict[str, Any]:
         "S11": s11,
     }
 
+    tier_ok, tier_computed, tier_reason = tier_verified(work, entry, steps)
+
     judgements = entry.get("judgements") or {}
     j1 = judgements.get("S1") if isinstance(judgements, dict) else None
     j2 = judgements.get("S2") if isinstance(judgements, dict) else None
@@ -720,8 +721,8 @@ def decide(work: Work, entry: dict[str, Any]) -> dict[str, Any]:
         "S4": f"Crossref type -> {work.kind or 'unmapped'}; degree -> {entry.get('degree', 'not recorded')}",
         "S5": f"Crossref publisher: {work.publisher or 'unknown'}",
         "S6": (
-            f"blacklist status={entry.get('blacklist_status', 'not checked')}; "
-            f"index evidence={len(entry.get('indexing_evidence', []) or [])}"
+            f"blacklist checks={[(item.get('authority'), item.get('status')) for item in entry.get('blacklist_checks', []) if isinstance(item, dict)]}; "
+            f"verified index evidence={len(verified_indexing_items(entry))}"
             if work.kind == "journal" else
             f"conference index evidence={len(entry.get('indexing_evidence', []) or [])}"
             if work.kind == "conference" else
@@ -748,12 +749,12 @@ def decide(work: Work, entry: dict[str, Any]) -> dict[str, Any]:
     notes_en: list[str] = []
     notes_fa: list[str] = []
     if s6 is False:
-        notes_en.append("S6 rejected: the source is marked as listed on an Iranian blacklist.")
-        notes_fa.append("S6 رد شد: منبع به‌عنوان مورد فهرست سیاه ایران ثبت شده است.")
+        notes_en.append("S6 rejected: a verified official MSRT, MOHME or IAU blacklist hit was recorded.")
+        notes_fa.append("S6 رد شد: مورد ثبت‌شده در فهرست رسمی وزارت علوم، وزارت بهداشت یا دانشگاه آزاد تأیید شد.")
     elif s6 is None:
         if work.kind == "journal":
-            notes_en.append("S6 pending: record a checked blacklist result and a verified Scopus/WoS/ISC/DBLP record.")
-            notes_fa.append("S6 در انتظار است: نتیجه بررسی فهرست سیاه و مدرک نمایه‌سازی Scopus/WoS/ISC/DBLP را ثبت کن.")
+            notes_en.append("S6 pending: record current ISSN checks for MSRT, MOHME and IAU, then add a verified Scopus/WoS/ISC/DBLP/DOAJ record. Stale or unavailable lists remain pending.")
+            notes_fa.append("S6 در انتظار است: بررسی ISSN در فهرست‌های به‌روز وزارت علوم، وزارت بهداشت و دانشگاه آزاد و سپس مدرک نمایه‌سازی معتبر را ثبت کن؛ فهرست قدیمی یا در دسترس‌نبودن یعنی وضعیت معلق.")
         elif work.kind == "conference":
             notes_en.append("S6 pending: verify the conference proceedings in Scopus, Web of Science, ISC or DBLP.")
             notes_fa.append("S6 در انتظار است: نمایه‌شدن مجموعه‌مقالات کنفرانس را در Scopus، Web of Science، ISC یا DBLP تأیید کن.")
@@ -788,9 +789,12 @@ def decide(work: Work, entry: dict[str, Any]) -> dict[str, Any]:
     if s5 is None:
         notes_en.append(f"Publisher/venue requires confirmation: {work.publisher or 'not recorded'}.")
         notes_fa.append(f"ناشر/محل انتشار نیاز به تأیید دارد: {work.publisher or 'ثبت نشده'}.")
-    if not tier_ok:
-        notes_en.append("S9 pending: the A-D tier needs a reviewer note and a source URL.")
-        notes_fa.append("S9 در انتظار است: رتبه A تا D به توضیح ارزیاب و نشانی مدرک نیاز دارد.")
+    if tier_ok is None:
+        notes_en.append(f"S9 pending: {tier_reason}")
+        notes_fa.append(f"S9 در انتظار است: {tier_reason}")
+    elif tier_ok is False:
+        notes_en.append(f"S9 rejected: declared tier {tier_declared or 'missing'} does not match computed tier {tier_computed}.")
+        notes_fa.append(f"S9 رد شد: رتبه اعلام‌شده {tier_declared or 'ثبت‌نشده'} با رتبه محاسبه‌شده {tier_computed} منطبق نیست.")
     for key in ("S1", "S2", "S10"):
         if steps[key] is None:
             notes_en.append(f"{key} pending: add a documented research judgement.")
@@ -830,7 +834,10 @@ def decide(work: Work, entry: dict[str, Any]) -> dict[str, Any]:
         "url": f"https://doi.org/{work.doi}",
         "doi": work.doi,
         "category": category,
-        "tier": tier if tier_ok else "",
+        "tier": tier_computed or "",
+        "tier_declared": tier_declared,
+        "tier_computed": tier_computed,
+        "tier_reason": tier_reason,
         "tier_verified": tier_ok,
         "integrity_status": integrity["status"],
         "integrity": integrity,
