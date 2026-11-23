@@ -10,7 +10,7 @@ Run:
 python3 scripts/verify_citations.py bibliography.json --format markdown
 ```
 
-The verifier compares DOI, title, publication year, and first-author family name against Crossref metadata. It flags recorded correction, erratum, retraction, withdrawal, and expression-of-concern relations.
+The verifier compares DOI, title, publication year, and first-author family name against Crossref metadata. When supplied in the input record, it also checks venue/container title and publisher. It flags duplicate DOI records, title/author/year/venue/publisher mismatches, and recorded correction, erratum, retraction, withdrawal, and expression-of-concern relations. JSON results include the Crossref record URL and update-notice DOI URLs; the Markdown report surfaces the update and pending reasons.
 
 Interpretation:
 
@@ -18,7 +18,8 @@ Interpretation:
 - `mismatch`: one or more supplied identity fields disagree.
 - `corrected`: a correction relation is recorded; inspect the notice and affected claims.
 - `retracted`: a retraction/withdrawal/expression-of-concern signal is recorded.
-- `pending`: DOI or metadata is missing, unavailable, or not comparable.
+- `pending`: required DOI, title, year, first-author or requested venue/publisher metadata is missing, unavailable, or not comparable.
+- Persian/Arabic-Indic digits, Unicode normalization, Arabic/Persian yeh and kaf variants, and zero-width non-joiner are normalized for matching; original input is retained in the result.
 
 A DOI-less candidate is never auto-inserted into the bibliography. No Crossref update record is not proof that no notice exists; inspect the publisher and other authoritative sources.
 
@@ -39,7 +40,7 @@ The crosswalk reports:
 - malformed or unsupported citation patterns
 - bibliography text excluded from the in-text citation scan
 
-The crosswalk is deterministic and intentionally conservative. It does not parse every citation style, footnote convention, group-author exception, or complex narrative syntax. Resolve ambiguous names and unsupported patterns manually; do not treat a parser's `pass` as proof of scholarly correctness.
+The crosswalk normalizes Persian and Arabic-Indic digits in both manuscript text and structured reference years, supports Unicode author names, and recognizes the Arabic comma in IEEE numeric lists. The crosswalk is deterministic and intentionally conservative. It does not parse every citation style, footnote convention, group-author exception, or complex narrative syntax. Resolve ambiguous names and unsupported patterns manually; do not treat a parser's `pass` as proof of scholarly correctness.
 
 ## Claim support remains a human evidence task
 
