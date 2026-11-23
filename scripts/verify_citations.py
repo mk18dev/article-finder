@@ -135,7 +135,7 @@ def verify_metadata(citation: dict[str, Any], message: dict[str, Any]) -> dict[s
     expected_year_text = str(expected_year_raw or "").translate(
         str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
     )
-    expected_year_match = re.fullmatch(r"\\d{4}", expected_year_text)
+    expected_year_match = re.fullmatch(r"\d{4}", expected_year_text)
     expected_year = int(expected_year_match.group(0)) if expected_year_match else None
     actual_author = first_author_family(message.get("author"))
     containers = message.get("container-title") or []
