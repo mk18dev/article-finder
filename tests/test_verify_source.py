@@ -713,6 +713,188 @@ class TierTests(unittest.TestCase):
         self.assertIs(article["tier_verified"], True)
 
 
+class RealEvidenceTierTests(unittest.TestCase):
+    """Snapshot checks against real public records reviewed on 2026-11-23."""
+
+    def record(self, url: str, locator: str, note: str) -> dict:
+        return {
+            "reviewed": True, "verified": True, "reviewer_id": "phase1-audit",
+            "reviewed_at": "2026-11-23T12:00:00Z", "locator": locator,
+            "url": url, "note": note,
+        }
+
+    def tier_record(self, url: str, locator: str, basis: str) -> dict:
+        return {
+            "verified": True, "reviewer_id": "phase1-audit",
+            "reviewed_at": "2026-11-23T12:00:00Z", "locator": locator,
+            "url": url, "basis": basis,
+        }
+
+    def assert_tier_a(self, source: vs.Work, entry: dict) -> None:
+        self.assertTrue(vs.tier_evidence_valid(source, entry))
+        ok, computed, _reason = vs.tier_verified(
+            source, entry, {"S6": True, "S7": True}
+        )
+        self.assertIs(ok, True)
+        self.assertEqual(computed, "A")
+
+    def test_real_journal_scimago_q1_and_clarivate_scie_computes_a(self) -> None:
+        title = "Explainable and interpretable machine learning and data mining"
+        journal = work(
+            kind="journal", doi="10.1007/s10618-024-01041-y", title=title,
+            container="Data Mining and Knowledge Discovery",
+            publisher="Springer Nature", issns=["1384-5810"], year=2024,
+        )
+        entry = {
+            "specialized": True, "quartile": "Q1", "quartile_source": "SJR",
+            "indexing_evidence": [{
+                "index": "Web of Science", "verified": True,
+                "reviewer_id": "phase1-audit", "reviewed_at": "2026-11-23T12:00:00Z",
+                "locator": "Clarivate Master Journal List exact ISSN match",
+                "url": "https://mjl.clarivate.com/search-results?issn=1384-5810",
+                "note": "Exact title and ISSN are listed in SCIE",
+                "matched_title": title, "coverage_start_year": 1997,
+                "coverage_end_year": 2026,
+            }],
+            "tier_evidence": self.tier_record(
+                "https://www.scimagojr.com/journalsearch.php?clean=0&q=13579&tip=sid",
+                "2024 and 2025 quartile rows",
+                "SJR Q1 in 2024 and 2025; specialized scope and Springer publisher",
+            ),
+        }
+        self.assertIs(vs.s6_gate(journal, {
+            **entry,
+            "blacklist_checks": [
+                {**item, "query_value": "1384-5810"}
+                for item in ENTRY["blacklist_checks"]
+            ],
+        }), True)
+        self.assert_tier_a(journal, entry)
+
+    def test_real_kdd_2024_dblp_proceedings_computes_a(self) -> None:
+        title = (
+            "Proceedings of the 30th ACM SIGKDD Conference on Knowledge "
+            "Discovery and Data Mining, KDD 2024, Barcelona, Spain, "
+            "August 25-29, 2024"
+        )
+        conference = work(
+            kind="conference", doi="10.1145/3637528", title=title,
+            container=title, publisher="Association for Computing Machinery",
+            issns=[], year=2024,
+        )
+        entry = {
+            "conference_scope": "international",
+            "conference_series_established": True,
+            "specialized": True,
+            "indexing_evidence": [{
+                "index": "DBLP", "verified": True,
+                "reviewer_id": "phase1-audit", "reviewed_at": "2026-11-23T12:00:00Z",
+                "locator": "DBLP proceedings record conf/kdd/2024",
+                "url": "https://dblp.org/rec/conf/kdd/2024.html",
+                "note": "30th KDD proceedings, ACM 2024, ISBN 979-8-4007-0490-1",
+                "matched_title": title, "coverage_start_year": 2024,
+                "coverage_end_year": 2024,
+            }],
+            "tier_evidence": self.tier_record(
+                "https://dblp.org/rec/conf/kdd/2024.html",
+                "Proceedings record and 30th edition metadata",
+                "International established KDD series; specialized data-mining venue; ACM publisher",
+            ),
+        }
+        self.assertIs(vs.s6_gate(conference, entry), True)
+        self.assert_tier_a(conference, entry)
+
+    def test_real_sheffield_phd_thesis_with_q1_derived_paper_computes_a(self) -> None:
+        thesis_url = "https://etheses.whiterose.ac.uk/id/eprint/31740/"
+        thesis_pdf = "https://etheses.whiterose.ac.uk/id/eprint/31740/1/Thesis.pdf"
+        thesis = work(
+            kind="thesis", doi=None,
+            title="Machine learning approaches for uncovering miRNAs as biomarkers of Pulmonary Hypertension",
+            container="University of Sheffield PhD thesis",
+            publisher="University of Sheffield", issns=[], isbns=[], year=2022,
+        )
+        entry = {
+            "institution_domain": "etheses.whiterose.ac.uk",
+            "university_reputable": True,
+            "university_evidence": self.record(
+                thesis_url, "repository metadata",
+                "Official White Rose record identifies the awarding institution as University of Sheffield",
+            ),
+            "degree": "PhD",
+            "degree_evidence": self.record(
+                thesis_pdf, "title page, PDF page 1",
+                "Title page states Doctor of Philosophy and University of Sheffield",
+            ),
+            "derived_papers_status": "found",
+            "derived_papers_review": self.record(
+                thesis_pdf, "Publications and manuscripts, PDF page 4",
+                "Thesis lists the 2021 EBioMedicine diagnostic miRNA paper",
+            ),
+            "derived_papers": [{
+                "tier": "A", "verified": True, "reviewed": True,
+                "reviewer_id": "phase1-audit", "reviewed_at": "2026-11-23T12:00:00Z",
+                "locator": "Publications and manuscripts, PDF page 4; SJR 2024 Q1",
+                "url": "https://doi.org/10.1016/j.ebiom.2021.103444",
+                "note": "The thesis lists this derived paper; EBioMedicine is SJR Q1 for 2024",
+            }],
+            "tier_evidence": self.tier_record(
+                thesis_url, "Official repository record and thesis title page",
+                "University of Sheffield PhD; one traceable derived paper is in EBioMedicine SJR Q1",
+            ),
+        }
+        entry["thesis_repository_evidence"] = {
+            **self.record(
+                thesis_url, "repository metadata",
+                "Official White Rose institutional repository record",
+            ),
+            "repository": "university repository",
+            "institution_domain": "etheses.whiterose.ac.uk",
+        }
+        self.assertIs(vs.s6_gate(thesis, entry), True)
+        self.assert_tier_a(thesis, entry)
+
+    def test_real_mit_press_deep_learning_book_with_openalex_provenance_computes_a(self) -> None:
+        google_books_url = "https://books.google.com/books?id=Np9SDQAAQBAJ"
+        book = work(
+            kind="book", doi=None, title="Deep Learning",
+            container="Adaptive Computation and Machine Learning series",
+            publisher="The MIT Press", issns=[], isbns=["9780262035613"], year=2016,
+        )
+        book_record = {
+            **self.record(
+                google_books_url, "Google Books bibliographic record",
+                "MIT Press 2016 main book; ISBN 9780262035613; 800 pages",
+            ),
+            "source": "Google Books", "citation_count": 8937,
+            "publisher_verified": True,
+            "citation_evidence": {
+                **self.record(
+                    "https://api.openalex.org/works/W2557283755",
+                    "OpenAlex work W2557283755",
+                    "OpenAlex-sourced snapshot reports 8937 citations; count is above the 50 threshold",
+                ),
+                "source": "OpenAlex", "isbn": "9780262035613",
+                "citation_count": 8937,
+            },
+        }
+        entry = {
+            "main_book": True,
+            "relevant_chapters": True,
+            "relevant_chapters_evidence": self.record(
+                google_books_url, "Contents and bibliographic details",
+                "Book covers deep feedforward networks, CNNs, sequence modelling and NLP",
+            ),
+            "book_s6_evidence": book_record,
+            "tier_evidence": self.tier_record(
+                google_books_url, "Google Books bibliographic record",
+                "Primary MIT Press textbook, valid ISBN, publisher confirmed and citations exceed 50",
+            ),
+        }
+        self.assertTrue(vs.publisher_trusted("The MIT Press"))
+        self.assertIs(vs.s6_gate(book, entry), True)
+        self.assert_tier_a(book, entry)
+
+
 class UrlTests(unittest.TestCase):
     def test_doi_url(self) -> None:
         self.assertEqual(decide()["url"], "https://doi.org/10.1000/x")
