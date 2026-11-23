@@ -117,5 +117,50 @@ class CitationVerificationTests(unittest.TestCase):
             verify_all({"items": []})
 
 
+    def test_venue_and_publisher_are_checked(self):
+        citation = dict(self.citation, venue="Journal of Reliable Systems", publisher="Example Press")
+        message = dict(self.message, **{
+            "container-title": ["Journal of Reliable Systems"],
+            "publisher": "Example Press",
+        })
+        self.assertEqual(verify_metadata(citation, message)["status"], "verified")
+        message["container-title"] = ["Unrelated Journal"]
+        result = verify_metadata(citation, message)
+        self.assertEqual(result["status"], "mismatch")
+        self.assertTrue(any("venue mismatch" in item for item in result["mismatches"]))
+
+    def test_missing_expected_year_stays_pending(self):
+        citation = dict(self.citation)
+        citation.pop("year")
+        self.assertEqual(verify_metadata(citation, self.message)["status"], "pending")
+
+    def test_missing_requested_publisher_metadata_stays_pending(self):
+        citation = dict(self.citation, publisher="Example Press")
+        self.assertEqual(verify_metadata(citation, self.message)["status"], "pending")
+
+    def test_persian_year_and_author_normalization(self):
+        citation = {
+            "doi": "10.1234/example",
+            "title": "سامانه‌های قابل اعتماد",
+            "year": "۱۴۰۲",
+            "first_author": "رضایی، علی",
+        }
+        message = {
+            "DOI": "10.1234/example",
+            "title": ["سامانه‌های قابل اعتماد"],
+            "author": [{"family": "رضایی"}],
+            "published-print": {"date-parts": [[1402]]},
+        }
+        self.assertEqual(verify_metadata(citation, message)["status"], "verified")
+
+    @patch("scripts.verify_citations.fetch_json")
+    def test_duplicate_dois_in_batch_are_flagged(self, fetch):
+        fetch.return_value = {"message": self.message}
+        citations = [dict(self.citation), dict(self.citation, doi="https://doi.org/10.1234/EXAMPLE")]
+        results = verify_all(citations)
+        self.assertTrue(all(item["duplicate_doi"] for item in results))
+        self.assertTrue(all(item["status"] == "mismatch" for item in results))
+
+
 if __name__ == "__main__":
     unittest.main()
