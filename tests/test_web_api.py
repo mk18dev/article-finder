@@ -332,6 +332,30 @@ class RequestBoundaryTests(unittest.TestCase):
             self.assertEqual(request._auth_mode(), "public")
             self.assertTrue(request._authorized())
 
+    def test_post_returns_503_when_process_capacity_is_exhausted(self):
+        request = object.__new__(api.handler)
+        sent = {}
+        request._send = lambda status, payload: sent.update(status=status, payload=payload)
+        request._do_POST_inner = Mock()
+        slots = Mock()
+        slots.acquire.return_value = False
+        with patch.object(api, "_REQUEST_SLOTS", slots):
+            request.do_POST()
+        self.assertEqual(sent["status"], 503)
+        self.assertIn("ظرفیت", sent["payload"]["error"])
+        request._do_POST_inner.assert_not_called()
+        slots.release.assert_not_called()
+
+    def test_post_releases_process_capacity_after_handler_failure(self):
+        request = object.__new__(api.handler)
+        request._do_POST_inner = Mock(side_effect=RuntimeError("test"))
+        slots = Mock()
+        slots.acquire.return_value = True
+        with patch.object(api, "_REQUEST_SLOTS", slots):
+            with self.assertRaises(RuntimeError):
+                request.do_POST()
+        slots.release.assert_called_once_with()
+
 
 if __name__ == "__main__":
     unittest.main()
