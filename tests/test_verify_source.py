@@ -487,6 +487,9 @@ class BlacklistTests(unittest.TestCase):
         content = vs.checklist([decide(source)], [source])
         self.assertIn("blacklist_checks", content)
         self.assertIn("indexing_evidence", content)
+        self.assertIn("matched_title", content)
+        self.assertIn("coverage_start_year", content)
+        self.assertIn("coverage_end_year", content)
 
 
 class ReadingDepthTests(unittest.TestCase):
@@ -703,6 +706,9 @@ class SourceSpecificS6Tests(unittest.TestCase):
             "reviewer_id": "reviewer-1", "reviewed_at": "2026-11-23T10:00:00Z", "locator": "proceedings record",
             "url": "https://dblp.org/db/conf/example",
             "note": "Conference proceedings record was inspected",
+            "matched_title": "A paper",
+            "coverage_start_year": conference.year - 5,
+            "coverage_end_year": conference.year,
         }]
         self.assertIs(decide(conference, {**ENTRY, "indexing_evidence": evidence})["steps"]["S6"], True)
 

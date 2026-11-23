@@ -89,7 +89,11 @@ list cannot be located or is stale, record the check as unavailable and leave
 S6 pending. A missing, inaccessible, malformed or
 unverified result stays pending. After all three checks are clear, at least one
 verified Scopus, Web of Science/WoS, ISC, DBLP or DOAJ record is required in
-    `indexing_evidence`.
+`indexing_evidence`. Each positive index record must include `matched_title`
+equal to the Crossref title after case/spacing/punctuation normalization, plus
+integer `coverage_start_year` and `coverage_end_year` values that contain
+the work's publication year. A URL host match or generic note alone remains
+pending.
 
 Illustrative journal blacklist-check structure (replace every version, URL and
 locator with the exact current record you inspected; this is not a real

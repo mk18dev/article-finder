@@ -292,7 +292,7 @@ def evidence_item_ok(item: Any) -> bool:
 
 
 def _normalized_index_title(value: Any) -> str:
-    return re.sub(r"[^\\w]+", "", str(value or "").casefold(), flags=re.UNICODE)
+    return re.sub(r"[\W_]+", "", str(value or "").casefold(), flags=re.UNICODE)
 
 
 def _index_coverage_matches(item: dict[str, Any], work: Work) -> bool:
@@ -924,8 +924,10 @@ def checklist(articles: list[dict[str, Any]], works: list[Work]) -> str:
                 "authority=mohme and authority=iau. Each check must include status=clear/listed, ISSN query, "
                 "list_version, reviewer_id, reviewed_at, URL, locator and note. Any verified listed "
                 "result hard-rejects S6. Missing or inaccessible lists remain pending. For a positive "
-                "index result, add indexing_evidence with index, verified=true, source URL and note, "
-                "then rerun verify_source.py.")
+                "index result, add indexing_evidence with index, verified=true, source URL, note, "
+                "matched_title equal to the Crossref title, and integer coverage_start_year / "
+                "coverage_end_year containing the publication year. Conference evidence must use "
+                "Scopus, Web of Science/WoS, ISC or DBLP (not DOAJ). Then rerun verify_source.py.")
     return "\n".join(rows)
 
 
