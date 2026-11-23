@@ -70,6 +70,12 @@ class HttpSecurityTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 hu.validate_remote_url("https://example.org/a.pdf")
 
+    def test_blocks_orchidv2_ipv6_identifier_range(self):
+        # ORCHIDv2 is not globally reachable but may appear global to ipaddress.
+        with patch.object(hu.socket, "getaddrinfo", return_value=answer6("2001:20::1")):
+            with self.assertRaises(ValueError):
+                hu.validate_remote_url("https://example.org/a.pdf")
+
     def test_blocks_ipv4_mapped_private_ipv6(self):
         record = [(socket.AF_INET6, socket.SOCK_STREAM, socket.IPPROTO_TCP, "",
                    ("::ffff:127.0.0.1", 443, 0, 0))]
