@@ -55,8 +55,7 @@ class ArticleFinderHandler(APIHandler):
             "Content-Security-Policy",
             "default-src 'self'; script-src 'self'; style-src 'self'; "
             "img-src 'self' data:; connect-src 'self'; object-src 'none'; "
-            "base-uri 'self'; frame-ancestors 'none'; form-action 'self'; "
-            "upgrade-insecure-requests",
+            "base-uri 'self'; frame-ancestors 'none'; form-action 'self'",
         )
         self.end_headers()
         if not head_only:
