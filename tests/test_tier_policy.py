@@ -1,4 +1,9 @@
+import sys
 import unittest
+from pathlib import Path
+
+SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
+sys.path.insert(0, str(SCRIPTS))
 
 from tier_policy import compute_tier
 
