@@ -776,7 +776,7 @@ def decide(work: Work, entry: dict[str, Any]) -> dict[str, Any]:
         "S5": f"Crossref publisher: {work.publisher or 'unknown'}",
         "S6": (
             f"blacklist checks={[(item.get('authority'), item.get('status')) for item in entry.get('blacklist_checks', []) if isinstance(item, dict)]}; "
-            f"verified index evidence={len(verified_indexing_items(entry))}"
+            f"verified index evidence={len(verified_indexing_items(entry, work))}"
             if work.kind == "journal" else
             f"conference index evidence={len(entry.get('indexing_evidence', []) or [])}"
             if work.kind == "conference" else
