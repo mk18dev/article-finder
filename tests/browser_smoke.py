@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
@@ -177,6 +178,48 @@ def main() -> int:
 
         response = page.goto(BASE_URL, wait_until="networkidle", timeout=20_000)
         assert response is not None and response.status == 200
+
+        axe_bundle = Path("node_modules/axe-core/axe.min.js")
+        if not axe_bundle.is_file():
+            raise AssertionError("Pinned axe-core bundle is missing")
+        page.add_script_tag(path=str(axe_bundle))
+        accessibility = page.evaluate("""async () => {
+            const result = await axe.run(document, {
+                runOnly: {
+                    type: "tag",
+                    values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]
+                }
+            });
+            return result.violations.map(item => ({
+                id: item.id,
+                impact: item.impact,
+                help: item.help,
+                nodes: item.nodes.map(node => ({
+                    target: node.target,
+                    summary: node.failureSummary
+                }))
+            }));
+        }""")
+        if accessibility:
+            raise AssertionError("WCAG 2.2 AA accessibility violations: " + json.dumps(
+                accessibility, ensure_ascii=False
+            ))
+
+        performance = page.evaluate("""() => {
+            const navigation = performance.getEntriesByType("navigation")[0];
+            const resources = performance.getEntriesByType("resource");
+            return {
+                dom_content_loaded_ms: navigation.domContentLoadedEventEnd,
+                load_ms: navigation.loadEventEnd,
+                transfer_bytes: resources.reduce((sum, item) => sum + item.transferSize, 0)
+            };
+        }""")
+        if performance["dom_content_loaded_ms"] > 5000:
+            raise AssertionError("DOM content loaded exceeded 5s: " + json.dumps(performance))
+        if performance["load_ms"] > 7000:
+            raise AssertionError("Page load exceeded 7s: " + json.dumps(performance))
+        if performance["transfer_bytes"] > 1_000_000:
+            raise AssertionError("Initial resource transfer exceeded 1 MB: " + json.dumps(performance))
         assert page.locator("html").get_attribute("lang") == "fa"
         assert page.locator("html").get_attribute("dir") == "rtl"
         page.wait_for_function(
@@ -202,6 +245,16 @@ def main() -> int:
         assert page.locator(".source-title").inner_text() == INJECTED_TITLE
         assert page.locator("#result-items img").count() == 0
         assert page.locator("#results-view").is_visible()
+        result_accessibility = page.evaluate("""async () => {
+            const result = await axe.run(document, {
+                runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] }
+            });
+            return result.violations.map(item => ({id: item.id, impact: item.impact, help: item.help}));
+        }""")
+        if result_accessibility:
+            raise AssertionError("Result view accessibility violations: " + json.dumps(
+                result_accessibility, ensure_ascii=False
+            ))
         assert any(item["action"] == "verify_sources" for item in calls)
         assert any(item["authorization"] == "Bearer browser-e2e-key" for item in calls)
         assert page.evaluate(
@@ -223,6 +276,16 @@ def main() -> int:
         page.keyboard.press("Enter")
         assert draft_tab.get_attribute("aria-selected") == "true"
         assert page.locator("#draft-form").is_visible()
+        draft_accessibility = page.evaluate("""async () => {
+            const result = await axe.run(document, {
+                runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] }
+            });
+            return result.violations.map(item => ({id: item.id, impact: item.impact, help: item.help}));
+        }""")
+        if draft_accessibility:
+            raise AssertionError("Draft view accessibility violations: " + json.dumps(
+                draft_accessibility, ensure_ascii=False
+            ))
         page.locator("#draft-text").fill(
             "# عنوان\nاین متن برای اجرای آزمون مرورگر و بررسی رابط نوشته شده است.\n\n"
             "## چکیده\nمتن آزمایشی چکیده مقاله."
@@ -248,7 +311,9 @@ def main() -> int:
 
     print(
         "Browser E2E passed: discovery, source submission, safe text rendering, API-key handling, "
-        "draft submission, API error state, copy/download controls and responsive layouts."
+        "draft submission, API error state, copy/download controls, responsive layouts, "
+        "WCAG 2.2 AA axe-core audit and performance budgets. "
+        + json.dumps(performance, ensure_ascii=False)
     )
     return 0
 
