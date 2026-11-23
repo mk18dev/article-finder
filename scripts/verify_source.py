@@ -548,19 +548,77 @@ def s11_gate(work: Work, entry: dict[str, Any], category: str) -> bool | None:
     return True if all(evidence_item_ok(reading.get(key)) for key in required) else None
 
 
-def tier_verified(entry: dict[str, Any]) -> bool:
-    tier = str(entry.get("tier", "")).upper()
-    evidence = entry.get("tier_evidence")
-    if not isinstance(evidence, dict):
-        return False
-    return tier in {"A", "B", "C", "D"} and evidence_item_ok({
-        "reviewed": evidence.get("verified"),
-        "reviewer_id": evidence.get("reviewer_id"),
-        "reviewed_at": evidence.get("reviewed_at"),
-        "locator": evidence.get("locator"),
-        "url": evidence.get("url"),
-        "note": evidence.get("basis"),
-    })
+def tier_verified(
+    work: Work, entry: dict[str, Any], steps: dict[str, bool | None]
+) -> tuple[bool | None, str | None, str]:
+    book_evidence = entry.get("book_s6_evidence")
+    if not isinstance(book_evidence, dict):
+        book_evidence = {}
+    derived_review = entry.get("derived_papers_review")
+    derived_status = (
+        str(entry.get("derived_papers_status") or "").lower()
+        if evidence_item_ok(derived_review) else None
+    )
+    derived_papers = entry.get("derived_papers")
+    if not isinstance(derived_papers, list):
+        derived_papers = []
+    valid_derived = [
+        item for item in derived_papers
+        if isinstance(item, dict) and item.get("verified") is True
+        and evidence_item_ok(item)
+        and host_matches(
+            str(item.get("url") or ""),
+            ("doi.org", "crossref.org", "scopus.com", "webofscience.com",
+             "mjl.clarivate.com", "scimagojr.com", "ieeexplore.ieee.org",
+             "dl.acm.org", "link.springer.com", "sciencedirect.com"),
+        )
+    ]
+    university_evidence = entry.get("university_evidence")
+    university_reputable = (
+        True if entry.get("university_reputable") is True and evidence_item_ok(university_evidence)
+        else False if entry.get("university_reputable") is False else None
+    )
+    relevant_chapters_evidence = entry.get("relevant_chapters_evidence")
+    relevant_chapters = (
+        True if entry.get("relevant_chapters") is True and evidence_item_ok(relevant_chapters_evidence)
+        else False if entry.get("relevant_chapters") is False else None
+    )
+    computed, reason = compute_tier(
+        source_kind=work.kind,
+        publisher_recognized=publisher_trusted(work.publisher) if work.publisher else None,
+        specialized=entry.get("specialized"),
+        indexing_evidence=verified_indexing_items(entry),
+        quartile=entry.get("quartile"),
+        quartile_source=entry.get("quartile_source"),
+        blacklisted=steps.get("S6") is False,
+        indexing_status=entry.get("indexing_status"),
+        source_record_verified=steps.get("S6"),
+        identifier_verified=steps.get("S7"),
+        conference_scope=entry.get("conference_scope"),
+        conference_series_established=entry.get("conference_series_established"),
+        degree=entry.get("degree"),
+        degree_evidence_verified=(
+            True if steps.get("S7") is True and evidence_item_ok(entry.get("degree_evidence"))
+            else None
+        ),
+        repository_verified=steps.get("S6") if work.kind == "thesis" else None,
+        derived_papers_status=derived_status,
+        derived_papers=valid_derived,
+        university_reputable=university_reputable,
+        main_book=entry.get("main_book"),
+        isbn_valid=steps.get("S7") if work.kind == "book" else None,
+        publisher_verified=book_evidence.get("publisher_verified"),
+        citation_count=book_evidence.get("citation_count"),
+        relevant_chapters=relevant_chapters,
+    )
+    if computed is None:
+        return None, None, reason
+    if not tier_evidence_valid(work, entry):
+        return None, computed, "Computed tier lacks reviewer-attributed evidence from the relevant official source."
+    declared = str(entry.get("tier") or "").strip().upper()
+    if declared and declared != computed:
+        return False, computed, f"Declared tier {declared} does not match computed tier {computed}. {reason}"
+    return True, computed, reason
 
 
 def s6_links(work: Work) -> list[str]:
