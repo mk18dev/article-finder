@@ -754,7 +754,7 @@ class RealEvidenceTierTests(unittest.TestCase):
                 "locator": "Clarivate Master Journal List exact ISSN match",
                 "url": "https://mjl.clarivate.com/search-results?issn=1384-5810",
                 "note": "Exact title and ISSN are listed in SCIE",
-                "matched_title": title, "coverage_start_year": 1997,
+                "matched_title": title, "coverage": "SCIE", "coverage_start_year": 1997,
                 "coverage_end_year": 2026,
             }],
             "tier_evidence": self.tier_record(
