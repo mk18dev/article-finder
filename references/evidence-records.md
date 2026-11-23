@@ -38,7 +38,7 @@ Every entry starts with:
   (timezone-aware ISO-8601 timestamp).
 - `specialized`: an explicit boolean plus `specialization_evidence` (reviewed
   URL and note); missing either is pending, false fails S8.
-- `tier`: optional declared A-D value; the application computes the tier from source-specific evidence and rejects a declared/computed mismatch.
+- `tier`: required declared A-D value for S9 comparison; the application computes the tier independently from source-specific evidence. A missing declaration stays pending and a declared/computed mismatch fails S9.
 - `tier_evidence`: `verified: true`, `reviewer_id`, `reviewed_at`, `locator`, `url`, and `basis` supporting the computed tier. The URL must be an official quartile/index/blacklist source for journals, publisher/index record for conferences, institutional repository for theses, or Google Books/Amazon record for books.
 - Journal tier inputs: `quartile` (`Q1`-`Q4`) and `quartile_source` (`SJR` or `JCR`). The evidence URL must match that source when using quartile rules.
 - Conference tier inputs: `conference_scope` (`international` or `national`) and boolean `conference_series_established`.

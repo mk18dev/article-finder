@@ -196,7 +196,7 @@ Missing or invalid ISSN, publisher not identifiable, Number inconsistent with Vo
 | S11 Extraction | script, partly | reviewer reading records for abstract/introduction/conclusion, chapters 1-2, or full text according to category and source type |
 | Integrity (S0) | script, partly | OpenAlex `is_retracted`/`is_paratext` and Crossref `update-to`; retraction rejects, correction/paratext/unknown remains pending |
 | S1, S2, S3 | model/reviewer | research judgements and exact search provenance, reported as declared |
-| S6 Indexing | user/reviewer | official-host allowlist + reviewed record; no API independently certifies index status — see the ladder below |
+| S6 Indexing | user/reviewer + deterministic validator | official-host allowlist, reviewer attestation, exact Crossref-title match and coverage years containing the publication year; no API independently certifies index status — see the ladder below |
 
 **S6 is manually verified but machine-enforced by source type.** The CLI validates the required evidence record's shape and official host boundary; it does not claim to have inspected or authenticated the external page's contents.
 
