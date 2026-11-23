@@ -76,6 +76,8 @@ def compute_tier(
         return "B", f"{source} {q} or ESCI coverage with a recognized publisher meets tier B."
 
     if kind == "conference":
+        if source_record_verified is False or identifier_verified is False:
+            return "D", "No verifiable proceedings index or edition/venue record is available."
         if source_record_verified is not True or identifier_verified is not True:
             return None, "A verified proceedings index and edition/venue record are required."
         scope = (conference_scope or "").strip().lower()
@@ -83,6 +85,8 @@ def compute_tier(
             return "C", "A national conference with a verified proceedings record maps to tier C."
         if scope != "international":
             return None, "Conference scope must be explicitly international or national."
+        if publisher_recognized is False:
+            return "D", "The international proceedings publisher is not recognized or verifiable."
         if publisher_recognized is not True:
             return None, "A recognized proceedings publisher is required for an international tier."
         if conference_series_established is True and specialized is True:
@@ -92,6 +96,8 @@ def compute_tier(
         return None, "Series maturity and specialization must be reviewed."
 
     if kind == "thesis":
+        if degree_evidence_verified is False or repository_verified is False:
+            return "D", "The degree or institutional repository record could not be verified."
         if degree_evidence_verified is not True or repository_verified is not True:
             return None, "Degree and institutional repository evidence are required."
         degree_value = (degree or "").strip().lower()
