@@ -452,8 +452,8 @@ def identifiers_ok(work: Work, entry: dict[str, Any]) -> bool | None:
             return None
         if not work.isbns:
             return None
-        if not all(isbn10_valid(i.replace("-", "").replace(" ", "")) or
-                   isbn13_valid(i.replace("-", "").replace(" ", "")) for i in work.isbns):
+        if not all(isbn10_valid(i.replace("-", "").replace(" ", "").upper()) or
+                   isbn13_valid(i.replace("-", "").replace(" ", "").upper()) for i in work.isbns):
             return False
         return True if evidence_item_ok(entry.get("book_evidence")) else None
     if work.kind == "thesis":
