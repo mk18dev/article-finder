@@ -304,3 +304,27 @@ class ResolverChainTests(unittest.TestCase):
     def test_duplicate_links_removed(self) -> None:
         html = b'<html><a href="/a.pdf">1</a><a href="/a.pdf">2</a></html>'
         self.assertEqual(len(fp.pdf_links(html, "https://repo.example/")), 1)
+
+
+class RetrievalRedactionTests(unittest.TestCase):
+    def test_non_pdf_attempts_retain_only_redacted_urls(self) -> None:
+        source = fp.Source(title="A", doi="10.1000/a")
+        response = type("Response", (), {
+            "body": b"<!doctype html><html>not a PDF</html>",
+            "final_url": "https://cdn.example/paper?X-Amz-Security-Token=secret-final&download=1",
+            "content_type": "text/html",
+        })()
+        record = {"best_oa_location": {}, "locations": [], "open_access": {}, "ids": {}}
+        candidate = "https://repo.example/paper?api_key=secret-source&download=1"
+        with tempfile.TemporaryDirectory() as directory, \\
+             patch.object(fp, "fetch_json", return_value=record), \\
+             patch.object(fp, "external_candidate_records", return_value=[("Provider", candidate)]), \\
+             patch.object(fp, "fetch_response", return_value=response):
+            result = fp.download_one(1, source, Path(directory), False)
+        self.assertEqual(result.status, "no-pdf")
+        self.assertEqual(len(result.attempts), 1)
+        attempt = result.attempts[0]
+        self.assertNotIn("secret-source", attempt.source_url)
+        self.assertNotIn("secret-final", attempt.final_url)
+        self.assertIn("download=1", attempt.source_url)
+        self.assertIn("download=1", attempt.final_url)
