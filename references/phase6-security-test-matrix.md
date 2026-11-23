@@ -22,3 +22,15 @@
 - Paywalled papers remain on legitimate routes: publisher/library access, author repository/preprint, or an author request.
 - PDF signature and size checks establish a plausible PDF payload, not scholarly correctness, completeness, malware absence, or a valid/retracted article version.
 - Retrieval remains a local CLI workflow; no arbitrary-URL or PDF download endpoint is exposed publicly.
+
+
+## Final CI verification — 2026-11-23
+
+- Repository: `mk18dev/article-finder`; branch: `main`; target version: `1.1.0`.
+- Exact HEAD: `569b7f1a7bc4189f01bcac7acaa85454abe97abb`.
+- Exact-HEAD workflow: [Run #490](https://github.com/mk18dev/article-finder/actions/runs/45189862236) — SUCCESS.
+- Python 3.10, 3.11, 3.12 and 3.13 each passed 511 tests; combined line/branch coverage: 81%.
+- Static quality/security workflow passed: Gitleaks 8.30.1 current-tree and all-ref history scans (zero findings), Ruff, Bandit, and pip-audit for runtime/browser/quality manifests (no known vulnerabilities).
+- Chromium, Firefox and WebKit browser smoke passed. Chromium axe-core WCAG 2.2 AA audit and performance budgets passed.
+- Production Smoke was skipped by design; it remains a Phase 10 post-deployment gate.
+- Code and CI acceptance are complete. Formal Phase 6 sign-off remains **READY FOR INDEPENDENT EGRESS/DNS REVIEW**; this CI run does not substitute for an independent reviewer. No live provider uptime or production deployment is claimed.
