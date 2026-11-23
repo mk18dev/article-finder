@@ -22,6 +22,7 @@ All notable changes to this skill and web app. Format: [Keep a Changelog](https:
 - Book citation counts now require a separate reviewer-attributed OpenAlex record; the count and DOI/ISBN must match the exact book record.
 - Added MIT Press to the trusted academic-publisher allowlist.
 - Added real-source tier snapshots for a SCIE/SJR-Q1 journal, KDD 2024 proceedings, a Sheffield PhD thesis with an EBioMedicine derived paper, and the MIT Press Deep Learning book.
+- PhD tier-A computation now requires independent SJR/JCR quartile or ESCI evidence for each derived paper; the evidence-derived tier must match the declared A/B tier.
 - Added regression coverage for missing, mismatched and unrelated citation evidence, plus real-record A-tier paths across all four source categories.
 
 ### Systematic review and literature analysis
@@ -44,7 +45,7 @@ All notable changes to this skill and web app. Format: [Keep a Changelog](https:
 
 ### Quality gates
 
-- Expanded the network-free test suite to 452 test cases across Python 3.10–3.13 (GitHub Actions run 45152043606; 78% branch coverage).
+- Expanded the network-free test suite to 454 test cases across Python 3.10–3.13; final CI evidence is recorded on the current main commit.
 - Added Ruff lint, Bandit security scanning and pip-audit for pinned runtime/browser/quality dependencies.
 - Added a Playwright browser smoke job for RTL rendering, mode switching and 320px/390px mobile plus desktop overflow checks.
 - Added package-content validation for all nine specialist skills and explicit exclusion of PDFs, caches and build output.
