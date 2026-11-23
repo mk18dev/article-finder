@@ -51,7 +51,7 @@ Discovery returns candidates, never approvals. Reviewer evidence remains pending
 | S10 | Category | reviewer judgement with a source URL and note |
 | S11 | Extraction | evidence of required reading: abstract/intro/conclusion, chapters 1–2, or full text |
 
-**S6 remains evidence-driven.** A blacklist hit rejects the source. Otherwise, S6 stays pending until the plan contains a two independent MSRT and IAU blacklist checks and at least one verified index record. OpenAlex's DOAJ flag or a publisher name alone is not proof of Scopus/WoS/ISC/DBLP membership. The generated checklist gives the reviewer the pages to inspect.
+**S6 remains evidence-driven.** A blacklist hit rejects the source. Otherwise, S6 stays pending until the plan contains three independent blacklist checks against MSRT, MOHME and IAU and at least one verified index record. OpenAlex's DOAJ flag or a publisher name alone is not proof of Scopus/WoS/ISC/DBLP membership. The generated checklist gives the reviewer the pages to inspect.
 
 ## Quickstart
 
