@@ -309,7 +309,7 @@ class PrismaReviewTests(unittest.TestCase):
             "limits": "none",
             "status": "ok",
         }]
-        self.assertTrue(any("must use HTTPS" in error for error in validate_review(review)))
+        self.assertTrue(any("valid HTTPS URL" in error for error in validate_review(review)))
 
     def test_mermaid_flow_uses_derived_counts(self):
         flow = render_prisma_flow(derive_counts(valid_review()))
