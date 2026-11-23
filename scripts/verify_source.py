@@ -34,6 +34,7 @@ TRUSTED_PUBLISHERS: tuple[str, ...] = (
     "ieee", "institute of electrical and electronics engineers", "ieee computer society",
     "springer", "springer nature", "springer nature switzerland", "springer nature america", "springer science and business media",
     "acm", "association for computing machinery", "elsevier",
+    "mit press", "the mit press",
     "taylor francis", "taylor francis group", "taylor and francis", "john wiley", "john wiley sons", "wiley", "wiley blackwell",
 )
 
