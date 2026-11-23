@@ -40,7 +40,7 @@ The crosswalk reports:
 - malformed or unsupported citation patterns
 - bibliography text excluded from the in-text citation scan
 
-The crosswalk normalizes Persian and Arabic-Indic digits in both manuscript text and structured reference years, supports Unicode author names, and recognizes the Arabic comma in IEEE numeric lists. The crosswalk is deterministic and intentionally conservative. It does not parse every citation style, footnote convention, group-author exception, or complex narrative syntax. Resolve ambiguous names and unsupported patterns manually; do not treat a parser's `pass` as proof of scholarly correctness.
+The crosswalk normalizes Persian and Arabic-Indic digits in both manuscript text and structured reference years, supports Unicode author names, and recognizes the Arabic comma in IEEE numeric lists. IEEE bibliography reference IDs must be positive integers; booleans, fractional values, zero, negative values, and malformed IDs are flagged for review. The crosswalk is deterministic and intentionally conservative. It does not parse every citation style, footnote convention, group-author exception, or complex narrative syntax. Resolve ambiguous names and unsupported patterns manually; do not treat a parser's `pass` as proof of scholarly correctness.
 
 ## Claim support remains a human evidence task
 
