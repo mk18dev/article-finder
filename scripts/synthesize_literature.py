@@ -8,6 +8,7 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 DIRECTIONS = {"positive", "negative", "null", "mixed", "unclear"}
 QUALITY = {"high", "moderate", "low", "unclear"}
@@ -22,11 +23,23 @@ def _evidence_ok(value: Any) -> bool:
         return False
     url = value.get("url")
     note = value.get("note")
-    locator = value.get("locator", "")
+    locator = value.get("locator")
+    if not isinstance(url, str) or not isinstance(note, str) or not isinstance(locator, str):
+        return False
+    try:
+        parsed = urlsplit(url.strip())
+        port = parsed.port
+    except ValueError:
+        return False
     return (
-        isinstance(url, str) and url.startswith("https://")
-        and isinstance(note, str) and len(note.strip()) >= 8
-        and isinstance(locator, str)
+        parsed.scheme.lower() == "https"
+        and bool(parsed.hostname)
+        and not any(char.isspace() for char in parsed.hostname)
+        and parsed.username is None
+        and parsed.password is None
+        and port in (None, 443)
+        and len(note.strip()) >= 8
+        and bool(locator.strip())
     )
 
 
@@ -82,9 +95,31 @@ def validate_bundle(bundle: Any) -> list[str]:
             unknown = [str(item) for item in linked if str(item) not in ids]
             if unknown:
                 errors.append(f"{prefix} references unknown study IDs: {', '.join(unknown)}")
+            if len({str(item) for item in linked}) != len(linked):
+                errors.append(f"{prefix}.study_ids must not contain duplicates")
             evidence = claim.get("source_evidence", [])
             if not isinstance(evidence, list):
                 errors.append(f"{prefix}.source_evidence must be a list")
+            else:
+                evidence_ids: set[str] = set()
+                for evidence_index, item in enumerate(evidence, 1):
+                    evidence_prefix = f"{prefix}.source_evidence[{evidence_index}]"
+                    if not isinstance(item, dict):
+                        errors.append(f"{evidence_prefix} must be an object")
+                        continue
+                    evidence_id = str(item.get("study_id") or "").strip()
+                    if not evidence_id or evidence_id not in linked:
+                        errors.append(f"{evidence_prefix}.study_id must identify a study linked to this claim")
+                    elif evidence_id in evidence_ids:
+                        errors.append(f"{prefix} has duplicate source evidence for study {evidence_id}")
+                    evidence_ids.add(evidence_id)
+                    if not _evidence_ok({
+                        "reviewed": item.get("reviewed"),
+                        "url": item.get("url"),
+                        "note": item.get("quote"),
+                        "locator": item.get("locator"),
+                    }):
+                        errors.append(f"{evidence_prefix} requires reviewed HTTPS evidence, an excerpt, and a non-empty locator")
     return errors
 
 
