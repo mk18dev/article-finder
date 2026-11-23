@@ -15,6 +15,15 @@ All notable changes to this skill and web app. Format: [Keep a Changelog](https:
 - Added a separate manual production smoke workflow for static assets, health, Crossref discovery, source verification and draft checking. It is intentionally gated until the matching v1.1.0 production deployment is authorized.
 - v1.1.0 has not been deployed to production in this release cycle; the existing Vercel deployment is not evidence that this source revision is live.
 
+### Tier verification and evidence integrity
+
+- Journal tier computation now requires a verified identifier; invalid identifiers resolve to tier D and missing identifiers remain pending.
+- Malformed source-kind and indexing-status inputs fail closed instead of raising runtime errors.
+- Book citation counts now require a separate reviewer-attributed OpenAlex record; the count and DOI/ISBN must match the exact book record.
+- Added MIT Press to the trusted academic-publisher allowlist.
+- Added real-source tier snapshots for a SCIE/SJR-Q1 journal, KDD 2024 proceedings, a Sheffield PhD thesis with an EBioMedicine derived paper, and the MIT Press Deep Learning book.
+- Added regression coverage for missing, mismatched and unrelated citation evidence, plus real-record A-tier paths across all four source categories.
+
 ### Systematic review and literature analysis
 
 - Added Crossref + OpenAlex multi-provider search with exact query URLs, timestamps, provider-level failures, raw records, stable record IDs and duplicate links.
