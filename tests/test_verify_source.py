@@ -731,11 +731,12 @@ class RealEvidenceTierTests(unittest.TestCase):
         }
 
     def assert_tier_a(self, source: vs.Work, entry: dict) -> None:
+        entry = {**entry, "tier": "A"}
         self.assertTrue(vs.tier_evidence_valid(source, entry))
-        ok, computed, _reason = vs.tier_verified(
+        ok, computed, reason = vs.tier_verified(
             source, entry, {"S6": True, "S7": True}
         )
-        self.assertIs(ok, True)
+        self.assertIs(ok, True, reason)
         self.assertEqual(computed, "A")
 
     def test_real_journal_scimago_q1_and_clarivate_scie_computes_a(self) -> None:
