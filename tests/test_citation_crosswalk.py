@@ -116,6 +116,17 @@ class CitationCrosswalkTests(unittest.TestCase):
         result = audit_apa(text, refs)
         self.assertEqual(result["status"], "pass")
 
+    def test_ieee_reference_numbers_must_be_positive_integers(self):
+        for invalid in (0, -1, True, False, 1.5, "1.5", "zero"):
+            with self.subTest(value=invalid):
+                result = audit_ieee("Evidence [1].", [{"number": invalid}])
+                self.assertEqual(result["status"], "review")
+                self.assertTrue(any("positive integer" in error for error in result["reference_input_errors"]))
+
+    def test_persian_ieee_bibliography_number_is_normalized(self):
+        result = audit_ieee("Evidence [۱].", [{"number": "۱"}])
+        self.assertEqual(result["status"], "pass")
+
 
 if __name__ == "__main__":
     unittest.main()
