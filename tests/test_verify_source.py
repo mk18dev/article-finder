@@ -182,6 +182,21 @@ class PublisherTests(unittest.TestCase):
     def test_untrusted_publisher_name_cannot_pass_by_substring(self) -> None:
         self.assertFalse(vs.publisher_trusted("Not Elsevier Publishing"))
 
+    def test_manual_s5_disagreement_cannot_override_crossref_publisher(self) -> None:
+        entry = {**ENTRY, "judgements": {
+            **ENTRY["judgements"],
+            "S5": {**evidence("Manual disagreement recorded"), "ok": False},
+        }}
+        self.assertIs(decide(entry=entry)["steps"]["S5"], True)
+
+    def test_book_s5_explicit_negative_review_fails(self) -> None:
+        book = work(kind="book", issns=[], isbns=["9780262033848"], publisher="Unknown Press")
+        entry = {**ENTRY, "judgements": {
+            **ENTRY["judgements"],
+            "S5": {**evidence("Publisher failed the project review"), "ok": False},
+        }}
+        self.assertIs(decide(book, entry)["steps"]["S5"], False)
+
     def test_trusted_publisher_legal_suffix_is_normalized(self) -> None:
         self.assertTrue(vs.publisher_trusted("Elsevier B.V."))
 
@@ -212,6 +227,24 @@ class SearchAndJudgementTests(unittest.TestCase):
         article = decide()
         for step in ("S1", "S2", "S10"):
             self.assertIs(article["steps"][step], True)
+
+    def test_explicit_negative_judgements_reject_s1_s2_and_s10(self) -> None:
+        for step in ("S1", "S2", "S10"):
+            with self.subTest(step=step):
+                entry = {**ENTRY, "judgements": {
+                    **ENTRY["judgements"],
+                    step: {**ENTRY["judgements"][step], "ok": False},
+                }}
+                self.assertIs(decide(entry=entry)["steps"][step], False)
+
+    def test_positive_judgement_without_valid_review_is_pending(self) -> None:
+        for step in ("S1", "S2", "S10"):
+            with self.subTest(step=step):
+                entry = {**ENTRY, "judgements": {
+                    **ENTRY["judgements"],
+                    step: {**ENTRY["judgements"][step], "reviewed": False},
+                }}
+                self.assertIsNone(decide(entry=entry)["steps"][step])
 
     def test_missing_judgement_is_pending_even_when_label_exists(self) -> None:
         entry = {**ENTRY, "judgements": {}}
@@ -308,8 +341,21 @@ class IdentifierTests(unittest.TestCase):
         entry = {**ENTRY, "main_book": True, "book_evidence": evidence("ISBN checksum checked")}
         self.assertIs(decide(book, entry)["steps"]["S7"], False)
 
+    def test_supported_journal_type_passes_s4(self) -> None:
+        self.assertIs(decide(work(kind="journal"))["steps"]["S4"], True)
+
+    def test_crossref_book_chapter_overrides_conflicting_degree_claim(self) -> None:
+        chapter = work(kind="book_chapter", issns=[])
+        entry = {**ENTRY, "degree": "PhD", "degree_evidence": evidence("Conflicting degree claim")}
+        self.assertIs(decide(chapter, entry)["steps"]["S4"], False)
+
     def test_book_chapter_is_not_misclassified_as_book(self) -> None:
         self.assertIs(decide(work(kind="book_chapter"))["steps"]["S4"], False)
+
+    def test_primary_book_false_overrides_valid_isbn_and_book_evidence(self) -> None:
+        book = work(kind="book", issns=[], isbns=["9780262033848"])
+        entry = {**ENTRY, "main_book": False, "book_evidence": evidence("ISBN belongs to a collection")}
+        self.assertIs(decide(book, entry)["steps"]["S7"], False)
 
     def test_thesis_needs_repository_record_and_evidence(self) -> None:
         thesis = work(kind="thesis", issns=[], container="University")
@@ -342,6 +388,12 @@ class RecencyTests(unittest.TestCase):
     def test_old_application_fails(self) -> None:
         old = work(year=vs.date.today().year - vs.RECENCY_YEARS - 1)
         self.assertIs(decide(old)["steps"]["S8"], False)
+
+    def test_old_application_fails_even_with_positive_specialization_evidence(self) -> None:
+        old = work(year=vs.date.today().year - vs.RECENCY_YEARS - 1)
+        entry = {**ENTRY, "specialized": True,
+                 "specialization_evidence": evidence("Specialization positively reviewed")}
+        self.assertIs(decide(old, entry)["steps"]["S8"], False)
 
     def test_old_concept_is_allowed(self) -> None:
         old = work(year=2002)
@@ -515,6 +567,18 @@ class BlacklistTests(unittest.TestCase):
 
 
 class ReadingDepthTests(unittest.TestCase):
+    def test_unknown_category_overrides_positive_s10_judgement(self) -> None:
+        entry = {**ENTRY, "category": "unrecognized"}
+        self.assertIs(decide(entry=entry)["steps"]["S10"], False)
+
+    def test_unreviewed_required_section_keeps_s11_pending(self) -> None:
+        reading = {
+            "abstract": evidence("Abstract inspected"),
+            "introduction": evidence("Introduction inspected"),
+            "conclusion": {**evidence("Conclusion not inspected"), "reviewed": False},
+        }
+        self.assertIs(decide(entry={**ENTRY, "reading_evidence": reading})["steps"]["S11"], None)
+
     def test_abstract_alone_does_not_pass_s11(self) -> None:
         entry = {**ENTRY, "reading_evidence": {"abstract": evidence("Abstract checked")}}
         self.assertIs(decide(entry=entry)["steps"]["S11"], None)

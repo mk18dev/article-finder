@@ -15,6 +15,7 @@ Use `scripts/verify_source.py` and the Mode 1 workflow.
 - Crossref/OpenAlex metadata can support identity and bibliographic fields; it cannot prove indexing, peer review, or content relevance by itself.
 - Check indexing at the authoritative registry for the claimed year and exact title. Every positive indexing_evidence record must include matched_title equal to the Crossref title after case/spacing/punctuation normalization, plus integer coverage_start_year and coverage_end_year containing the publication year. S6 accepts evidence URLs only from the official registry host allowlist; host match is not proof that the page content was read.
 - Conference proceedings accept Scopus, Web of Science/WoS, ISC or DBLP evidence only; DOAJ is a journal directory and cannot satisfy conference S6.
+- The Phase 2 acceptance matrix is documented in references/phase2-test-matrix.md; keep positive, negative, incomplete and contradictory cases aligned with the test suite.
 - Any unknown gate keeps the source Pending, never Approved.
 - Record corrections, retractions, inaccessible pages, conflicting metadata, and missing full text.
 - Render APA/IEEE output only from verified fields; never fill missing fields from memory.
