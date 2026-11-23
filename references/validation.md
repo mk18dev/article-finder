@@ -36,7 +36,7 @@ The eight checks on the slide:
 
 **Identifiers** (page 21): ISSN (International Standard Serial Number) → journal · EISSN (Electronic ISSN) → journal · PISSN (Print ISSN) → journal · ISBN (International Standard Book Number) → book. Validate the checksums with `scripts/check_ids.py`.
 
-**Blacklist** *(skill)*: the impact-factor site on the slides also reports whether the journal is on the blacklist of the two ministries and Islamic Azad University. Treat a listing there as a rejection at S6.
+**Blacklist** *(skill)*: the ImpactFactor site on the slides reports a combined blacklist result for the two ministries and Islamic Azad University. Treat a listing there as a suspected hit that must be checked against official authority records; the aggregator alone does not pass or fail S6.
 
 Feeds: publisher → S5 · indexing + blacklist → S6 · ISSN + volume/number/issue consistency → S7 · specialization + year → S8.
 
@@ -128,7 +128,7 @@ Journal: *Data Mining and Knowledge Discovery*. Figures are as printed on the sl
 - Found in the Scopus-indexed list. SJR trend 2019-2024. Table: CiteScore (2023) 10.4 · SJR (2024) 1.019 · H index (2024) 123 · Best Quartile (based on SCImago) Q1.
 - Found in the JCR-indexed list. Impact-factor trend 2018-2023. Table: IF (2021) 5.406 · IF (2022) 4.8 · IF (2023) 2.8 · 5-year IF 5.3 · Best Quartile Q2.
 - Found in the Master Journal List (coverage: Science Citation Index Expanded, Current Contents Engineering Computing & Technology, Essential Science Indicators).
-- Not found in the blacklist of the two ministries and Islamic Azad University (shown green = good).
+- The slide reports no match in the blacklist of the two ministries and Islamic Azad University (shown green); this is a historical slide claim, not a current independent verification.
 - Not found in DOAJ open-access list; not found in Medline or PMC (shown red; these are absences, not failures).
 
 Lesson: the best quartile is Q1 by SJR and Q2 by JCR, so always say which source a quartile comes from.
@@ -172,7 +172,7 @@ Missing or invalid ISSN, publisher not identifiable, Number inconsistent with Vo
 
 **S6 is manually verified but machine-enforced by source type.** The CLI validates the required evidence record's shape and official host boundary; it does not claim to have inspected or authenticated the external page's contents.
 
-- **Journal:** a reported blacklist hit rejects the source. Otherwise, a documented clear blacklist check plus a verified Scopus, Web of Science/WoS, ISC or DBLP record is required.
+- **Journal:** a reported blacklist hit rejects the source. Otherwise, three documented clear checks (MSRT, MOHME and IAU) plus a verified Scopus, Web of Science/WoS, ISC, DBLP or DOAJ record are required.
 - **Conference:** a verified proceedings index record in Scopus, Web of Science/WoS, ISC or DBLP is required. The journal blacklist check does not apply.
 - **Thesis:** a verified Irandoc or official university/institutional repository record is required.
 - **Book:** a Google Books/Amazon record, a non-negative citation count and explicit publisher confirmation are required.
