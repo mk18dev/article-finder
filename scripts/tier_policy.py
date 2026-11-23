@@ -41,6 +41,31 @@ def compute_tier(
     """Return (tier, rationale); None means the evidence is insufficient."""
     policy = policy or load_policy()
     kind = (source_kind or "").lower()
+    boolean_inputs = {
+        "publisher_recognized": publisher_recognized,
+        "specialized": specialized,
+        "blacklisted": blacklisted,
+        "source_record_verified": source_record_verified,
+        "identifier_verified": identifier_verified,
+        "conference_series_established": conference_series_established,
+        "degree_evidence_verified": degree_evidence_verified,
+        "repository_verified": repository_verified,
+        "university_reputable": university_reputable,
+        "main_book": main_book,
+        "publisher_verified": publisher_verified,
+        "relevant_chapters": relevant_chapters,
+    }
+    invalid_boolean = next(
+        (name for name, value in boolean_inputs.items()
+         if value is not None and type(value) is not bool),
+        None,
+    )
+    if invalid_boolean is not None:
+        return None, f"{invalid_boolean} must be a boolean or null; invalid values remain pending."
+    if not isinstance(indexing_evidence, list) or any(
+        not isinstance(item, dict) for item in indexing_evidence
+    ):
+        return None, "Indexing evidence must be a list of evidence objects; malformed input remains pending."
     indices = {str(item.get("index") or "").strip().lower() for item in indexing_evidence}
     indices.discard("")
     if blacklisted:
