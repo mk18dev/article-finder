@@ -149,6 +149,7 @@ def verify_metadata(citation: dict[str, Any], message: dict[str, Any]) -> dict[s
     status_update, updates = update_status(message)
 
     mismatches: list[str] = []
+    pending_reasons: list[str] = []
     if expected_doi and actual_doi and expected_doi != actual_doi:
         mismatches.append("DOI returned by Crossref does not match the supplied DOI")
     if expected_title and similarity < TITLE_MATCH_THRESHOLD:
@@ -164,18 +165,26 @@ def verify_metadata(citation: dict[str, Any], message: dict[str, Any]) -> dict[s
     if expected_publisher and actual_publisher and publisher_similarity < 0.90:
         mismatches.append(f"publisher mismatch: expected {expected_publisher!r}, Crossref reports {actual_publisher!r}")
 
+    if not expected_doi or not actual_doi:
+        pending_reasons.append("DOI identity is incomplete")
+    if not expected_title or not actual_title:
+        pending_reasons.append("title metadata is incomplete")
+    if expected_year is None or actual_year is None:
+        pending_reasons.append("publication year metadata is incomplete")
+    if not expected_author or not actual_author:
+        pending_reasons.append("first-author metadata is incomplete")
+    if expected_venue and not actual_venue:
+        pending_reasons.append("requested venue is missing from Crossref metadata")
+    if expected_publisher and not actual_publisher:
+        pending_reasons.append("requested publisher is missing from Crossref metadata")
+
     if status_update == "retracted":
         status = "retracted"
     elif status_update == "corrected":
         status = "corrected"
     elif mismatches:
         status = "mismatch"
-    elif (
-        not expected_doi or not actual_doi or not expected_title or not actual_title
-        or expected_year is None or actual_year is None or not expected_author or not actual_author
-        or (expected_venue and not actual_venue)
-        or (expected_publisher and not actual_publisher)
-    ):
+    elif pending_reasons:
         status = "pending"
     else:
         status = "verified"
@@ -188,6 +197,9 @@ def verify_metadata(citation: dict[str, Any], message: dict[str, Any]) -> dict[s
         "first_author": actual_author,
         "venue": actual_venue,
         "publisher": actual_publisher,
+        "metadata_provider": "Crossref",
+        "metadata_record_url": ("https://api.crossref.org/works/" + urllib.parse.quote(actual_doi, safe="/")) if actual_doi else "",
+        "pending_reasons": pending_reasons,
         "venue_similarity": round(venue_similarity, 4),
         "publisher_similarity": round(publisher_similarity, 4),
         "title_similarity": round(similarity, 4),
@@ -293,18 +305,26 @@ def render_markdown(results: list[dict[str, Any]]) -> str:
     lines = [
         "# Citation verification report",
         "",
-        "| # | Status | DOI | Title | Year | Notes |",
-        "|---:|---|---|---|---:|---|",
+        "| # | Status | DOI | Title | First author | Year | Venue | Publisher | Updates | Notes |",
+        "|---:|---|---|---|---|---:|---|---|---|---|",
     ]
     for item in results:
         def safe(value):
             return str(value or "").replace("|", "\\|").replace("\n", " ")
         citation = item.get("input") or {}
-        notes = "; ".join(item.get("mismatches") or []) or item.get("reason", "")
+        notes = "; ".join((item.get("mismatches") or []) + (item.get("pending_reasons") or [])) or item.get("reason", "")
+        updates = "; ".join(
+            f"{update.get('type', 'update')}: {update.get('url') or update.get('doi') or update.get('label', '')}"
+            for update in item.get("updates") or []
+        )
         lines.append("| " + " | ".join((
             str(item.get("index", "")), safe(item.get("status")),
             safe(item.get("doi")), safe(item.get("title") or citation.get("title")),
-            safe(item.get("year") or citation.get("year")), safe(notes),
+            safe(item.get("first_author") or citation.get("first_author")),
+            safe(item.get("year") or citation.get("year")),
+            safe(item.get("venue") or citation.get("venue") or citation.get("journal")),
+            safe(item.get("publisher") or citation.get("publisher")),
+            safe(updates), safe(notes),
         )) + " |")
     lines.extend([
         "",
