@@ -9,7 +9,7 @@
 | Public API | oversized bodies and computationally expensive drafts | 512 KiB request cap, 180,000-character draft cap, four-record cap, bounded provider timeout/retry | no distributed caller quota |
 | API process | concurrent expensive requests exhaust CPU/memory | four in-flight POSTs per Python process; excess work receives 503 | does not coordinate across serverless instances |
 | API authentication | unauthorized access, timing leakage, accidental credential persistence | fail-closed hosted auth, constant-time bearer comparison, no browser storage, no request-body logging | production auth still needs Phase 10 live smoke |
-| Provider URLs | SSRF, DNS rebinding, redirects, proxy bypass | HTTPS/443 only, all DNS answers checked, validated IP pinning, redirect revalidation, proxy isolation | system getaddrinfo has no explicit hard deadline |
+| Provider URLs | SSRF, DNS rebinding, redirects, proxy bypass | HTTPS/443 only, all DNS answers checked, validated IP pinning, redirect revalidation, proxy isolation | DNS resolution waits at most five seconds; at most two resolver workers may remain stuck, after which new resolution attempts fail closed |
 | Provider responses | oversized body, false PDF, malicious XML/HTML | 80 MiB response cap, bounded HTML parser input, PDF signature + size floor, defusedxml for Atom | valid PDF signature does not prove malware-free or scholarly integrity |
 | Retrieval provenance | signed URL/query credentials or contact email leak into report | sensitive query-value redaction; exception details reduced to exception class | unknown vendor-specific credential parameter names may require adding to redaction list |
 | Local files | path traversal / partial writes | title-derived filenames restricted to ASCII slug; atomic temp-file write; no archive extraction implementation | output directory is user-controlled and local |
@@ -24,7 +24,7 @@
 | PH8-01 | documented threat model for API, providers, PDF and untrusted content | VERIFIED | this file |
 | PH8-02 | pinned dependencies and vulnerability audit | VERIFIED | requirements.txt, requirements-browser.txt, requirements-quality.txt; CI pip-audit covers all three manifests |
 | PH8-03 | Ruff, Bandit, pip-audit and secret scanning | CI PENDING | Ruff/Bandit/pip-audit plus pinned Gitleaks action are configured in the workflow; exact-SHA CI result is required before verification |
-| PH8-04 | request/response, timeout, retry, concurrency and resource limits | PARTIAL | request/draft/count/body/response limits plus four per-process POST slots; DNS resolver timeout remains unbounded; no distributed rate limiter |
+| PH8-04 | request/response, timeout, retry, concurrency and resource limits | PARTIAL | request/draft/count/body/response limits, four per-process POST slots, and five-second DNS wait with at most two bounded daemon workers; no distributed rate limiter |
 | PH8-05 | sensitive-data redaction in logs and retrieval reports | VERIFIED IN CODE; CI PENDING | http_util.redact_url; retrieval errors omit exception text; targeted regression test added |
 | PH8-06 | safe path, archive, XML and untrusted HTML handling | PARTIAL | no archive extraction path exists; title slug + atomic writes; defusedxml is pinned; HTML input is bounded and PDF links are HTTPS-filtered; further parser fuzzing not evidenced |
 | PH8-07 | caller rate-limit behavior and provider outage behavior | PARTIAL | process capacity overflow returns 503; this is not a caller quota; provider outage is covered by deterministic mocked tests, not live uptime evidence |
@@ -45,5 +45,5 @@
 
 - Mocked provider failures establish deterministic error handling only; they do not establish live provider availability.
 - A green CI run on the exact main SHA is required before this matrix can be treated as verified.
-- Phase 8 must remain IN PROGRESS / BLOCKED FOR ACCEPTANCE until the Gitleaks and SBOM workflow pass on the exact HEAD, a license inventory decision is recorded, DNS resolution deadline risk is addressed or explicitly accepted by the authorized owner, and independent security review has evidence.
+- Phase 8 must remain IN PROGRESS / BLOCKED FOR ACCEPTANCE until the Gitleaks and SBOM workflow pass on the exact HEAD, a license inventory decision is recorded, the bounded DNS-worker failure mode is reviewed, and independent security review has evidence.
 - Phase 10 production smoke is not part of this phase and remains separate.
