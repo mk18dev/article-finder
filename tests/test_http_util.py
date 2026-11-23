@@ -16,6 +16,11 @@ def answer(ip):
     return [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", (ip, 443))]
 
 
+def answer6(ip):
+    return [(socket.AF_INET6, socket.SOCK_STREAM, socket.IPPROTO_TCP, "",
+             (ip, 443, 0, 0))]
+
+
 class HttpSecurityTests(unittest.TestCase):
     def test_rejects_http(self):
         with self.assertRaises(ValueError):
@@ -50,6 +55,18 @@ class HttpSecurityTests(unittest.TestCase):
     def test_blocks_mixed_public_and_private_dns_results(self):
         with patch.object(hu.socket, "getaddrinfo",
                    return_value=answer("1.1.1.1") + answer("192.168.1.2")):
+            with self.assertRaises(ValueError):
+                hu.validate_remote_url("https://example.org/a.pdf")
+
+    def test_blocks_reserved_ipv6_nat64_result(self):
+        # Python reports the well-known NAT64 prefix as global and reserved.
+        with patch.object(hu.socket, "getaddrinfo", return_value=answer6("64:ff9b::a00:1")):
+            with self.assertRaises(ValueError):
+                hu.validate_remote_url("https://example.org/a.pdf")
+
+    def test_blocks_ipv6_multicast_even_when_global(self):
+        # Some multicast scopes report is_global=True in ipaddress.
+        with patch.object(hu.socket, "getaddrinfo", return_value=answer6("ff0e::1")):
             with self.assertRaises(ValueError):
                 hu.validate_remote_url("https://example.org/a.pdf")
 
