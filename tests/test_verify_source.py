@@ -497,7 +497,69 @@ class TierTests(unittest.TestCase):
     def test_tier_needs_reviewer_evidence(self) -> None:
         article = decide(entry={k: v for k, v in ENTRY.items() if k != "tier_evidence"})
         self.assertEqual(article["tier"], "")
+        self.assertIsNone(article["tier_verified"])
+
+    def test_q1_quartile_computes_tier_a(self) -> None:
+        entry = {**ENTRY, "quartile": "Q1", "tier": "A"}
+        article = decide(entry=entry)
+        self.assertEqual(article["tier"], "A")
+        self.assertIs(article["tier_verified"], True)
+
+    def test_declared_tier_mismatch_is_rejected(self) -> None:
+        entry = {**ENTRY, "quartile": "Q1", "tier": "B"}
+        article = decide(entry=entry)
+        self.assertEqual(article["tier"], "A")
         self.assertIs(article["tier_verified"], False)
+
+    def test_missing_quartile_source_keeps_high_index_tier_pending(self) -> None:
+        entry = {key: value for key, value in ENTRY.items() if key != "quartile_source"}
+        article = decide(entry=entry)
+        self.assertEqual(article["tier"], "")
+        self.assertIsNone(article["tier_verified"])
+
+    def test_unofficial_tier_evidence_host_keeps_tier_pending(self) -> None:
+        tier_evidence = {**ENTRY["tier_evidence"], "url": "https://evidence.example/tier"}
+        article = decide(entry={**ENTRY, "tier_evidence": tier_evidence})
+        self.assertEqual(article["tier"], "")
+        self.assertIsNone(article["tier_verified"])
+
+    def test_only_isc_index_computes_tier_c(self) -> None:
+        entry = {
+            **ENTRY,
+            "tier": "C",
+            "indexing_evidence": [{
+                "index": "ISC", "verified": True, **evidence("ISC index record reviewed"),
+                "url": "https://isc.gov.ir/journal/record",
+            }],
+            "tier_evidence": {
+                **ENTRY["tier_evidence"], "url": "https://isc.gov.ir/journal/record",
+                "basis": "Only ISC indexing is verified for this journal",
+            },
+        }
+        article = decide(entry=entry)
+        self.assertEqual(article["tier"], "C")
+        self.assertIs(article["tier_verified"], True)
+
+    def test_off_specialization_indexed_journal_computes_tier_c(self) -> None:
+        article = decide(entry={**ENTRY, "specialized": False, "tier": "C"})
+        self.assertEqual(article["tier"], "C")
+        self.assertIs(article["tier_verified"], True)
+
+    def test_verified_blacklist_hit_computes_tier_d(self) -> None:
+        checks = [dict(item) for item in ENTRY["blacklist_checks"]]
+        checks[0]["status"] = "listed"
+        tier_evidence = {
+            **ENTRY["tier_evidence"],
+            "url": "https://journals.msrt.ir/",
+            "basis": "Official MSRT blacklist record confirms a matching ISSN",
+        }
+        article = decide(entry={
+            **ENTRY, "tier": "D", "blacklist_checks": checks,
+            "tier_evidence": tier_evidence,
+        })
+        self.assertEqual(article["tier"], "D")
+        self.assertIs(article["tier_verified"], True)
+        self.assertIs(article["steps"]["S6"], False)
 
     def test_verified_tier_is_preserved(self) -> None:
         article = decide()
