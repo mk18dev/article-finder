@@ -78,6 +78,12 @@ ENTRY = {
             **evidence("ISSN checked in the IAU invalid-journals/evaluation portal"),
             "url": "https://eval.journals.iau.ir/", "locator": "1405 journal record",
         },
+        {
+            "authority": "mohme", "status": "clear", "query_type": "ISSN",
+            "query_value": "0924-1868", "list_version": "2026-11-23 fixture",
+            **evidence("ISSN checked in the MOHME journal database"),
+            "url": "https://research.behdasht.gov.ir/", "locator": "journal database record",
+        },
     ],
     "indexing_evidence": [{
         "index": "Scopus", "verified": True,
@@ -358,6 +364,10 @@ class BlacklistTests(unittest.TestCase):
         entry = {**ENTRY, "blacklist_checks": ENTRY["blacklist_checks"][:1]}
         self.assertIsNone(decide(entry=entry)["steps"]["S6"])
 
+    def test_mohme_blacklist_check_is_required(self) -> None:
+        checks = [item for item in ENTRY["blacklist_checks"] if item["authority"] != "mohme"]
+        self.assertIsNone(decide(entry={**ENTRY, "blacklist_checks": checks})["steps"]["S6"])
+
     def test_blacklist_query_must_match_record_issn(self) -> None:
         checks = [dict(item) for item in ENTRY["blacklist_checks"]]
         checks[0]["query_value"] = "1111-1111"
@@ -442,6 +452,7 @@ class BlacklistTests(unittest.TestCase):
         links = " ".join(vs.s6_links(work()))
         self.assertIn("journals.msrt.ir", links)
         self.assertIn("eval.journals.iau.ir", links)
+        self.assertIn("research.behdasht.gov.ir", links)
 
     def test_conference_checklist_keeps_dblp_without_journal_blacklist_link(self) -> None:
         links = " ".join(vs.s6_links(work(kind="conference", issns=[])))
