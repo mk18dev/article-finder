@@ -202,7 +202,7 @@ Missing or invalid ISSN, publisher not identifiable, Number inconsistent with Vo
 
 - **Journal:** a reported blacklist hit rejects the source. Otherwise, three documented clear checks (MSRT, MOHME and IAU) plus a verified Scopus, Web of Science/WoS, ISC, DBLP or DOAJ record are required.
 - **Conference:** a verified proceedings index record in Scopus, Web of Science/WoS, ISC or DBLP is required. The journal blacklist check does not apply.
-- **Thesis:** a verified Irandoc or official university/institutional repository record is required.
+- **Thesis:** a verified Irandoc or official university/institutional repository record is required. For PhD tier A, each derived paper counted toward the A/B condition must include its own reviewer-attributed SJR/JCR quartile or ESCI evidence; the evidence-derived A/B tier must match the paper's declared tier.
 - **Book:** a Google Books/Amazon record, explicit publisher confirmation, and a non-negative citation count backed by a separate reviewer-attributed OpenAlex record are required. The OpenAlex count and DOI (or ISBN when no DOI exists) must exactly match the book evidence.
 
 DOAJ membership alone does not replace the journal/conference index evidence accepted by this release. The generated checklist links to the source-specific lookup pages. Reviewers must inspect those pages and record the evidence in the plan; a URL and note are an audit trail, not cryptographic proof of the page's contents.
