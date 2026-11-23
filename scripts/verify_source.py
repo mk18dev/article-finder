@@ -288,6 +288,52 @@ def evidence_item_ok(item: Any) -> bool:
     return valid_https and len(note.strip()) >= 8
 
 
+def verified_indexing_items(entry: dict[str, Any]) -> list[dict[str, Any]]:
+    items = entry.get("indexing_evidence")
+    if not isinstance(items, list):
+        return []
+    verified: list[dict[str, Any]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        index = str(item.get("index") or "").strip().lower()
+        domains = INDEX_DOMAINS.get(index)
+        if domains and item.get("verified") is True and evidence_item_ok(item) and host_matches(
+            str(item.get("url") or ""), domains
+        ):
+            verified.append(item)
+    return verified
+
+
+def tier_evidence_valid(work: Work, entry: dict[str, Any]) -> bool:
+    evidence = entry.get("tier_evidence")
+    if not isinstance(evidence, dict):
+        return False
+    payload = {
+        "reviewed": evidence.get("verified") is True,
+        "reviewer_id": evidence.get("reviewer_id"),
+        "reviewed_at": evidence.get("reviewed_at"),
+        "locator": evidence.get("locator"),
+        "url": evidence.get("url"),
+        "note": evidence.get("basis"),
+    }
+    if not evidence_item_ok(payload):
+        return False
+    if work.kind == "journal":
+        source = str(entry.get("quartile_source") or "").strip().upper()
+        domains = {"SJR": ("scimagojr.com",), "JCR": ("jcr.clarivate.com", "clarivate.com")}.get(source, ())
+    elif work.kind == "conference":
+        domains = ("ieeexplore.ieee.org", "dl.acm.org", "link.springer.com", "sciencedirect.com", "dblp.org")
+    elif work.kind == "thesis":
+        institution = str(entry.get("institution_domain") or "").strip().lower()
+        domains = ("irandoc.ac.ir",) + ((institution,) if institution else ())
+    elif work.kind == "book":
+        domains = ("books.google.com", "amazon.com", "amazon.co.uk", "amazon.de", "amazon.ca")
+    else:
+        return False
+    return bool(domains) and host_matches(str(evidence.get("url") or ""), domains)
+
+
 def judgement(entry: dict[str, Any], step: str) -> bool | None:
     judgements = entry.get("judgements")
     if not isinstance(judgements, dict):
