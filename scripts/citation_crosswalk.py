@@ -12,13 +12,13 @@ from pathlib import Path
 from typing import Any
 
 IEEE_RE = re.compile(r"\[(\d+(?:\s*[-–]\s*\d+)?(?:\s*,\s*\d+(?:\s*[-–]\s*\d+)?)*)\]")
-APA_PAREN_RE = re.compile(r"\\(([^()]{0,240}(?:13|14|19|20)\\d{2}[a-z]?[^()]*)\\)", re.UNICODE)
+APA_PAREN_RE = re.compile(r"\(([^()]{0,240}(?:13|14|19|20)\d{2}[a-z]?[^()]*)\)", re.UNICODE)
 APA_PAIR_RE = re.compile(
-    r"([^\\W\\d_][^\\d,;()]{0,80}?),?\\s*((?:13|14|19|20)\\d{2}[a-z]?)",
+    r"([^\W\d_][^\d,;()]{0,80}?),?\s*((?:13|14|19|20)\d{2}[a-z]?)",
     re.UNICODE,
 )
 APA_NARRATIVE_RE = re.compile(
-    r"([^\\W\\d_][^\\d()]{0,80}?)\\s+\\(((?:13|14|19|20)\\d{2}[a-z]?)\\)",
+    r"([^\W\d_][^\d()]{0,80}?)\s+\(((?:13|14|19|20)\d{2}[a-z]?)\)",
     re.UNICODE,
 )
 
@@ -61,16 +61,16 @@ def _doi(value: Any) -> str:
 def _author_key(value: Any) -> str:
     text = unicodedata.normalize("NFKC", str(value or "")).strip()
     text = text.translate(str.maketrans({"ي": "ی", "ى": "ی", "ك": "ک", "ـ": ""}))
-    text = text.replace("\\u200c", "").replace("\\u200f", "").replace("\\u200e", "")
+    text = text.replace("\u200c", "").replace("\u200f", "").replace("\u200e", "")
     if not text:
         return ""
-    text = re.sub(r"\\s+et\\s+al\\.?$", "", text, flags=re.I)
-    text = re.split(r"\\s*(?:&|and|و)\\s*", text, maxsplit=1, flags=re.I)[0]
+    text = re.sub(r"\s+et\s+al\.?$", "", text, flags=re.I)
+    text = re.split(r"\s*(?:&|and|و)\s*", text, maxsplit=1, flags=re.I)[0]
     if re.search(r"[,،]", text):
         family = re.split(r"[,،]", text, maxsplit=1)[0]
     else:
         family = text.split()[-1] if text.split() else ""
-    return re.sub(r"[^\\w]", "", family.casefold(), flags=re.UNICODE)
+    return re.sub(r"[^\w]", "", family.casefold(), flags=re.UNICODE)
 
 
 
@@ -78,7 +78,7 @@ def _year(value: Any) -> str:
     normalized = unicodedata.normalize("NFKC", str(value or "")).translate(
         str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
     )
-    match = re.search(r"(?:13|14|19|20)\\d{2}[a-z]?", normalized, flags=re.I)
+    match = re.search(r"(?:13|14|19|20)\d{2}[a-z]?", normalized, flags=re.I)
     return match.group(0).casefold() if match else ""
 
 
