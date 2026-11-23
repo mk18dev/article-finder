@@ -70,19 +70,19 @@ ENTRY = {
     "blacklist_checks": [
         {
             "authority": "msrt", "status": "clear", "query_type": "ISSN",
-            "query_value": "0924-1868", "list_version": "2026-11-23",
+            "query_value": "0924-1868", "list_version": "2026-11-23", "list_updated_at": "2026-11-23",
             **evidence("ISSN checked in the MSRT journal portal"),
             "url": "https://journals.msrt.ir/", "locator": "ISSN 0924-1868 search result",
         },
         {
             "authority": "iau", "status": "clear", "query_type": "ISSN",
-            "query_value": "0924-1868", "list_version": "1405",
+            "query_value": "0924-1868", "list_version": "1405", "list_updated_at": "2026-11-23",
             **evidence("ISSN checked in the IAU invalid-journals/evaluation portal"),
             "url": "https://eval.journals.iau.ir/", "locator": "1405 journal record",
         },
         {
             "authority": "mohme", "status": "clear", "query_type": "ISSN",
-            "query_value": "0924-1868", "list_version": "2026-11-23 fixture",
+            "query_value": "0924-1868", "list_version": "2026-11-23 fixture", "list_updated_at": "2026-11-23",
             **evidence("ISSN checked in the MOHME journal database"),
             "url": "https://research.behdasht.gov.ir/", "locator": "journal database record",
         },
@@ -383,6 +383,21 @@ class BlacklistTests(unittest.TestCase):
     def test_blacklist_check_requires_official_authority_host(self) -> None:
         checks = [dict(item) for item in ENTRY["blacklist_checks"]]
         checks[0]["url"] = "https://msrt.ir.attacker.example/"
+        self.assertIsNone(decide(entry={**ENTRY, "blacklist_checks": checks})["steps"]["S6"])
+
+    def test_stale_official_blacklist_list_is_pending(self) -> None:
+        checks = [dict(item) for item in ENTRY["blacklist_checks"]]
+        checks[0]["list_updated_at"] = "2023-01-01"
+        self.assertIsNone(decide(entry={**ENTRY, "blacklist_checks": checks})["steps"]["S6"])
+
+    def test_future_blacklist_list_updated_date_is_pending(self) -> None:
+        checks = [dict(item) for item in ENTRY["blacklist_checks"]]
+        checks[0]["list_updated_at"] = "2027-01-01"
+        self.assertIsNone(decide(entry={**ENTRY, "blacklist_checks": checks})["steps"]["S6"])
+
+    def test_missing_blacklist_list_updated_date_is_pending(self) -> None:
+        checks = [dict(item) for item in ENTRY["blacklist_checks"]]
+        checks[0].pop("list_updated_at")
         self.assertIsNone(decide(entry={**ENTRY, "blacklist_checks": checks})["steps"]["S6"])
 
     def test_duplicate_blacklist_authority_is_pending(self) -> None:
