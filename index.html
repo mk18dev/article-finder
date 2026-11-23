@@ -13,7 +13,7 @@
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <a class="brand" href="/" aria-label="Article Finder home">
+      <a class="brand" href="/">
         <span class="brand-mark">AF</span>
         <span class="brand-copy">
           <strong>Article Finder</strong>
@@ -57,12 +57,12 @@
         </div>
       </section>
 
-      <nav class="mode-tabs" aria-label="ابزارها">
-        <button class="mode-tab is-active" type="button" data-mode="sources" aria-selected="true">
+      <nav class="mode-tabs" role="tablist" aria-label="ابزارها" aria-orientation="horizontal">
+        <button class="mode-tab is-active" id="mode-sources-tab" type="button" role="tab" data-mode="sources" aria-selected="true" aria-controls="source-form" tabindex="0">
           <span class="tab-index">01</span><span class="tab-icon">⌕</span>
           <span class="tab-copy"><b>اعتبارسنجی منابع</b><small>DOI · شواهد · رتبه‌بندی</small></span>
         </button>
-        <button class="mode-tab" type="button" data-mode="draft" aria-selected="false">
+        <button class="mode-tab" id="mode-draft-tab" type="button" role="tab" data-mode="draft" aria-selected="false" aria-controls="draft-form" tabindex="-1">
           <span class="tab-index">02</span><span class="tab-icon">≡</span>
           <span class="tab-copy"><b>بررسی پیش‌نویس</b><small>ساختار · قواعد · اصلاح</small></span>
         </button>
@@ -78,7 +78,7 @@
             <span class="step-count" id="input-step">01 <i>/</i> 02</span>
           </div>
 
-          <form id="source-form" class="tool-form">
+          <form id="source-form" class="tool-form" role="tabpanel" aria-labelledby="mode-sources-tab" tabindex="0">
             <section class="discovery-box" aria-labelledby="discovery-title">
               <div class="discovery-heading">
                 <div>
@@ -156,7 +156,7 @@
             <p class="form-footnote">هر نتیجه فقط بر اساس شواهد دریافت‌شده است؛ ناقص‌بودن شواهد به معنی Pending است.</p>
           </form>
 
-          <form id="draft-form" class="tool-form is-hidden">
+          <form id="draft-form" class="tool-form is-hidden" role="tabpanel" aria-labelledby="mode-draft-tab" tabindex="0">
             <div class="field">
               <label class="field-label" for="draft-text">متن کامل پیش‌نویس <span class="required">*</span></label>
               <textarea id="draft-text" class="input-control draft-input" rows="14" placeholder="# عنوان
