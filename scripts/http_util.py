@@ -15,6 +15,7 @@ import json
 import os
 import socket
 import ssl
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -27,6 +28,8 @@ TIMEOUT = 30
 RETRIES = 3
 MAX_BYTES = 80 * 1024 * 1024
 CHUNK = 1 << 16
+DNS_TIMEOUT = 5
+_DNS_SLOTS = threading.BoundedSemaphore(2)
 # ORCHIDv2 identifiers are not globally reachable even though some Python
 # ipaddress versions classify them as global and non-reserved.
 _NON_GLOBAL_SPECIAL_NETWORKS = (ipaddress.ip_network("2001:20::/28"),)
@@ -53,9 +56,42 @@ def redact_url(url: str) -> str:
         return "[invalid URL]"
 
 
+def _getaddrinfo_bounded(host: str) -> list[tuple[Any, ...]]:
+    """Resolve DNS with a hard wait bound and a bounded daemon-worker pool."""
+    if not _DNS_SLOTS.acquire(blocking=False):
+        raise TimeoutError("DNS resolver capacity is exhausted")
+    result: dict[str, Any] = {}
+    completed = threading.Event()
+
+    def resolve() -> None:
+        try:
+            result["infos"] = socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
+        except Exception as exc:
+            result["error"] = exc
+        finally:
+            completed.set()
+            _DNS_SLOTS.release()
+
+    worker = threading.Thread(target=resolve, name="article-finder-dns", daemon=True)
+    try:
+        worker.start()
+    except RuntimeError:
+        _DNS_SLOTS.release()
+        raise
+    if not completed.wait(DNS_TIMEOUT):
+        # A stuck system resolver cannot be killed safely. Its slot remains
+        # occupied until it exits, bounding the number of stuck resolver threads.
+        raise TimeoutError(f"DNS resolution exceeded {DNS_TIMEOUT} seconds")
+    if "error" in result:
+        raise result["error"]
+    return result["infos"]
+
+
 def _resolve_public_addresses(host: str) -> tuple[str, ...]:
     try:
-        infos = socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
+        infos = _getaddrinfo_bounded(host)
+    except TimeoutError as exc:
+        raise ValueError(f"DNS resolution timed out for destination host: {host}") from exc
     except OSError as exc:
         raise ValueError(f"unable to resolve destination host: {host}") from exc
     raw_addresses = tuple(dict.fromkeys(
