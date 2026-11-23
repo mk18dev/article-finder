@@ -349,7 +349,7 @@ def main() -> int:
         plan_value = page.locator("#source-plan").input_value()
         assert candidate["doi"] in plan_value
         page.locator("#source-submit").click()
-        page.locator(".source-result").wait_for(state="visible")
+        page.locator(".source-result").first.wait_for(state="visible")
         assert page.locator(".source-title").inner_text() == INJECTED_TITLE
         assert page.locator(".verdict-badge.pending").count() == 1
         assert page.locator(".verdict-badge.approved").count() == 1
