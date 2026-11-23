@@ -640,6 +640,41 @@ def s11_gate(work: Work, entry: dict[str, Any], category: str) -> bool | None:
     return True if all(evidence_item_ok(reading.get(key)) for key in required) else None
 
 
+def derived_paper_tier_evidence_ok(item: dict[str, Any]) -> bool:
+    """Require independent journal-tier evidence for a thesis-derived paper."""
+    tier = str(item.get("tier") or "").strip().upper()
+    evidence = item.get("tier_evidence")
+    if tier not in {"A", "B"} or not isinstance(evidence, dict):
+        return False
+    source = str(evidence.get("source") or "").strip().upper()
+    quartile = str(evidence.get("quartile") or "").strip().upper()
+    evidence_tier = str(evidence.get("tier") or "").strip().upper()
+    if source == "ESCI":
+        expected_tier = "B"
+        domains = ("mjl.clarivate.com", "webofscience.com")
+    elif source in {"SJR", "JCR"} and quartile in {"Q1", "Q2", "Q3", "Q4"}:
+        expected_tier = "A" if quartile in {"Q1", "Q2"} else "B"
+        domains = (
+            ("scimagojr.com",) if source == "SJR"
+            else ("jcr.clarivate.com", "clarivate.com", "mjl.clarivate.com")
+        )
+    else:
+        return False
+    payload = {
+        "reviewed": evidence.get("verified") is True,
+        "reviewer_id": evidence.get("reviewer_id"),
+        "reviewed_at": evidence.get("reviewed_at"),
+        "locator": evidence.get("locator"),
+        "url": evidence.get("url"),
+        "note": evidence.get("basis"),
+    }
+    return (
+        tier == expected_tier == evidence_tier
+        and evidence_item_ok(payload)
+        and host_matches(str(evidence.get("url") or ""), domains)
+    )
+
+
 def tier_verified(
     work: Work, entry: dict[str, Any], steps: dict[str, bool | None]
 ) -> tuple[bool | None, str | None, str]:
@@ -658,6 +693,7 @@ def tier_verified(
         item for item in derived_papers
         if isinstance(item, dict) and item.get("verified") is True
         and evidence_item_ok(item)
+        and derived_paper_tier_evidence_ok(item)
         and host_matches(
             str(item.get("url") or ""),
             ("doi.org", "crossref.org", "scopus.com", "webofscience.com",
