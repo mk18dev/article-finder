@@ -290,6 +290,14 @@ class RequestBoundaryTests(unittest.TestCase):
         }
         self.assertTrue(request._same_origin())
 
+    def test_request_logging_never_formats_request_data_or_credentials(self):
+        request = object.__new__(api.handler)
+        parent = api.handler.__mro__[1]
+        with patch.object(parent, "log_message") as log_message:
+            request.log_message("Authorization: %s", "Bearer must-not-be-logged")
+        log_message.assert_called_once_with("Article Finder API request")
+        self.assertNotIn("must-not-be-logged", str(log_message.call_args))
+
     def test_optional_bearer_key_uses_constant_time_comparison(self):
         request = object.__new__(api.handler)
         request.headers = {"Authorization": "Bearer correct-test-key"}

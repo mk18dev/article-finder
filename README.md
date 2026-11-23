@@ -204,9 +204,13 @@ The Persian-first web interface exposes source discovery, 11-gate source verific
 ### API boundaries
 
 The API accepts at most four source records or discovery candidates per request
-and a draft of at most 180,000 characters. Cross-origin browser POSTs are
-rejected and no CORS access is granted. POSTs are JSON-only and limited to
-512 KiB. Missing or unverified research evidence remains pending; the service
+and a draft of at most 180,000 characters. Cross-origin browser POSTs and CORS preflight are rejected; no
+CORS access is granted. POSTs are JSON-only and limited to 512 KiB. Malformed
+JSON/shape errors return 400, semantic payload validation returns 422,
+authentication failures return 401, oversized bodies return 413, and unsupported
+media types return 415. The API does not emit 429 because no shared/distributed
+rate limiter is configured; a process-local counter would not be a reliable
+Vercel-wide security control. Missing or unverified research evidence remains pending; the service
 does not claim that a reviewer attestation or an indexing record is true merely
 because it was submitted. Remote metadata requests use bounded timeouts and
 retries. On Vercel, `ARTICLE_FINDER_API_KEY` is required by default; the browser sends this Article Finder access key only for the current request and does not persist it. It is not an LLM/provider key. Set the same secret as a Sensitive Production environment variable in Vercel and as the GitHub Actions repository secret `ARTICLE_FINDER_API_KEY` before running production smoke. Do not set `ARTICLE_FINDER_PUBLIC_MODE=1` unless the API is intentionally meant to be public. Local development remains public by default. The health endpoint reports the active auth mode.

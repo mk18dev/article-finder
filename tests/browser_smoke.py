@@ -24,6 +24,7 @@ def assert_no_horizontal_overflow(page) -> None:
 def main() -> int:
     page_errors: list[str] = []
     console_errors: list[str] = []
+    console_messages: list[str] = []
     api_route_hits: list[dict] = []
     api_requests: list[str] = []
     calls: list[dict] = []
@@ -198,7 +199,13 @@ def main() -> int:
             context.grant_permissions(["clipboard-read", "clipboard-write"], origin=BASE_URL)
         page = context.new_page()
         page.on("pageerror", lambda error: page_errors.append(str(error)))
-        page.on("console", lambda message: console_errors.append(message.text) if message.type == "error" else None)
+
+        def collect_console(message):
+            console_messages.append(message.text)
+            if message.type == "error":
+                console_errors.append(message.text)
+
+        page.on("console", collect_console)
         page.on(
             "request",
             lambda request: api_requests.append(request.url)
@@ -313,6 +320,7 @@ def main() -> int:
         page.locator(".source-result").wait_for(state="visible")
         assert page.locator(".source-title").inner_text() == INJECTED_TITLE
         assert page.locator(".source-notes").is_visible()
+        page.locator(".source-notes summary").click()
         assert "شواهد بازبین هنوز ثبت نشده" in page.locator(".source-notes").inner_text()
         assert page.locator("#result-items img").count() == 0
         assert page.locator("#results-view").is_visible()
@@ -340,6 +348,9 @@ def main() -> int:
         assert page.evaluate(
             "() => localStorage.length === 0 && sessionStorage.length === 0"
         )
+        assert "browser-e2e-key" not in page.url
+        assert all("browser-e2e-key" not in url for url in api_requests)
+        assert all("browser-e2e-key" not in message for message in console_messages)
 
         page.locator("#copy-output").click()
         expect(page.locator("#copy-output")).to_have_text("کپی شد", timeout=5_000)

@@ -251,9 +251,20 @@ class IrandocTests(unittest.TestCase):
         self.assertIn("ganj.irandoc.ac.ir", text)
 
     def test_unauthorized_full_text_hosts_are_not_linked_in_policy_docs(self) -> None:
-        validation = (SCRIPTS.parent / "references" / "validation.md").read_text(encoding="utf-8").lower()
-        for host in ("sci-hub.st", "libgen.is", "z-lib.io"):
-            self.assertNotIn(host, validation)
+        root = SCRIPTS.parent
+        reviewed_files = (
+            root / "README.md",
+            root / "SKILL.md",
+            root / "references" / "validation.md",
+            root / "scripts" / "fetch_pdf.py",
+            root / "vercel.json",
+        )
+        for path in reviewed_files:
+            content = path.read_text(encoding="utf-8").lower()
+            for host in ("sci-hub.st", "libgen.is", "z-lib.io"):
+                with self.subTest(path=path.name, host=host):
+                    self.assertNotIn(host, content)
+        validation = (root / "references" / "validation.md").read_text(encoding="utf-8").lower()
         self.assertIn("does not implement or link", validation)
 
 
