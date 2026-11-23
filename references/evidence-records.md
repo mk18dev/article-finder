@@ -85,7 +85,43 @@ list cannot be located or is stale, record the check as unavailable and leave
 S6 pending. A missing, inaccessible, malformed or
 unverified result stays pending. After all three checks are clear, at least one
 verified Scopus, Web of Science/WoS, ISC, DBLP or DOAJ record is required in
-`indexing_evidence`.
+    `indexing_evidence`.
+
+Illustrative journal blacklist-check structure (replace every version, URL and
+locator with the exact current record you inspected; this is not a real
+clearance result):
+
+```json
+"blacklist_checks": [
+  {
+    "authority": "msrt", "status": "clear", "query_type": "ISSN",
+    "query_value": "0924-1868", "list_version": "replace-with-current-version",
+    "reviewed": true, "reviewer_id": "reviewer-1",
+    "reviewed_at": "2026-11-23T10:00:00Z",
+    "url": "https://journals.msrt.ir/",
+    "locator": "ISSN search result / exact record",
+    "note": "No matching entry in the current official list"
+  },
+  {
+    "authority": "mohme", "status": "clear", "query_type": "ISSN",
+    "query_value": "0924-1868", "list_version": "replace-with-current-version",
+    "reviewed": true, "reviewer_id": "reviewer-1",
+    "reviewed_at": "2026-11-23T10:00:00Z",
+    "url": "https://research.behdasht.gov.ir/",
+    "locator": "ISSN search result / exact record",
+    "note": "No matching entry in the current official list"
+  },
+  {
+    "authority": "iau", "status": "clear", "query_type": "ISSN",
+    "query_value": "0924-1868", "list_version": "replace-with-current-version",
+    "reviewed": true, "reviewer_id": "reviewer-1",
+    "reviewed_at": "2026-11-23T10:00:00Z",
+    "url": "https://eval.journals.iau.ir/",
+    "locator": "1405 evaluation / exact journal record",
+    "note": "No revocation or invalidation marker in the current official record"
+  }
+]
+```
 
 **Conference:** verify the proceedings record in Scopus, Web of Science/WoS,
 ISC or DBLP using `indexing_evidence`. The journal blacklist check does not
