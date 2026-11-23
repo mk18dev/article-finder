@@ -176,14 +176,23 @@ def main() -> int:
         page = context.new_page()
         page.on("pageerror", lambda error: page_errors.append(str(error)))
         page.route("**/api", api_route)
+        axe_bundle = Path("node_modules/axe-core/axe.min.js")
+        if not axe_bundle.is_file():
+            raise AssertionError("Pinned axe-core bundle is missing")
+        axe_source = axe_bundle.read_text(encoding="utf-8")
+        page.route(
+            "**/axe.min.js",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/javascript; charset=utf-8",
+                body=axe_source,
+            ),
+        )
 
         response = page.goto(BASE_URL, wait_until="networkidle", timeout=20_000)
         assert response is not None and response.status == 200
 
-        axe_bundle = Path("node_modules/axe-core/axe.min.js")
-        if not axe_bundle.is_file():
-            raise AssertionError("Pinned axe-core bundle is missing")
-        page.add_script_tag(path=str(axe_bundle))
+        page.add_script_tag(url=BASE_URL.rstrip("/") + "/axe.min.js")
         accessibility = page.evaluate("""async () => {
             const result = await axe.run(document, {
                 runOnly: {
