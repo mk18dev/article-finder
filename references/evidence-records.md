@@ -38,8 +38,12 @@ Every entry starts with:
   (timezone-aware ISO-8601 timestamp).
 - `specialized`: an explicit boolean plus `specialization_evidence` (reviewed
   URL and note); missing either is pending, false fails S8.
-- `tier`: provisional A-D; it is not trusted without `tier_evidence`.
-- `tier_evidence`: `verified: true`, `reviewer_id`, `reviewed_at`, `locator`, `url`, and `basis` explaining the evidence/rubric used to assign the tier.
+- `tier`: optional declared A-D value; the application computes the tier from source-specific evidence and rejects a declared/computed mismatch.
+- `tier_evidence`: `verified: true`, `reviewer_id`, `reviewed_at`, `locator`, `url`, and `basis` supporting the computed tier. The URL must be an official quartile/index/blacklist source for journals, publisher/index record for conferences, institutional repository for theses, or Google Books/Amazon record for books.
+- Journal tier inputs: `quartile` (`Q1`-`Q4`) and `quartile_source` (`SJR` or `JCR`). The evidence URL must match that source when using quartile rules.
+- Conference tier inputs: `conference_scope` (`international` or `national`) and boolean `conference_series_established`.
+- Thesis tier inputs: `derived_papers_status` (`found` or `none`), reviewed `derived_papers_review`, optional `derived_papers` with verified DOI records and tier, `university_reputable`, and `university_evidence`.
+- Book tier inputs: `main_book`, `relevant_chapters` plus `relevant_chapters_evidence`, and `book_s6_evidence` with publisher verification and integer citation count. The configurable default thresholds (50 strong / 10 modest) live in `scripts/tier-policy.json`.
 - `area` and `subject`: labels only; S1/S2 need matching records under
   `judgements`.
 - `degree_evidence`: thesis degree confirmation with a reviewer URL and note;
