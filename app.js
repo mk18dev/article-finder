@@ -527,7 +527,7 @@
     }
   });
 
-  const modeTabs = $(".mode-tab");
+  const modeTabs = $$(".mode-tab");
   modeTabs.forEach(button => {
     button.addEventListener("click", () => setMode(button.dataset.mode));
     button.addEventListener("keydown", event => {
