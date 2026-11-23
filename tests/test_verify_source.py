@@ -837,6 +837,13 @@ class RealEvidenceTierTests(unittest.TestCase):
                 "locator": "Publications and manuscripts, PDF page 4; SJR 2024 Q1",
                 "url": "https://doi.org/10.1016/j.ebiom.2021.103444",
                 "note": "The thesis lists this derived paper; EBioMedicine is SJR Q1 for 2024",
+                "tier_evidence": {
+                    "source": "SJR", "quartile": "Q1", "tier": "A", "verified": True,
+                    "reviewer_id": "phase1-audit", "reviewed_at": "2026-11-23T12:00:00Z",
+                    "locator": "2024 quartile row for EBioMedicine",
+                    "url": "https://www.scimagojr.com/journalsearch.php?clean=0&q=21100369815&tip=sid",
+                    "basis": "SJR 2024 Q1 maps this derived journal paper to tier A",
+                },
             }],
             "tier_evidence": self.tier_record(
                 thesis_url, "Official repository record and thesis title page",
@@ -853,6 +860,57 @@ class RealEvidenceTierTests(unittest.TestCase):
         }
         self.assertIs(vs.s6_gate(thesis, entry), True)
         self.assert_tier_a(thesis, entry)
+
+    def test_thesis_derived_paper_without_independent_tier_evidence_stays_pending(self) -> None:
+        thesis_url = "https://etheses.whiterose.ac.uk/id/eprint/31740/"
+        thesis_pdf = "https://etheses.whiterose.ac.uk/id/eprint/31740/1/Thesis.pdf"
+        thesis = work(
+            kind="thesis", doi=None, title="Example Sheffield PhD thesis",
+            publisher="University of Sheffield", issns=[], isbns=[], year=2022,
+        )
+        paper = {
+            "tier": "A", "verified": True, "reviewed": True,
+            "reviewer_id": "phase1-audit", "reviewed_at": "2026-11-23T12:00:00Z",
+            "locator": "derived-paper DOI record",
+            "url": "https://doi.org/10.1016/j.ebiom.2021.103444",
+            "note": "The thesis lists this paper, but no independent quartile record is attached",
+        }
+        entry = {
+            "tier": "A", "institution_domain": "etheses.whiterose.ac.uk",
+            "university_reputable": True,
+            "university_evidence": self.record(
+                thesis_url, "repository metadata", "Official repository identifies University of Sheffield",
+            ),
+            "degree": "PhD",
+            "degree_evidence": self.record(
+                thesis_pdf, "title page", "Title page confirms the PhD degree",
+            ),
+            "derived_papers_status": "found",
+            "derived_papers_review": self.record(
+                thesis_pdf, "publications list", "Reviewed the thesis publication list",
+            ),
+            "derived_papers": [paper],
+            "tier_evidence": self.tier_record(
+                thesis_url, "repository record", "Institutional PhD thesis evidence",
+            ),
+        }
+        ok, computed, _reason = vs.tier_verified(
+            thesis, entry, {"S6": True, "S7": True}
+        )
+        self.assertIsNone(ok)
+        self.assertIsNone(computed)
+
+    def test_derived_paper_tier_quartile_mismatch_is_rejected(self) -> None:
+        paper = {
+            "tier": "A",
+            "tier_evidence": {
+                "source": "SJR", "quartile": "Q3", "tier": "A", "verified": True,
+                "reviewer_id": "phase1-audit", "reviewed_at": "2026-11-23T12:00:00Z",
+                "locator": "2024 quartile row", "url": "https://www.scimagojr.com/journalsearch.php",
+                "basis": "SJR Q3 must map to tier B, not A",
+            },
+        }
+        self.assertFalse(vs.derived_paper_tier_evidence_ok(paper))
 
     def test_real_mit_press_deep_learning_book_with_openalex_provenance_computes_a(self) -> None:
         google_books_url = "https://books.google.com/books?id=Np9SDQAAQBAJ"
