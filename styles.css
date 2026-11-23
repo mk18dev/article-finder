@@ -278,7 +278,7 @@ textarea.input-control { resize: vertical; line-height: 1.8; }
 .hint-dot { display: inline-block; width: 5px; height: 5px; margin-left: 4px; border-radius: 50%; background: #a69bff; vertical-align: middle; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .advanced-block { border: 1px solid #e8e9f1; border-radius: 10px; background: #fcfcfe; overflow: hidden; }
-.advanced-block summary { padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; color: #59657a; font-size: 10px; font-weight: 700; cursor: pointer; list-style: none; }
+.advanced-block summary { min-height: 28px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; color: #59657a; font-size: 10px; font-weight: 700; cursor: pointer; list-style: none; }
 .advanced-block summary::-webkit-details-marker { display: none; }
 .advanced-mark { color: var(--violet); font-size: 17px; font-weight: 400; }
 .advanced-block[open] .advanced-mark { transform: rotate(45deg); }
