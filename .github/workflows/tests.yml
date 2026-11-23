@@ -81,7 +81,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist/security
-          GITLEAKS_BIN="$(find /tmp -type f -name gitleaks -perm -u+x -print -quit)"
+          GITLEAKS_BIN="$(find /tmp -maxdepth 2 -type f -name gitleaks -perm -u+x -print -quit 2>/dev/null || true)"
           test -n "$GITLEAKS_BIN"
           "$GITLEAKS_BIN" dir . --redact --report-format sarif --report-path dist/security/gitleaks-current.sarif
           "$GITLEAKS_BIN" git --log-opts="--all" . --redact --report-format sarif --report-path dist/security/gitleaks-history.sarif
