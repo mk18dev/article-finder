@@ -298,7 +298,15 @@ def main() -> int:
                 const result = await axe.run(document, {
                     runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] }
                 });
-                return result.violations.map(item => ({id: item.id, impact: item.impact, help: item.help}));
+                return result.violations.map(item => ({
+                    id: item.id,
+                    impact: item.impact,
+                    help: item.help,
+                    nodes: item.nodes.map(node => ({
+                        target: node.target,
+                        summary: node.failureSummary
+                    }))
+                }));
             }""")
             if result_accessibility:
                 raise AssertionError("Result view accessibility violations: " + json.dumps(
